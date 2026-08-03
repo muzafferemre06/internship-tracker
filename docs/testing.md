@@ -63,6 +63,20 @@ yeniden analiz edilip yeni ilan sayılmadığını ve ayrı retry API akışın�
 fetch'i yapmadan saklanan ham metni işlediğini doğrular. HTTP testi kısmi yeniden
 işleme sonucunu `207` olarak döndürür.
 
+## Faz 3.5 canlı kabul testi
+
+Gerçek ilan kabul testi normal `go test ./...` akışından ayrılır. Test yalnızca
+açıkça verilen build tag/ortam ayarlarıyla resmî kariyer kaynağına ve Gemini
+API'ye gider; site erişim bütçesini ve devre kesiciyi kullanır. Çıktı aktif ilan
+kanıt zamanını, canonical URL'yi, analiz durumunu, provider/model/token bilgisini,
+dashboard görünürlüğünü ve ikinci çalıştırmadaki dedup sonucunu raporlar.
+
+Aynı yolun CI karşılığı küçük ve güvenli bir kaynak fixture'ı ile fake model
+cevabı kullanır. Fixture yalnızca parser ve durum kanıtı için gerekli alanları
+içerir; canlı sayfanın tamamı, API anahtarı ve üretilen SQLite dosyası repoya
+eklenmez. Canlı kaynak erişilemiyor veya başvuru kapanmışsa test başarılı sayılmaz
+ve sahte ilanla çıkış kriteri karşılanmış kabul edilmez.
+
 Orchestrator devre kesici testi aynı scope'taki ilk kaynağın 403 vermesinden
 sonra ikinci kaynağın taşıma katmanına hiç ulaşmadığını, tek rezervasyon
 yapıldığını, güvenli teşhislerin repository'ye aktarıldığını ve başarı kaydıyla

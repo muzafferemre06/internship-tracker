@@ -575,6 +575,31 @@ OpenRouter yanında aynı `ModelProvider` portunu kullanan doğrudan Google Gemi
 adapter'ı test/alternatif sağlayıcı olarak seçilebilir; normal testler her iki
 adapter için de yalnızca fake HTTP cevapları kullanır.
 
+### Faz 3.5 — Gerçek ilan kabul doğrulaması
+
+- Resmî şirket kariyer sayfası veya herkese açık resmî ATS üzerinde, doğrulama
+  anında başvurusu açık en az bir gerçek staj ilanı bulma
+- Kaynak URL'sini, erişim zamanını ve ilanın açık olduğuna dair güvenli/kısa
+  kanıtı kaydetme; erişim korumasını veya site şartlarını aşmama
+- İlanı doğrudan veritabanına eklemek yerine uygun kaynak adapter'ı üzerinden
+  normalizasyon, canonical URL ve dedup akışına alma
+- Canlı Google Gemini sağlayıcısıyla minimize profil ve strict şema üzerinden
+  analiz edip provider/model/token bilgisini SQLite'a yazma
+- İlanın `uygun`, `kismen_uygun` veya gerekçeli `karar_bekliyor` sonucu ile
+  dashboard API'sinde görünmesini doğrulama
+- Aynı kaynağın ikinci işlenişinde duplicate ilan ve ikinci yeni kayıt
+  oluşmadığını doğrulama
+- Canlı kariyer sitesi ve Gemini çağrılarını opt-in kabul testiyle sınırlama;
+  normal suite için küçük, güvenli ve tekrarlanabilir fixture/fake cevap ekleme
+- Gerçek API anahtarını, kişisel veriyi, tüm canlı sayfa gövdesini veya yerel
+  SQLite veritabanını repoya koymama
+
+Çıkış kriteri: Zaman damgalı resmî kaynak kanıtıyla aktif olduğu doğrulanan en az
+bir gerçek staj ilanı, korumaları aşmadan standart ingestion ve canlı Gemini
+analizinden geçer; SQLite'ta kullanım metadatasıyla saklanır, dashboard API'sinde
+görünür ve ikinci çalıştırmada duplicate olmaz. Normal testler canlı servislere
+bağlanmadan aynı yolu fixture ve fake provider ile tekrarlar.
+
 ### Faz 4 — Sade PWA ve başvuru takibi
 
 - responsive dashboard

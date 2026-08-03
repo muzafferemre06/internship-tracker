@@ -5,6 +5,9 @@
 Faz 3 tamamlandı. Sağlayıcıdan bağımsız model analiz katmanı ve OpenRouter
 adapter'ı eklendi. Model çıktısı katı doğrulanır, geçici/bozuk cevaplar sınırlı
 retry alır ve başarısız analizler yeniden işlenebilir karar kuyruğunda saklanır.
+Doğrudan Google Gemini adapter'ı ve opt-in canlı model testi de tamamlandı.
+Sıradaki teslimat Faz 3.5 gerçek ilan kabul doğrulamasıdır; Faz 4 henüz
+başlamamıştır.
 
 ## Tamamlananlar
 
@@ -47,5 +50,9 @@ retry alır ve başarısız analizler yeniden işlenebilir karar kuyruğunda sak
 
 ## Sıradaki iş
 
-Faz 4'te responsive dashboard, manuel tarama/analiz retry kontrolleri, ilan
-detayı ve başvuru durumu/tarih/kontrol listesi akışları geliştirilecek.
+Faz 3.5'te resmî bir kaynakta açık olduğu zaman damgasıyla doğrulanan en az bir
+gerçek staj ilanı uygun adapter üzerinden alınacak. İlan canlı Gemini analizi,
+SQLite kalıcılığı, dashboard görünürlüğü ve ikinci çalıştırmada dedup açısından
+uçtan uca doğrulanacak. Canlı kabul testi opt-in kalacak; normal suite aynı akışı
+fixture ve fake provider ile çalıştıracak. Bu kapı tamamlanmadan Faz 4'e
+başlanmayacak.
