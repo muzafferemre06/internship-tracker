@@ -35,7 +35,15 @@ type DashboardSnapshot struct {
 
 type ListingRepository interface {
 	UpsertRawListing(ctx context.Context, listing domain.RawListing) (listingID string, isNew bool, err error)
+	AnalysisRequired(ctx context.Context, listingID string) (bool, error)
 	SaveAnalysis(ctx context.Context, listingID string, analysis domain.ListingAnalysis) error
+	SaveAnalysisFailure(ctx context.Context, listingID string, provider string, model string, reason string) error
+	PendingAnalyses(ctx context.Context, limit int) ([]PendingAnalysis, error)
+}
+
+type PendingAnalysis struct {
+	ListingID string
+	Listing   domain.RawListing
 }
 
 type ScanCompletion struct {

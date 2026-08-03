@@ -109,6 +109,62 @@ func TestSQLiteRepositorySavesAnalysis(t *testing.T) {
 	}
 }
 
+func TestSQLiteRepositoryPersistsAnalysisUsageAndRecoversPendingFailure(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksan(t, repository)
+	listingID, _, err := repository.UpsertRawListing(context.Background(), domain.RawListing{
+		Company: "Meteksan Savunma", SourceID: "meteksan-kariyer-net", Title: "Backend Stajyeri",
+		URL: "https://example.test/is-ilani/pending", RawText: "Backend ve Go",
+	})
+	if err != nil {
+		t.Fatalf("insert listing: %v", err)
+	}
+
+	if err := repository.SaveAnalysisFailure(context.Background(), listingID, "openrouter", "test/model", "rate limited"); err != nil {
+		t.Fatalf("save failed analysis: %v", err)
+	}
+	required, err := repository.AnalysisRequired(context.Background(), listingID)
+	if err != nil || !required {
+		t.Fatalf("pending analysis must be retryable: required=%v err=%v", required, err)
+	}
+	dashboard, err := repository.Dashboard(context.Background())
+	if err != nil || len(dashboard.NeedsDecision) != 1 || dashboard.NeedsDecision[0].ID != listingID {
+		t.Fatalf("failed listing was not preserved for decision: dashboard=%#v err=%v", dashboard, err)
+	}
+
+	if err := repository.SaveAnalysis(context.Background(), listingID, domain.ListingAnalysis{
+		OpportunityType: "staj", ApplicationOpen: true, Relevant: true,
+		MatchingAreas: []string{"backend"}, Location: "Ankara", WorkModel: "hibrit",
+		Eligibility: domain.EligibilitySuitable, Summary: "Backend stajı", Confidence: 0.9,
+		Provider: "openrouter", Model: "test/model", PromptTokens: 100,
+		CompletionTokens: 25, TotalTokens: 125, EstimatedCostUSD: 0.00015,
+	}); err != nil {
+		t.Fatalf("save recovered analysis: %v", err)
+	}
+	required, err = repository.AnalysisRequired(context.Background(), listingID)
+	if err != nil || required {
+		t.Fatalf("processed analysis should not be retried: required=%v err=%v", required, err)
+	}
+	var status, provider, model string
+	var retryCount, promptTokens, completionTokens, totalTokens int
+	var estimatedCost float64
+	var lastError sql.NullString
+	if err := db.QueryRow(`
+		SELECT processing_status, provider, model, retry_count, last_error,
+			prompt_tokens, completion_tokens, total_tokens, estimated_cost_usd
+		FROM listing_analyses WHERE listing_id = ?
+	`, listingID).Scan(&status, &provider, &model, &retryCount, &lastError,
+		&promptTokens, &completionTokens, &totalTokens, &estimatedCost); err != nil {
+		t.Fatalf("read recovered analysis: %v", err)
+	}
+	if status != "processed" || provider != "openrouter" || model != "test/model" || retryCount != 1 || lastError.Valid {
+		t.Fatalf("unexpected recovered state: status=%q provider=%q model=%q retries=%d error=%#v", status, provider, model, retryCount, lastError)
+	}
+	if promptTokens != 100 || completionTokens != 25 || totalTokens != 125 || estimatedCost != 0.00015 {
+		t.Fatalf("usage was not persisted: prompt=%d completion=%d total=%d cost=%f", promptTokens, completionTokens, totalTokens, estimatedCost)
+	}
+}
+
 func TestSQLiteRepositoryPersistsScanReportAndSourceState(t *testing.T) {
 	repository, db := newTestRepository(t)
 	registerMeteksan(t, repository)

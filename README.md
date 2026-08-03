@@ -96,6 +96,9 @@ salt okunur bağlar; SQLite verisini adlandırılmış bir volume içinde korur.
   tarama raporu
 - `POST /api/v1/scan`: etkin kaynakları hemen tarar; toplam bulunan/yeni ilan
   sayılarını, kalıcı tarama kimliğini/durumunu ve kaynak bazlı hataları döndürür
+- `POST /api/v1/analyses/retry`: en fazla 25 `pending` analizi, kaynak siteye
+  yeniden bağlanmadan saklanan ham ilan metni üzerinden işler; işlenen ve tekrar
+  başarısız olan kayıt sayılarını döndürür
 
 Manuel tarama tamamlandıktan sonra PWA dashboard'u yeniden yükler. Bir kaynak
 hatası diğer kaynakların çalışmasını durdurmaz; kısmi sonuç HTTP `207` ile
@@ -111,6 +114,10 @@ aşılamaz. API/PWA atlanan kaynakları ve tekrar zamanını gösterir.
 Model cevabı JSON Schema ile istenir ve backend'de bilinmeyen alanları da reddeden
 aynı katı sözleşmeyle doğrulanır. Bozuk JSON, şema hatası, timeout, 429 ve geçici
 5xx cevapları en fazla üç denemeyle sınırlıdır.
+Analiz yine başarısızsa ham ilan silinmez; `karar_bekliyor` ve `pending` olarak
+hata/retry bilgisiyle saklanır. Başarılı analiz provider, model,
+prompt/completion/toplam token ve yapılandırılan oranlardan hesaplanan tahmini
+USD maliyetiyle kalıcılaştırılır.
 
 Zamanlanmış taramayı ayrı bir sunucuda çalıştırmak ev bağlantısını otomasyon
 trafiğinden izole eder, ancak erişim izni sağlamaz ve veri merkezi IP'leri de

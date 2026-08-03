@@ -11,9 +11,11 @@ services:
       MIGRATIONS_PATH: /app/migrations
       CANDIDATE_PROFILE_PATH: /app/configs/candidate-profile.json
       SOURCES_PATH: /app/configs/sources.json
-      LLM_PROVIDER: ${LLM_PROVIDER:-openrouter}
+      LLM_PROVIDER: ${LLM_PROVIDER:-deterministic}
       LLM_MODEL: ${LLM_MODEL:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LLM_INPUT_COST_PER_MILLION_USD: ${LLM_INPUT_COST_PER_MILLION_USD:-0}
+      LLM_OUTPUT_COST_PER_MILLION_USD: ${LLM_OUTPUT_COST_PER_MILLION_USD:-0}
       SCAN_SCHEDULE: ${SCAN_SCHEDULE:-0 9 * * 1}
     volumes:
       - tracker_data:/app/data

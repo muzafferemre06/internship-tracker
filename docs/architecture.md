@@ -77,6 +77,13 @@ hataları tekrarlanmaz. Başarılı denemelerin prompt/completion/toplam tokenla
 model için ayarlanan milyon-token fiyatlarından hesaplanan tahmini USD maliyeti
 `listing_analyses` içinde provider/model ile saklanır.
 
+Ham ilan analizden önce kalıcılaştırılır. Analiz başarısızlığı aynı ilan için
+`eligibility_status=karar_bekliyor`, `processing_status=pending`, artan
+`retry_count` ve kısaltılmış `last_error` üretir; kayıt dashboard karar kuyruğunda
+kalır. Normal tarama duplicate bir pending ilanı yeniden işler. Ayrıca
+`POST /api/v1/analyses/retry`, saklanan ham metni kullanarak kaynağa ve onun
+erişim bütçesine dokunmadan en fazla 25 pending analizi işler.
+
 ## Tarama raporu ve kaynak izolasyonu
 
 Orchestrator her manuel taramadan önce `scan_runs` kaydını `running` durumunda

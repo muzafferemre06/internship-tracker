@@ -15,12 +15,17 @@ type ScanRunner interface {
 	Run(ctx context.Context, trigger string) (orchestrator.ScanResult, error)
 }
 
+type AnalysisRetrier interface {
+	ReprocessPending(ctx context.Context, limit int) (orchestrator.ReprocessResult, error)
+}
+
 type Handler struct {
-	allowedOrigin  string
-	logger         *slog.Logger
-	startedAt      time.Time
-	scanner        ScanRunner
-	dashboardStore store.DashboardRepository
+	allowedOrigin   string
+	logger          *slog.Logger
+	startedAt       time.Time
+	scanner         ScanRunner
+	analysisRetrier AnalysisRetrier
+	dashboardStore  store.DashboardRepository
 }
 
 func NewHandler(
@@ -30,19 +35,50 @@ func NewHandler(
 	dashboardStore store.DashboardRepository,
 ) http.Handler {
 	handler := Handler{
-		allowedOrigin:  allowedOrigin,
-		logger:         logger,
-		startedAt:      time.Now().UTC(),
-		scanner:        scanner,
-		dashboardStore: dashboardStore,
+		allowedOrigin:   allowedOrigin,
+		logger:          logger,
+		startedAt:       time.Now().UTC(),
+		scanner:         scanner,
+		analysisRetrier: analysisRetrier(scanner),
+		dashboardStore:  dashboardStore,
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", handler.health)
 	mux.HandleFunc("/api/v1/dashboard", handler.dashboard)
 	mux.HandleFunc("/api/v1/scan", handler.scan)
+	mux.HandleFunc("/api/v1/analyses/retry", handler.retryAnalyses)
 
 	return handler.withMiddleware(mux)
+}
+
+func analysisRetrier(scanner ScanRunner) AnalysisRetrier {
+	if retrier, ok := scanner.(AnalysisRetrier); ok {
+		return retrier
+	}
+	return nil
+}
+
+func (h Handler) retryAnalyses(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		methodNotAllowed(writer)
+		return
+	}
+	if h.analysisRetrier == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "analysis retrier is unavailable"})
+		return
+	}
+	result, err := h.analysisRetrier.ReprocessPending(request.Context(), 25)
+	if err != nil {
+		h.logger.Error("pending analysis retry failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "pending analyses could not be retried"})
+		return
+	}
+	status := http.StatusOK
+	if result.Failed > 0 {
+		status = http.StatusMultiStatus
+	}
+	writeJSON(writer, status, result)
 }
 
 func (h Handler) health(writer http.ResponseWriter, request *http.Request) {

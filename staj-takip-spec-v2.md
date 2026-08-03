@@ -566,6 +566,12 @@ fixture testleri geçer.
 Çıkış kriteri: Model değiştirilebilir; sahte API cevaplarıyla bütün hata ve
 uygunluk senaryoları test edilir; başarısız ilan kaybolmaz.
 
+Uygulama notu: Sağlayıcı/model backend ortam ayarlarından seçilir. Aday profili
+kurum ve doğrudan kimlik bilgileri çıkarılarak minimize edilir. Başarısız analiz
+ham ilanla birlikte `karar_bekliyor/pending` saklanır ve kaynak siteye yeniden
+erişmeden ayrı retry akışıyla işlenebilir. Başarılı analiz provider/model, token
+kullanımı ve yapılandırılmış fiyat oranlarından hesaplanan tahmini maliyeti taşır.
+
 ### Faz 4 — Sade PWA ve başvuru takibi
 
 - responsive dashboard

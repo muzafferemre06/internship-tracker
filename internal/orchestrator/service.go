@@ -33,6 +33,12 @@ type ScanResult struct {
 	Sources    []SourceResult
 }
 
+type ReprocessResult struct {
+	Found     int `json:"found"`
+	Processed int `json:"processed"`
+	Failed    int `json:"failed"`
+}
+
 type Service struct {
 	Sources  []scraper.Source
 	Analyzer analyzer.ListingAnalyzer
@@ -44,6 +50,9 @@ type Service struct {
 func (s Service) Run(ctx context.Context, trigger string) (ScanResult, error) {
 	if s.Store == nil {
 		return ScanResult{}, errors.New("scan repository is required")
+	}
+	if s.Analyzer == nil {
+		return ScanResult{}, errors.New("listing analyzer is required")
 	}
 	startedAt := s.now().UTC()
 	runID, err := s.Store.StartScanRun(ctx, trigger, startedAt)
@@ -132,14 +141,26 @@ func (s Service) Run(ctx context.Context, trigger string) (ScanResult, error) {
 				sourceResult.ProcessError++
 				continue
 			}
-			if !isNew {
+			if isNew {
+				sourceResult.New++
+			}
+			required, err := s.Store.AnalysisRequired(ctx, listingID)
+			if err != nil {
+				sourceResult.ProcessError++
+				continue
+			}
+			if !required {
 				continue
 			}
 
-			sourceResult.New++
 			analysis, err := s.Analyzer.Analyze(ctx, listing, s.Profile)
 			if err != nil {
 				sourceResult.ProcessError++
+				if saveErr := s.Store.SaveAnalysisFailure(
+					context.WithoutCancel(ctx), listingID, analyzerIdentity(s.Analyzer), analyzerModel(s.Analyzer), shortError(err),
+				); saveErr != nil {
+					runErrors = append(runErrors, saveErr)
+				}
 				continue
 			}
 			if err := s.Store.SaveAnalysis(ctx, listingID, analysis); err != nil {
@@ -175,6 +196,54 @@ func (s Service) Run(ctx context.Context, trigger string) (ScanResult, error) {
 		return result, err
 	}
 	return result, errors.Join(runErrors...)
+}
+
+func (s Service) ReprocessPending(ctx context.Context, limit int) (ReprocessResult, error) {
+	if s.Store == nil || s.Analyzer == nil {
+		return ReprocessResult{}, errors.New("analysis repository and analyzer are required")
+	}
+	pending, err := s.Store.PendingAnalyses(ctx, limit)
+	if err != nil {
+		return ReprocessResult{}, err
+	}
+	result := ReprocessResult{Found: len(pending)}
+	var processErrors []error
+	for _, item := range pending {
+		analysis, analyzeErr := s.Analyzer.Analyze(ctx, item.Listing, s.Profile)
+		if analyzeErr == nil {
+			analyzeErr = s.Store.SaveAnalysis(ctx, item.ListingID, analysis)
+		}
+		if analyzeErr == nil {
+			result.Processed++
+			continue
+		}
+		result.Failed++
+		if saveErr := s.Store.SaveAnalysisFailure(
+			context.WithoutCancel(ctx), item.ListingID, analyzerIdentity(s.Analyzer), analyzerModel(s.Analyzer), shortError(analyzeErr),
+		); saveErr != nil {
+			processErrors = append(processErrors, saveErr)
+		}
+	}
+	return result, errors.Join(processErrors...)
+}
+
+type identifiedAnalyzer interface {
+	ProviderName() string
+	ModelName() string
+}
+
+func analyzerIdentity(value analyzer.ListingAnalyzer) string {
+	if identified, ok := value.(identifiedAnalyzer); ok {
+		return identified.ProviderName()
+	}
+	return "deterministic"
+}
+
+func analyzerModel(value analyzer.ListingAnalyzer) string {
+	if identified, ok := value.(identifiedAnalyzer); ok {
+		return identified.ModelName()
+	}
+	return ""
 }
 
 type accessRunState struct {

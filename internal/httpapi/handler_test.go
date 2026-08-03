@@ -15,11 +15,16 @@ import (
 )
 
 type fakeScanRunner struct {
-	result orchestrator.ScanResult
+	result    orchestrator.ScanResult
+	reprocess orchestrator.ReprocessResult
 }
 
 func (f fakeScanRunner) Run(context.Context, string) (orchestrator.ScanResult, error) {
 	return f.result, nil
+}
+
+func (f fakeScanRunner) ReprocessPending(context.Context, int) (orchestrator.ReprocessResult, error) {
+	return f.reprocess, nil
 }
 
 type fakeDashboardRepository struct {
@@ -99,5 +104,20 @@ func TestDashboardUsesRepository(t *testing.T) {
 
 	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"company":"Meteksan"`) {
 		t.Fatalf("unexpected dashboard response: status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestRetryAnalysesReturnsReprocessResult(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := NewHandler("http://localhost:5173", logger, fakeScanRunner{
+		reprocess: orchestrator.ReprocessResult{Found: 3, Processed: 2, Failed: 1},
+	}, fakeDashboardRepository{})
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/analyses/retry", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusMultiStatus || !strings.Contains(response.Body.String(), `"processed":2`) {
+		t.Fatalf("unexpected retry response: status=%d body=%s", response.Code, response.Body.String())
 	}
 }

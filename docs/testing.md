@@ -39,13 +39,21 @@ Veritabanı testleri geçici dizinde gerçek SQLite dosyası açar. Migration'la
 ilk açılışta uygulanması ve sonraki açılışlarda tekrar çalışmaması doğrulanır.
 Repository testleri takip parametreleri farklı aynı URL'nin tek ilan olarak
 kalmasını, içeriğin/`last_seen_at` alanının yenilenmesini ve analizin kalıcı
-olarak yazılmasını doğrular. Scan repository testi kaynak hatasının zaman ve
+olarak yazılmasını doğrular. Faz 3 repository testi başarısız analizin
+`karar_bekliyor/pending` kaldığını, dashboard'dan kaybolmadığını, retry sayısını,
+provider/model ile token ve tahmini maliyet alanlarını; başarı sonrası hatanın
+temizlenip kaydın `processed` olmasını doğrular. Scan repository testi kaynak hatasının zaman ve
 kısa sebeple saklanmasını, sonraki başarıda temizlenmesini ve dashboard'un son
 kalıcı tarama raporunu döndürmesini kapsar.
 Erişim durumu testi ilk domain rezervasyonunun izinli, 24 saat içindeki ikinci
 rezervasyonun engelli olduğunu; `Retry-After` değerinin cooldown'u uzattığını,
 6/12/24 saat geri çekilme tavanını ve başarı sonrası hata durumunun sıfırlandığını
 gerçek SQLite üzerinde doğrular.
+
+Orchestrator yeniden işleme testleri duplicate pending ilanın sonraki taramada
+yeniden analiz edilip yeni ilan sayılmadığını ve ayrı retry API akışının kaynak
+fetch'i yapmadan saklanan ham metni işlediğini doğrular. HTTP testi kısmi yeniden
+işleme sonucunu `207` olarak döndürür.
 
 Orchestrator devre kesici testi aynı scope'taki ilk kaynağın 403 vermesinden
 sonra ikinci kaynağın taşıma katmanına hiç ulaşmadığını, tek rezervasyon

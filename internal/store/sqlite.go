@@ -156,14 +156,23 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 		return fmt.Errorf("encode matching areas: %w", err)
 	}
 
+	provider := strings.TrimSpace(analysis.Provider)
+	if provider == "" {
+		provider = "deterministic"
+	}
+	if analysis.PromptTokens < 0 || analysis.CompletionTokens < 0 || analysis.TotalTokens < 0 || analysis.EstimatedCostUSD < 0 {
+		return errors.New("analysis usage values cannot be negative")
+	}
+
 	_, err = r.db.ExecContext(ctx, `
 		INSERT INTO listing_analyses(
 			listing_id, opportunity_type, is_application_open, is_relevant,
 			matching_areas_json, class_year_requirement, gpa_requirement,
 			location, work_model, eligibility_status, application_deadline,
 			summary, confidence, needs_user_decision, decision_question,
-			provider, analyzed_at, processing_status
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'deterministic', ?, 'processed')
+			provider, model, analyzed_at, processing_status,
+			prompt_tokens, completion_tokens, total_tokens, estimated_cost_usd
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?, 'processed', ?, ?, ?, ?)
 		ON CONFLICT(listing_id) DO UPDATE SET
 			opportunity_type = excluded.opportunity_type,
 			is_application_open = excluded.is_application_open,
@@ -180,18 +189,120 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 			needs_user_decision = excluded.needs_user_decision,
 			decision_question = excluded.decision_question,
 			provider = excluded.provider,
+			model = excluded.model,
 			analyzed_at = excluded.analyzed_at,
 			processing_status = excluded.processing_status,
+			prompt_tokens = excluded.prompt_tokens,
+			completion_tokens = excluded.completion_tokens,
+			total_tokens = excluded.total_tokens,
+			estimated_cost_usd = excluded.estimated_cost_usd,
 			last_error = NULL
 	`, listingID, analysis.OpportunityType, boolInt(analysis.ApplicationOpen), boolInt(analysis.Relevant),
 		string(matchingAreas), analysis.ClassRequirement, analysis.GPARequirement, analysis.Location,
 		analysis.WorkModel, analysis.Eligibility, nullableTime(analysis.ApplicationDueAt),
 		analysis.Summary, analysis.Confidence, boolInt(analysis.NeedsUserDecision),
-		analysis.DecisionQuestion, r.now().UTC().Format(time.RFC3339Nano))
+		analysis.DecisionQuestion, provider, analysis.Model, r.now().UTC().Format(time.RFC3339Nano),
+		analysis.PromptTokens, analysis.CompletionTokens, analysis.TotalTokens, analysis.EstimatedCostUSD)
 	if err != nil {
 		return fmt.Errorf("save listing analysis: %w", err)
 	}
 	return nil
+}
+
+func (r *SQLiteRepository) AnalysisRequired(ctx context.Context, listingID string) (bool, error) {
+	if strings.TrimSpace(listingID) == "" {
+		return false, errors.New("listing ID is required")
+	}
+	var status string
+	err := r.db.QueryRowContext(ctx, `
+		SELECT processing_status FROM listing_analyses WHERE listing_id = ?
+	`, listingID).Scan(&status)
+	if errors.Is(err, sql.ErrNoRows) {
+		return true, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("read listing analysis state: %w", err)
+	}
+	return status != "processed", nil
+}
+
+func (r *SQLiteRepository) SaveAnalysisFailure(
+	ctx context.Context,
+	listingID string,
+	provider string,
+	model string,
+	reason string,
+) error {
+	listingID = strings.TrimSpace(listingID)
+	provider = strings.TrimSpace(provider)
+	reason = strings.TrimSpace(reason)
+	if listingID == "" || provider == "" || reason == "" {
+		return errors.New("listing ID, provider and analysis failure reason are required")
+	}
+	const maxReasonBytes = 500
+	if len(reason) > maxReasonBytes {
+		reason = reason[:maxReasonBytes]
+	}
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO listing_analyses(
+			listing_id, matching_areas_json, eligibility_status, needs_user_decision,
+			provider, model, processing_status, retry_count, last_error
+		) VALUES (?, '[]', 'karar_bekliyor', 1, ?, NULLIF(?, ''), 'pending', 1, ?)
+		ON CONFLICT(listing_id) DO UPDATE SET
+			eligibility_status = 'karar_bekliyor',
+			needs_user_decision = 1,
+			provider = excluded.provider,
+			model = excluded.model,
+			processing_status = 'pending',
+			retry_count = listing_analyses.retry_count + 1,
+			last_error = excluded.last_error
+	`, listingID, provider, model, reason)
+	if err != nil {
+		return fmt.Errorf("save listing analysis failure: %w", err)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) PendingAnalyses(ctx context.Context, limit int) ([]PendingAnalysis, error) {
+	if limit < 1 || limit > 100 {
+		return nil, errors.New("pending analysis limit must be between 1 and 100")
+	}
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT listings.id, companies.name, company_sources.source_key, listings.title,
+			listings.canonical_url, listings.raw_text, listings.last_seen_at
+		FROM listing_analyses
+		JOIN listings ON listings.id = listing_analyses.listing_id
+		JOIN companies ON companies.id = listings.company_id
+		JOIN company_sources ON company_sources.id = listings.source_id
+		WHERE listing_analyses.processing_status = 'pending'
+		ORDER BY listing_analyses.retry_count, listings.first_seen_at, listings.id
+		LIMIT ?
+	`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("query pending analyses: %w", err)
+	}
+	defer rows.Close()
+
+	result := make([]PendingAnalysis, 0)
+	for rows.Next() {
+		var pending PendingAnalysis
+		var fetchedAt string
+		if err := rows.Scan(
+			&pending.ListingID, &pending.Listing.Company, &pending.Listing.SourceID,
+			&pending.Listing.Title, &pending.Listing.URL, &pending.Listing.RawText, &fetchedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan pending analysis: %w", err)
+		}
+		pending.Listing.FetchedAt, err = time.Parse(time.RFC3339Nano, fetchedAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse pending listing fetch time: %w", err)
+		}
+		result = append(result, pending)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read pending analyses: %w", err)
+	}
+	return result, nil
 }
 
 func (r *SQLiteRepository) StartScanRun(ctx context.Context, trigger string, startedAt time.Time) (int64, error) {

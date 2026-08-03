@@ -2,10 +2,9 @@
 
 ## Aktif faz
 
-Faz 2 tamamlandı. Generic kariyer.net adapter'ı aynı şirket altında birden
-fazla profil URL'sini ve farklı iştirak sayfa başlıklarını işler. ASELSAN, STM,
-Baykar ve Samsung örnek kaynakları etkindir. Kaynak hataları birbirinden izole
-edilir; tarama ve kaynak sonuçları SQLite'a kalıcı olarak yazılır.
+Faz 3 tamamlandı. Sağlayıcıdan bağımsız model analiz katmanı ve OpenRouter
+adapter'ı eklendi. Model çıktısı katı doğrulanır, geçici/bozuk cevaplar sınırlı
+retry alır ve başarısız analizler yeniden işlenebilir karar kuyruğunda saklanır.
 
 ## Tamamlananlar
 
@@ -23,6 +22,10 @@ edilir; tarama ve kaynak sonuçları SQLite'a kalıcı olarak yazılır.
 - PWA'da son taramanın başarılı ve başarısız kaynak sayıları
 - Kilit dosyasıyla tekrarlanabilir frontend kurulumu ve sıfır npm audit bulgusu
 - Test, CI, Docker ve secret yönetimi başlangıç dosyaları
+- Ayarlardan seçilen deterministik/OpenRouter analiz sağlayıcısı ve model
+- Minimize aday profili, strict JSON Schema ve backend çıktı doğrulaması
+- Sınırlı model retry'sı ile pending analizlerin kaynak bağımsız yeniden işlenmesi
+- Provider/model, token kullanımı ve ayarlanabilir oranlarla tahmini maliyet kalıcılığı
 
 ## Doğrulanan çıkış kriterleri
 
@@ -34,8 +37,13 @@ edilir; tarama ve kaynak sonuçları SQLite'a kalıcı olarak yazılır.
 - İki ASELSAN profilindeki ortak ilan tek kayıt olur; rapor `partial` kapanır.
 - 403, 418, 429, 5xx, timeout ve selector bozulması testleri geçer.
 - İlk koruma hatasından sonra aynı domaindeki diğer profillere istek gönderilmez.
+- Fake provider/HTTP cevaplarıyla uygun, uygun değil, karar bekliyor, bozuk JSON,
+  şema hatası, timeout, kalıcı 4xx, 429, 5xx ve retry sınırı geçer.
+- Başarısız analiz ham ilanı kaybetmez; dashboard karar kuyruğunda kalır ve
+  kaynak fetch'i olmadan başarılı biçimde yeniden işlenir.
+- Başarılı analizde provider, model, token kullanımı ve tahmini maliyet saklanır.
 
 ## Sıradaki iş
 
-Faz 3'te sağlayıcıdan bağımsız OpenRouter analiz adapter'ı, şema doğrulama,
-sınırlı retry, başarısız ilanı yeniden işleme ve maliyet ölçümü geliştirilecek.
+Faz 4'te responsive dashboard, manuel tarama/analiz retry kontrolleri, ilan
+detayı ve başvuru durumu/tarih/kontrol listesi akışları geliştirilecek.

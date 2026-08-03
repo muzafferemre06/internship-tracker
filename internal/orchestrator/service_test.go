@@ -52,6 +52,24 @@ func (fakeAnalyzer) Analyze(
 	return domain.ListingAnalysis{Relevant: true, Eligibility: domain.EligibilitySuitable}, nil
 }
 
+type recoveringAnalyzer struct{ calls int }
+
+func (a *recoveringAnalyzer) Analyze(
+	context.Context,
+	domain.RawListing,
+	analyzer.CandidateProfile,
+) (domain.ListingAnalysis, error) {
+	a.calls++
+	if a.calls == 1 {
+		return domain.ListingAnalysis{}, errors.New("temporary analysis failure")
+	}
+	return domain.ListingAnalysis{
+		OpportunityType: "staj", ApplicationOpen: true, Relevant: true,
+		Location: "Ankara", WorkModel: "hibrit", Eligibility: domain.EligibilitySuitable,
+		Summary: "Uygun staj", Confidence: 0.9,
+	}, nil
+}
+
 type fakeStore struct {
 	seen           map[string]bool
 	startedTrigger string
@@ -76,6 +94,16 @@ func (f *fakeStore) UpsertRawListing(
 
 func (*fakeStore) SaveAnalysis(context.Context, string, domain.ListingAnalysis) error {
 	return nil
+}
+
+func (*fakeStore) AnalysisRequired(context.Context, string) (bool, error) { return true, nil }
+
+func (*fakeStore) SaveAnalysisFailure(context.Context, string, string, string, string) error {
+	return nil
+}
+
+func (*fakeStore) PendingAnalyses(context.Context, int) ([]store.PendingAnalysis, error) {
+	return nil, nil
 }
 
 func (f *fakeStore) StartScanRun(_ context.Context, trigger string, _ time.Time) (int64, error) {
@@ -365,6 +393,91 @@ func TestMultiProfileFixtureScanIsolatesFailureAndPersistsPartialReport(t *testi
 	}
 	if dashboard.LastScan == nil || dashboard.LastScan.Status != "partial" || dashboard.LastScan.SourcesSucceeded != 2 || dashboard.LastScan.SourcesFailed != 1 || dashboard.LastScan.NewListings != 2 {
 		t.Fatalf("unexpected persisted scan report: %#v", dashboard.LastScan)
+	}
+}
+
+func TestRunRetriesPersistedPendingAnalysisWithoutCountingDuplicateAsNew(t *testing.T) {
+	db, err := database.Open(
+		context.Background(), filepath.Join(t.TempDir(), "tracker.db"), os.DirFS("../../migrations"),
+	)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	repository, err := store.NewSQLiteRepository(db)
+	if err != nil {
+		t.Fatalf("create repository: %v", err)
+	}
+	if err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
+		Key: "fixture", Company: "Test", PriorityGroup: "primary", Type: "fixture",
+		URL: "https://example.test/company", Adapter: "fixture", Enabled: true,
+	}); err != nil {
+		t.Fatalf("register source: %v", err)
+	}
+	listing := domain.RawListing{
+		Company: "Test", SourceID: "fixture", Title: "Backend Stajı",
+		URL: "https://example.test/jobs/1", RawText: "Go backend stajı",
+	}
+	model := &recoveringAnalyzer{}
+	service := Service{
+		Sources:  []scraper.Source{fakeSource{name: "fixture", listings: []domain.RawListing{listing}}},
+		Analyzer: model, Store: repository,
+	}
+
+	first, err := service.Run(context.Background(), "manual")
+	if err != nil {
+		t.Fatalf("first scan: %v", err)
+	}
+	if first.Sources[0].New != 1 || first.Sources[0].ProcessError != 1 {
+		t.Fatalf("unexpected failed first scan: %#v", first)
+	}
+	dashboard, err := repository.Dashboard(context.Background())
+	if err != nil || len(dashboard.NeedsDecision) != 1 {
+		t.Fatalf("failed listing disappeared: dashboard=%#v err=%v", dashboard, err)
+	}
+
+	second, err := service.Run(context.Background(), "manual")
+	if err != nil {
+		t.Fatalf("second scan: %v", err)
+	}
+	if second.Sources[0].New != 0 || second.Sources[0].ProcessError != 0 || model.calls != 2 {
+		t.Fatalf("pending duplicate was not reprocessed: result=%#v calls=%d", second, model.calls)
+	}
+	dashboard, err = repository.Dashboard(context.Background())
+	if err != nil || len(dashboard.NeedsDecision) != 0 || len(dashboard.NewListings) != 1 {
+		t.Fatalf("recovered listing state is wrong: dashboard=%#v err=%v", dashboard, err)
+	}
+}
+
+func TestReprocessPendingUsesStoredListingWithoutFetchingSource(t *testing.T) {
+	db, err := database.Open(
+		context.Background(), filepath.Join(t.TempDir(), "tracker.db"), os.DirFS("../../migrations"),
+	)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	repository, _ := store.NewSQLiteRepository(db)
+	if err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
+		Key: "fixture", Company: "Test", PriorityGroup: "primary", Type: "fixture",
+		URL: "https://example.test/company", Adapter: "fixture", Enabled: true,
+	}); err != nil {
+		t.Fatalf("register source: %v", err)
+	}
+	listingID, _, err := repository.UpsertRawListing(context.Background(), domain.RawListing{
+		Company: "Test", SourceID: "fixture", Title: "Staj", URL: "https://example.test/jobs/pending",
+		RawText: "Backend", FetchedAt: time.Now(),
+	})
+	if err != nil {
+		t.Fatalf("insert listing: %v", err)
+	}
+	if err := repository.SaveAnalysisFailure(context.Background(), listingID, "deterministic", "", "failed"); err != nil {
+		t.Fatalf("mark pending: %v", err)
+	}
+	model := &recoveringAnalyzer{calls: 1}
+	result, err := (Service{Analyzer: model, Store: repository}).ReprocessPending(context.Background(), 10)
+	if err != nil || result.Found != 1 || result.Processed != 1 || result.Failed != 0 {
+		t.Fatalf("unexpected reprocess result: result=%#v err=%v", result, err)
 	}
 }
 
