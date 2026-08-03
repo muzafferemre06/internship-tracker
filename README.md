@@ -45,6 +45,30 @@ Her kaynak, taramalar ve veritabanı kayıtları arasında değişmeyen benzersi
 izlenebilir. İştirak profilinin sayfa başlığı ana şirket adından farklıysa
 selector doğrulaması için kaynakta `page_name` belirtilir.
 
+## İlan analizi
+
+Varsayılan `LLM_PROVIDER=deterministic` ayarı API anahtarı veya ağ çağrısı
+gerektirmez. OpenRouter analizi için yerel `.env` dosyasında aşağıdaki alanlar
+ayarlanır:
+
+```dotenv
+LLM_PROVIDER=openrouter
+LLM_MODEL=provider/model-name
+OPENROUTER_API_KEY=local-secret
+LLM_INPUT_COST_PER_MILLION_USD=0
+LLM_OUTPUT_COST_PER_MILLION_USD=0
+```
+
+Model ve sağlayıcı yalnızca backend başlangıcında seçilir. OpenRouter seçiliyken
+model adı ve API anahtarı zorunludur; maliyet oranları negatif olmayan USD
+değerleri olmalıdır. Gerçek model fiyatları değişebildiği için milyon input ve
+output token başına oranlar seçilen modelin güncel fiyatıyla kullanıcı tarafından
+ayarlanır. Anahtar ve yerel `.env` repoya eklenmez.
+
+Modele adayın adı, iletişim bilgileri, üniversite adı veya deneyim kurumları
+gönderilmez. Yalnızca bölüm/alan, sınıf, GPA, odak alanları, deneyim konu başlıkları
+ve konum tercihleri; ilan başlığı ve metniyle birlikte gönderilir.
+
 ## Test
 
 ```bash
@@ -83,6 +107,10 @@ başlatılmış iki Kariyer.net taraması arasında en az 24 saat bırakılır. 
 403/429/challenge yanıtı kalan Kariyer.net profillerini çağırmadan durdurur;
 cooldown ve en erken tekrar zamanı SQLite'ta kalır ve manuel tarama düğmesiyle
 aşılamaz. API/PWA atlanan kaynakları ve tekrar zamanını gösterir.
+
+Model cevabı JSON Schema ile istenir ve backend'de bilinmeyen alanları da reddeden
+aynı katı sözleşmeyle doğrulanır. Bozuk JSON, şema hatası, timeout, 429 ve geçici
+5xx cevapları en fazla üç denemeyle sınırlıdır.
 
 Zamanlanmış taramayı ayrı bir sunucuda çalıştırmak ev bağlantısını otomasyon
 trafiğinden izole eder, ancak erişim izni sağlamaz ve veri merkezi IP'leri de

@@ -12,6 +12,8 @@ type Config struct {
 	SourcesPath          string
 	LLMProvider          string
 	LLMModel             string
+	LLMInputCost         string
+	LLMOutputCost        string
 	OpenRouterAPIKey     string
 	ScanSchedule         string
 }
@@ -28,8 +30,10 @@ func Load() Config {
 			"configs/candidate-profile.json",
 		),
 		SourcesPath:      envOrDefault("SOURCES_PATH", "configs/sources.json"),
-		LLMProvider:      envOrDefault("LLM_PROVIDER", "openrouter"),
+		LLMProvider:      envOrDefault("LLM_PROVIDER", "deterministic"),
 		LLMModel:         os.Getenv("LLM_MODEL"),
+		LLMInputCost:     envOrDefault("LLM_INPUT_COST_PER_MILLION_USD", "0"),
+		LLMOutputCost:    envOrDefault("LLM_OUTPUT_COST_PER_MILLION_USD", "0"),
 		OpenRouterAPIKey: os.Getenv("OPENROUTER_API_KEY"),
 		ScanSchedule:     envOrDefault("SCAN_SCHEDULE", "0 9 * * 1"),
 	}

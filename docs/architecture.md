@@ -57,10 +57,25 @@ bağlar. İlan kimliği şirket adı ve canonical URL'nin SHA-256 özetidir. Can
 URL'den fragment, UTM ve bilinen reklam takip parametreleri çıkarılır; sorgu
 parametreleri kararlı sıraya getirilir.
 
-Faz 1 analizcisi yalnızca deterministik metin sinyallerini kullanır. Fırsat
-türü, profilin öncelikli alanları, sınıf şartı, Ankara/uzaktan sinyali ve
-çalışma modeli çıkarılır. Bu sonuç bir LLM kararı sayılmaz; Faz 3'te aynı
-`ListingAnalyzer` arayüzünün arkasına sağlayıcı tabanlı analiz eklenecektir.
+Deterministik analizci API anahtarı gerektirmeyen varsayılan seçenektir. Sağlayıcı
+tabanlı akış aynı `ListingAnalyzer` portunun arkasındaki `ModelAnalyzer` ile
+kurulur. `ModelProvider` yalnızca model isteğini ve ham cevabı taşır; OpenRouter
+HTTP ayrıntıları adapter içinde kalır. `LLM_PROVIDER` ve `LLM_MODEL` uygulama
+başlangıcında seçilir, desteklenmeyen sağlayıcı veya eksik OpenRouter secret'ı
+başlangıcı durdurur.
+
+`ModelAnalyzer`, sağlayıcıya doğrudan config profilini vermez. Minimize edilmiş
+istek yalnızca bölüm/alan, sınıf, GPA, odak alanları, deneyim alanları ve konum
+tercihlerini içerir; üniversite ve deneyim kurumu adları dışarıda bırakılır.
+OpenRouter isteği strict JSON Schema response formatını kullanır. Dönen içerik
+backend'de `DisallowUnknownFields`, enum, aralık, zorunlu alan ve karar durumu
+tutarlılığı kontrollerinden tekrar geçer.
+
+Geçici taşıma hataları, timeout, 408/429/5xx, bozuk JSON ve şema ihlalleri 100/200
+ms beklemeli ve toplam üç denemeli sınırlı retry alır. 4xx gibi kalıcı sağlayıcı
+hataları tekrarlanmaz. Başarılı denemelerin prompt/completion/toplam tokenları ve
+model için ayarlanan milyon-token fiyatlarından hesaplanan tahmini USD maliyeti
+`listing_analyses` içinde provider/model ile saklanır.
 
 ## Tarama raporu ve kaynak izolasyonu
 

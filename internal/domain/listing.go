@@ -31,8 +31,14 @@ type ListingAnalysis struct {
 	WorkModel         string
 	Eligibility       EligibilityStatus
 	ApplicationDueAt  *time.Time
-	Summary            string
-	Confidence         float64
-	NeedsUserDecision  bool
-	DecisionQuestion   string
+	Summary           string
+	Confidence        float64
+	NeedsUserDecision bool
+	DecisionQuestion  string
+	Provider          string
+	Model             string
+	PromptTokens      int
+	CompletionTokens  int
+	TotalTokens       int
+	EstimatedCostUSD  float64
 }

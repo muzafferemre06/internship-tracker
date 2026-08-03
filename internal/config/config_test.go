@@ -24,6 +24,9 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if cfg.CandidateProfilePath != "configs/candidate-profile.json" {
 		t.Fatalf("unexpected candidate profile path %q", cfg.CandidateProfilePath)
 	}
+	if cfg.LLMProvider != "deterministic" {
+		t.Fatalf("unexpected default analyzer %q", cfg.LLMProvider)
+	}
 }
 
 func TestLoadReadsEnvironment(t *testing.T) {

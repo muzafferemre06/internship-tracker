@@ -21,9 +21,16 @@ ASELSAN ve ASELSANNET profillerinin tamamlandığını, iki profilde görülen o
 URL'nin tek ilan kaldığını ve taramanın `partial` raporuyla SQLite'a yazıldığını
 doğrular. Böylece kaynak izolasyonu canlı kariyer sitesine bağlanmadan sınanır.
 
-OpenRouter normal testlerde çağrılmaz. `ListingAnalyzer` fake/mock
-uygulamalarıyla geçerli JSON, geçersiz cevap, timeout ve retry senaryoları
-test edilir.
+OpenRouter normal testlerde çağrılmaz. Sahte `ModelProvider` cevapları geçerli
+uygun, uygun olmayan ve karar bekleyen sonuçları; bozuk JSON'u; bilinmeyen alanı;
+enum/aralık şema hatasını; timeout'u; kalıcı 4xx'i; 429'u; geçici 5xx'i ve üç
+denemelik retry sınırını kapsar. Sahte HTTP transport testi OpenRouter request'inin
+model ve strict JSON Schema taşıdığını, Bearer anahtarını yalnızca backend
+header'ında kullandığını ve usage alanlarını okuduğunu doğrular.
+
+Profil minimizasyon testi model input'unda yalnızca bölüm/alan, sınıf, GPA, odak,
+deneyim alanı ve konum tercihlerinin bulunduğunu doğrular. Üniversite ve deneyim
+kurumu adları `analyzerProfile` dönüşümünde atılır.
 
 Deterministik analizci testleri ilgili bir backend stajını, daha yüksek sınıf
 şartını, kapanmış ilanı ve iptal edilen context'i kapsar.

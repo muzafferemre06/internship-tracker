@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -54,9 +55,14 @@ func main() {
 		logger.Error("source initialization failed", "error", err)
 		os.Exit(1)
 	}
+	listingAnalyzer, err := configureAnalyzer(cfg)
+	if err != nil {
+		logger.Error("listing analyzer initialization failed", "error", err)
+		os.Exit(1)
+	}
 	scanService := &orchestrator.Service{
 		Sources:  sources,
-		Analyzer: analyzer.NewDeterministicAnalyzer(),
+		Analyzer: listingAnalyzer,
 		Store:    repository,
 		Profile:  analyzerProfile(candidateConfig),
 	}
@@ -143,18 +149,41 @@ func configureSources(
 }
 
 func analyzerProfile(profile config.CandidateProfile) analyzer.CandidateProfile {
-	experienceNotes := make([]string, 0, len(profile.Experience))
+	experienceAreas := make([]string, 0)
 	for _, experience := range profile.Experience {
-		experienceNotes = append(
-			experienceNotes,
-			experience.Organization+": "+strings.Join(experience.Areas, ", "),
-		)
+		experienceAreas = append(experienceAreas, experience.Areas...)
 	}
 	return analyzer.CandidateProfile{
-		Education:       strings.TrimSpace(profile.Education.University + " " + profile.Education.Department),
+		EducationField:  strings.TrimSpace(profile.Education.Department),
 		ClassYear:       profile.Education.ClassYear,
 		GPA:             profile.Education.GPA,
 		FocusAreas:      append([]string(nil), profile.FocusAreas...),
-		ExperienceNotes: experienceNotes,
+		ExperienceAreas: experienceAreas,
+		Locations:       append([]string(nil), profile.LocationPreferences.Primary...),
+	}
+}
+
+func configureAnalyzer(cfg config.Config) (analyzer.ListingAnalyzer, error) {
+	switch strings.ToLower(strings.TrimSpace(cfg.LLMProvider)) {
+	case "deterministic":
+		return analyzer.NewDeterministicAnalyzer(), nil
+	case "openrouter":
+		inputCost, err := strconv.ParseFloat(cfg.LLMInputCost, 64)
+		if err != nil || inputCost < 0 {
+			return nil, fmt.Errorf("LLM_INPUT_COST_PER_MILLION_USD must be a non-negative number")
+		}
+		outputCost, err := strconv.ParseFloat(cfg.LLMOutputCost, 64)
+		if err != nil || outputCost < 0 {
+			return nil, fmt.Errorf("LLM_OUTPUT_COST_PER_MILLION_USD must be a non-negative number")
+		}
+		provider, err := analyzer.NewOpenRouterProvider(cfg.OpenRouterAPIKey, &http.Client{Timeout: 20 * time.Second})
+		if err != nil {
+			return nil, err
+		}
+		return analyzer.NewModelAnalyzer(provider, cfg.LLMModel, analyzer.CostRates{
+			InputPerMillionUSD: inputCost, OutputPerMillionUSD: outputCost,
+		})
+	default:
+		return nil, fmt.Errorf("unsupported LLM provider %q", cfg.LLMProvider)
 	}
 }
