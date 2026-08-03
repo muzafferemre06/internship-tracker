@@ -14,6 +14,9 @@ OpenRouter normal testlerde çağrılmaz. `ListingAnalyzer` fake/mock
 uygulamalarıyla geçerli JSON, geçersiz cevap, timeout ve retry senaryoları
 test edilir.
 
+Veritabanı testleri geçici dizinde gerçek SQLite dosyası açar. Migration'ların
+ilk açılışta uygulanması ve sonraki açılışlarda tekrar çalışmaması doğrulanır.
+
 ## Frontend
 
 ```bash

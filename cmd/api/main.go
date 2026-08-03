@@ -11,12 +11,20 @@ import (
 	"time"
 
 	"github.com/muzaffer/internship-tracker/internal/config"
+	"github.com/muzaffer/internship-tracker/internal/database"
 	"github.com/muzaffer/internship-tracker/internal/httpapi"
 )
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	cfg := config.Load()
+
+	db, err := database.Open(context.Background(), cfg.DatabasePath, os.DirFS(cfg.MigrationsPath))
+	if err != nil {
+		logger.Error("database initialization failed", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,

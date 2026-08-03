@@ -32,6 +32,11 @@ npm --prefix web run dev
 API varsayılan olarak `http://localhost:8080`, PWA ise
 `http://localhost:5173` adresinde çalışır.
 
+API başlangıçta `DATABASE_PATH` altındaki SQLite dosyasını açar ve
+`MIGRATIONS_PATH` içindeki uygulanmamış `.sql` dosyalarını alfabetik sırayla,
+transaction içinde uygular. Uygulanan dosyalar `schema_migrations` tablosunda
+izlenir.
+
 Uygulama aday profili ve kaynak dosyalarını katı bir JSON şemasıyla okur;
 bilinmeyen alanlar ve geçersiz şirket/kaynak değerleri başlangıç hatasıdır.
 Dosya yolları `CANDIDATE_PROFILE_PATH` ve `SOURCES_PATH` ile değiştirilebilir.

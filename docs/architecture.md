@@ -9,6 +9,7 @@
 - `internal/store`: kalıcı veri erişimi sözleşmeleri.
 - `internal/orchestrator`: kaynakları izole ederek uçtan uca taramayı yürütür.
 - `internal/httpapi`: PWA'nın kullandığı HTTP uçları.
+- `internal/database`: SQLite bağlantısı ve sıralı migration uygulaması.
 - `web`: backend secret'larına erişmeyen PWA istemcisi.
 
 Kaynak ve aday profili ayarları `internal/config` tarafından katı biçimde
