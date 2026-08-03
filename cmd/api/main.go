@@ -140,6 +140,17 @@ func configureSources(
 					return nil, fmt.Errorf("configure source %q: %w", sourceConfig.ID, err)
 				}
 				sources = append(sources, source)
+			case "lever":
+				source, err := scraper.NewLeverSource(
+					sourceConfig.ID,
+					company.Name,
+					sourceConfig.URL,
+					nil,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("configure source %q: %w", sourceConfig.ID, err)
+				}
+				sources = append(sources, source)
 			default:
 				return nil, fmt.Errorf("source %q uses unsupported adapter %q", sourceConfig.ID, sourceConfig.Adapter)
 			}

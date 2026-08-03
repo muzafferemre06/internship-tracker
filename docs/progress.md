@@ -47,6 +47,8 @@ başlamamıştır.
 - Başarılı analizde provider, model, token kullanımı ve tahmini maliyet saklanır.
 - Google Gemini adapter'ının header/schema/usage/hata davranışı fake transport ile,
   tam şema akışı ise opt-in canlı integration testiyle doğrulanabilir.
+- Resmî tek ilan sayfasını güvenli alanlarla normalize eden Lever adapter'ı;
+  aktif başvuru bağlantısı ve beklenen sayfa yapısı için fixture testleriyle doğrulanır.
 
 ## Sıradaki iş
 

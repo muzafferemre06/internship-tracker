@@ -600,6 +600,11 @@ analizinden geçer; SQLite'ta kullanım metadatasıyla saklanır, dashboard API'
 görünür ve ikinci çalıştırmada duplicate olmaz. Normal testler canlı servislere
 bağlanmadan aynı yolu fixture ve fake provider ile tekrarlar.
 
+Uygulama notu: Herkese açık resmî Lever tek-ilan sayfaları `lever` adapter'ıyla
+izlenir. Adapter yalnızca `jobs.lever.co` HTTPS URL'sini, beklenen ilan yapısını
+ve aynı ilana ait aktif `/apply` bağlantısını kabul eder; sayfanın tamamı yerine
+analiz için gereken normalize ilan alanları saklanır.
+
 ### Faz 4 — Sade PWA ve başvuru takibi
 
 - responsive dashboard

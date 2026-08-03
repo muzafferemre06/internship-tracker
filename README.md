@@ -45,6 +45,12 @@ Her kaynak, taramalar ve veritabanı kayıtları arasında değişmeyen benzersi
 izlenebilir. İştirak profilinin sayfa başlığı ana şirket adından farklıysa
 selector doğrulaması için kaynakta `page_name` belirtilir.
 
+`lever` adapter'ı herkese açık resmî `https://jobs.lever.co/<şirket>/<ilan>`
+sayfasındaki tek ilanı izler. Yalnızca aktif başvuru bağlantısı bulunan sayfaları
+kabul eder; takip parametrelerini kaynak URL'sinden çıkarır ve başlık, ilan
+kategorileri ile açıklama alanlarını normalize eder. Örnek kaynak dosyasında
+Commencis'in resmî Lever ilanı bu adapter'ın yapılandırmasını gösterir.
+
 ## İlan analizi
 
 Varsayılan `LLM_PROVIDER=deterministic` ayarı API anahtarı veya ağ çağrısı

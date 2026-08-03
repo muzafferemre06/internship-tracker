@@ -52,6 +52,13 @@ Her profil URL'si bağımsız bir kaynak adapter'ıdır. Aynı şirket altındak
 birden fazla `sources[]` girdisi ortak şirket kimliğiyle dedup edilir;
 iştiraklerde farklı olan beklenen `<h1>` değeri `page_name` ile tanımlanır.
 
+Lever adapter'ı genel bir ilan listesi taramak yerine yapılandırılan resmî tek
+ilan URL'sini okur. Yalnızca `jobs.lever.co` HTTPS URL'lerini ve şirket/ilan
+kimliğinden oluşan yolu kabul eder. Sayfadaki `posting-page`, ilan başlığı ve aynı
+ilana ait `/apply` bağlantısı birlikte bulunmadığında kaynak kapalı ya da yapısı
+değişmiş sayılır. SQLite'a sayfanın tamamı yerine başlık, kategoriler, iş tanımı
+ve gereksinimlerden oluşan normalize metin gider.
+
 SQLite repository kaynakları kararlı `source_key` değerleriyle şirketlere
 bağlar. İlan kimliği şirket adı ve canonical URL'nin SHA-256 özetidir. Canonical
 URL'den fragment, UTM ve bilinen reklam takip parametreleri çıkarılır; sorgu

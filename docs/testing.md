@@ -10,6 +10,12 @@ Scraper testleri canlı web sitelerine bağlanmamalıdır. Her adapter için
 `testdata/` altında kaydedilmiş HTML fixture'ları kullanılacaktır. Canlı site
 kontrolleri ayrı ve isteğe bağlı entegrasyon testleri olarak tutulmalıdır.
 
+Lever adapter testi canlı ilanın tamamını kopyalamayan küçük bir HTML fixture'ı
+kullanır. Resmî ilan URL'sinin ve tanıtıcı User-Agent'in istendiğini; başlık,
+konum, çalışma türü, son başvuru tarihi ve gereksinimlerin normalize edildiğini;
+aktif `/apply` bağlantısı olmayan veya beklenen yapıyı taşımayan sayfanın ilan
+olarak kabul edilmediğini doğrular.
+
 Kariyer.net adapter testi bellek içi sahte bir HTTP taşıma katmanı kullanır;
 iki ilan, tekrarlı bağlantı, sıfır ilan, eksik başlık, değişmiş sayfa işareti,
 HTTP 403/418/429/5xx, timeout ve iptal edilen istek senaryolarını kapsar.
