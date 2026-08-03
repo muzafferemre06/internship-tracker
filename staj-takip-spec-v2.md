@@ -620,6 +620,12 @@ geçici SQLite ile, `integration` etiketinde ise canlı Lever/Gemini ile çalı�
 Canlı test ayrıca açık opt-in ortam bayrağı olmadan başlamaz ve ikinci taramada
 işlenmiş duplicate ilan için modeli yeniden çağırmaz.
 
+Tamamlama kanıtı: 3 Ağustos 2026'da resmî Commencis Lever ilanı canlı Google
+Gemini analiziyle `karar_bekliyor` sonucuna ulaştı; provider/model/token/maliyet
+SQLite'ta saklandı, dashboard API karar kuyruğunda göründü ve ikinci tarama sıfır
+yeni kayıt üretti. Güvenli kayıt `docs/acceptance/phase-3.5-2026-08-03.md`
+dosyasındadır.
+
 ### Faz 4 — Sade PWA ve başvuru takibi
 
 - responsive dashboard

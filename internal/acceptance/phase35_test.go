@@ -120,6 +120,8 @@ type acceptanceRecord struct {
 	FirstSeenAt       string
 	LastSeenAt        string
 	EligibilityStatus string
+	Summary           string
+	DecisionQuestion  string
 }
 
 func openRepository(t *testing.T) (*sql.DB, *store.SQLiteRepository) {
@@ -168,12 +170,15 @@ func readAcceptanceRecord(t *testing.T, db *sql.DB) acceptanceRecord {
 			COALESCE(MAX(listing_analyses.estimated_cost_usd), 0),
 			COALESCE(MAX(listings.canonical_url), ''),
 			COALESCE(MAX(listings.first_seen_at), ''), COALESCE(MAX(listings.last_seen_at), ''),
-			COALESCE(MAX(listing_analyses.eligibility_status), '')
+			COALESCE(MAX(listing_analyses.eligibility_status), ''),
+			COALESCE(MAX(listing_analyses.summary), ''),
+			COALESCE(MAX(listing_analyses.decision_question), '')
 		FROM listings
 		JOIN listing_analyses ON listing_analyses.listing_id = listings.id
 	`).Scan(&result.Count, &result.Provider, &result.Model, &result.PromptTokens,
 		&result.CompletionTokens, &result.TotalTokens, &result.EstimatedCostUSD,
-		&result.CanonicalURL, &result.FirstSeenAt, &result.LastSeenAt, &result.EligibilityStatus)
+		&result.CanonicalURL, &result.FirstSeenAt, &result.LastSeenAt, &result.EligibilityStatus,
+		&result.Summary, &result.DecisionQuestion)
 	if err != nil {
 		t.Fatalf("read acceptance record: %v", err)
 	}

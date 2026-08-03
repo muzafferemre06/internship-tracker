@@ -102,6 +102,10 @@ verildiğinde çalışır. Canlı analiz başarısız olursa repoya veya test ar
 ham sağlayıcı cevabı yazmadan SQLite'taki 500 baytla sınırlı güvenli hata nedenini
 test çıktısında gösterir.
 
+3 Ağustos 2026 başarılı canlı çalışmasının kaynak zamanı, kısa aktiflik kanıtı,
+canonical URL, kullanım metadatası, dashboard sonucu ve dedup sayıları
+`docs/acceptance/phase-3.5-2026-08-03.md` dosyasında kayıtlıdır.
+
 Orchestrator devre kesici testi aynı scope'taki ilk kaynağın 403 vermesinden
 sonra ikinci kaynağın taşıma katmanına hiç ulaşmadığını, tek rezervasyon
 yapıldığını, güvenli teşhislerin repository'ye aktarıldığını ve başarı kaydıyla

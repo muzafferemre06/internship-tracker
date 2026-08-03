@@ -2,12 +2,10 @@
 
 ## Aktif faz
 
-Faz 3 tamamlandı. Sağlayıcıdan bağımsız model analiz katmanı ve OpenRouter
-adapter'ı eklendi. Model çıktısı katı doğrulanır, geçici/bozuk cevaplar sınırlı
-retry alır ve başarısız analizler yeniden işlenebilir karar kuyruğunda saklanır.
-Doğrudan Google Gemini adapter'ı ve opt-in canlı model testi de tamamlandı.
-Sıradaki teslimat Faz 3.5 gerçek ilan kabul doğrulamasıdır; Faz 4 henüz
-başlamamıştır.
+Faz 3.5 tamamlandı; Faz 4 henüz başlamadı. Resmî Commencis Lever ilanı zaman
+damgalı aktiflik kanıtıyla standart ingestion, canlı Google Gemini analizi,
+SQLite kullanım kalıcılığı, dashboard karar kuyruğu ve ikinci tarama dedup
+kapılarından geçti.
 
 ## Tamamlananlar
 
@@ -51,12 +49,10 @@ başlamamıştır.
   aktif başvuru bağlantısı ve beklenen sayfa yapısı için fixture testleriyle doğrulanır.
 - Fixture Lever kaynağı, strict fake model, geçici SQLite ve dashboard HTTP
   handler'ını iki taramada birleştiren Faz 3.5 normal kabul testi tamamlandı.
+- Resmî Commencis Lever ilanı canlı Google `gemini-3.1-flash-lite` ile işlendi;
+  zaman damgalı güvenli kanıt `docs/acceptance/phase-3.5-2026-08-03.md` içinde.
 
 ## Sıradaki iş
 
-Faz 3.5'te resmî bir kaynakta açık olduğu zaman damgasıyla doğrulanan en az bir
-gerçek staj ilanı uygun adapter üzerinden alınacak. İlan canlı Gemini analizi,
-SQLite kalıcılığı, dashboard görünürlüğü ve ikinci çalıştırmada dedup açısından
-uçtan uca doğrulanacak. Canlı kabul testi opt-in kalacak; normal suite aynı akışı
-fixture ve fake provider ile çalıştıracak. Bu kapı tamamlanmadan Faz 4'e
-başlanmayacak.
+Faz 4 sade PWA ve başvuru takibidir. Faz 3.5 kapısı tamamlanmış olsa da Faz 4'e
+bu teslimat içinde başlanmadı.

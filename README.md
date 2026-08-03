@@ -127,6 +127,8 @@ canlı Gemini kullanım metadatasını, dashboard API görünürlüğünü ve ik
 Lever sayfası `REAL_LISTING_URL`, `REAL_LISTING_COMPANY` ve
 `REAL_LISTING_EXPECTED_TITLE` ile verilebilir. Geçici veritabanı test sonunda
 silinir; API anahtarı ve canlı sayfa gövdesi kaydedilmez.
+Başarılı 3 Ağustos 2026 çalışmasının kısa ve güvenli çıktısı
+[Faz 3.5 kabul kanıtında](./docs/acceptance/phase-3.5-2026-08-03.md) kayıtlıdır.
 
 ## Docker ile çalıştırma
 

@@ -92,14 +92,17 @@ func TestPhase35LiveOfficialListingWithGemini(t *testing.T) {
 	if eligibility != domain.EligibilitySuitable && eligibility != domain.EligibilityPartlySuitable && eligibility != domain.EligibilityNeedsDecision {
 		t.Fatalf("unexpected live eligibility: %s", eligibility)
 	}
+	if eligibility == domain.EligibilityNeedsDecision && record.DecisionQuestion == "" {
+		t.Fatal("live decision result has no question")
+	}
 	assertDashboardAPI(t, service, repository, expectedTitle, eligibility)
 
 	t.Logf(
-		"PHASE35_LIVE_EVIDENCE accessed_at=%s source=%s proof=%q canonical=%s provider=%s model=%s tokens=%d/%d/%d estimated_cost_usd=%.8f eligibility=%s first_new=%d second_new=%d rows=%d",
+		"PHASE35_LIVE_EVIDENCE accessed_at=%s source=%s proof=%q canonical=%s provider=%s model=%s tokens=%d/%d/%d estimated_cost_usd=%.8f eligibility=%s decision_question=%q first_new=%d second_new=%d rows=%d",
 		first.StartedAt.UTC().Format(time.RFC3339), postingURL,
 		expectedTitle+"; active Lever apply link present", record.CanonicalURL,
 		record.Provider, record.Model, record.PromptTokens, record.CompletionTokens,
-		record.TotalTokens, record.EstimatedCostUSD, eligibility,
+		record.TotalTokens, record.EstimatedCostUSD, eligibility, record.DecisionQuestion,
 		first.Sources[0].New, second.Sources[0].New, record.Count,
 	)
 }
