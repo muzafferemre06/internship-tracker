@@ -17,7 +17,9 @@ type fakeScanRunner struct {
 	result orchestrator.ScanResult
 }
 
-func (f fakeScanRunner) Run(context.Context) orchestrator.ScanResult { return f.result }
+func (f fakeScanRunner) Run(context.Context, string) (orchestrator.ScanResult, error) {
+	return f.result, nil
+}
 
 type fakeDashboardRepository struct {
 	snapshot store.DashboardSnapshot
@@ -46,7 +48,7 @@ func TestHealth(t *testing.T) {
 func TestScanReturnsAggregatedResult(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewHandler("http://localhost:5173", logger, fakeScanRunner{
-		result: orchestrator.ScanResult{Sources: []orchestrator.SourceResult{{
+		result: orchestrator.ScanResult{RunID: 7, Status: "completed", Sources: []orchestrator.SourceResult{{
 			Source: "meteksan-kariyer-net", Found: 2, New: 1,
 		}}},
 	}, fakeDashboardRepository{})
@@ -58,7 +60,7 @@ func TestScanReturnsAggregatedResult(t *testing.T) {
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", response.Code)
 	}
-	if !strings.Contains(response.Body.String(), `"new":1`) {
+	if !strings.Contains(response.Body.String(), `"new":1`) || !strings.Contains(response.Body.String(), `"run_id":7`) {
 		t.Fatalf("unexpected response: %s", response.Body.String())
 	}
 }

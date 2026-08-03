@@ -61,3 +61,17 @@ Faz 1 analizcisi yalnızca deterministik metin sinyallerini kullanır. Fırsat
 türü, profilin öncelikli alanları, sınıf şartı, Ankara/uzaktan sinyali ve
 çalışma modeli çıkarılır. Bu sonuç bir LLM kararı sayılmaz; Faz 3'te aynı
 `ListingAnalyzer` arayüzünün arkasına sağlayıcı tabanlı analiz eklenecektir.
+
+## Tarama raporu ve kaynak izolasyonu
+
+Orchestrator her manuel taramadan önce `scan_runs` kaydını `running` durumunda
+açar. Her kaynak bağımsız işlenir; fetch, kayıt veya analiz hatası yalnızca o
+kaynağı başarısız sayar ve sıradaki kaynak çalışmaya devam eder. Kaynak sonucu
+`company_sources.last_success_at` veya zaman damgalı `last_error` alanına
+yazılır.
+
+Tarama sonunda rapor `completed`, `partial` ya da `failed` olarak kapatılır;
+başarılı/başarısız kaynak sayıları, yeni ilan sayısı ve kısa JSON hata özeti
+kalıcılaştırılır. HTTP yanıtı tarama kimliğini ve aynı özeti taşır, dashboard
+ise en son tamamlanmış raporu SQLite'tan okur. İstek iptal edilmiş olsa bile
+başlatılmış raporu kapatmak için yalnızca raporlama yazıları iptalden ayrılır.

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -105,6 +106,62 @@ func TestSQLiteRepositorySavesAnalysis(t *testing.T) {
 	}
 	if len(dashboard.NewListings) != 1 || dashboard.NewListings[0].ID != listingID {
 		t.Fatalf("analysis was not exposed on dashboard: %#v", dashboard)
+	}
+}
+
+func TestSQLiteRepositoryPersistsScanReportAndSourceState(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksan(t, repository)
+	startedAt := time.Date(2026, 8, 3, 9, 0, 0, 0, time.UTC)
+	finishedAt := startedAt.Add(2 * time.Minute)
+
+	runID, err := repository.StartScanRun(context.Background(), "manual", startedAt)
+	if err != nil {
+		t.Fatalf("start scan: %v", err)
+	}
+	if err := repository.RecordSourceFailure(
+		context.Background(), "meteksan-kariyer-net", finishedAt, "unexpected HTTP status 429",
+	); err != nil {
+		t.Fatalf("record source failure: %v", err)
+	}
+	if err := repository.FinishScanRun(context.Background(), runID, ScanCompletion{
+		FinishedAt: finishedAt, Status: "failed", SourcesFailed: 1,
+		ErrorSummary: `[{"source":"meteksan-kariyer-net","error":"unexpected HTTP status 429"}]`,
+	}); err != nil {
+		t.Fatalf("finish scan: %v", err)
+	}
+
+	var lastError string
+	if err := db.QueryRow(
+		"SELECT last_error FROM company_sources WHERE source_key = ?", "meteksan-kariyer-net",
+	).Scan(&lastError); err != nil {
+		t.Fatalf("read source state: %v", err)
+	}
+	if !strings.Contains(lastError, finishedAt.Format(time.RFC3339Nano)) || !strings.Contains(lastError, "429") {
+		t.Fatalf("source error lacks time or reason: %q", lastError)
+	}
+
+	dashboard, err := repository.Dashboard(context.Background())
+	if err != nil {
+		t.Fatalf("load dashboard: %v", err)
+	}
+	if dashboard.LastScan == nil || dashboard.LastScan.ID != runID || dashboard.LastScan.Status != "failed" || dashboard.LastScan.SourcesFailed != 1 {
+		t.Fatalf("unexpected last scan: %#v", dashboard.LastScan)
+	}
+
+	if err := repository.RecordSourceSuccess(
+		context.Background(), "meteksan-kariyer-net", finishedAt.Add(time.Minute),
+	); err != nil {
+		t.Fatalf("record source recovery: %v", err)
+	}
+	var clearedError sql.NullString
+	if err := db.QueryRow(
+		"SELECT last_error FROM company_sources WHERE source_key = ?", "meteksan-kariyer-net",
+	).Scan(&clearedError); err != nil {
+		t.Fatalf("read recovered source: %v", err)
+	}
+	if clearedError.Valid {
+		t.Fatalf("expected source error to clear after success, got %q", clearedError.String)
 	}
 }
 

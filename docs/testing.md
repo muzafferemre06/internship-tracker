@@ -14,6 +14,11 @@ Kariyer.net adapter testi bellek içi sahte bir HTTP taşıma katmanı kullanır
 iki ilan, tekrarlı bağlantı, sıfır ilan, eksik başlık, değişmiş sayfa işareti,
 HTTP 429 ve iptal edilen istek senaryolarını kapsar.
 
+Faz 2 fixture kabul testi tanınmayan STM sayfasını önce çalıştırır; ardından
+ASELSAN ve ASELSANNET profillerinin tamamlandığını, iki profilde görülen ortak
+URL'nin tek ilan kaldığını ve taramanın `partial` raporuyla SQLite'a yazıldığını
+doğrular. Böylece kaynak izolasyonu canlı kariyer sitesine bağlanmadan sınanır.
+
 OpenRouter normal testlerde çağrılmaz. `ListingAnalyzer` fake/mock
 uygulamalarıyla geçerli JSON, geçersiz cevap, timeout ve retry senaryoları
 test edilir.
@@ -25,7 +30,9 @@ Veritabanı testleri geçici dizinde gerçek SQLite dosyası açar. Migration'la
 ilk açılışta uygulanması ve sonraki açılışlarda tekrar çalışmaması doğrulanır.
 Repository testleri takip parametreleri farklı aynı URL'nin tek ilan olarak
 kalmasını, içeriğin/`last_seen_at` alanının yenilenmesini ve analizin kalıcı
-olarak yazılmasını doğrular.
+olarak yazılmasını doğrular. Scan repository testi kaynak hatasının zaman ve
+kısa sebeple saklanmasını, sonraki başarıda temizlenmesini ve dashboard'un son
+kalıcı tarama raporunu döndürmesini kapsar.
 
 ## Frontend
 

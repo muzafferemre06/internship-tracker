@@ -194,6 +194,117 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 	return nil
 }
 
+func (r *SQLiteRepository) StartScanRun(ctx context.Context, trigger string, startedAt time.Time) (int64, error) {
+	if trigger != "manual" && trigger != "scheduled" {
+		return 0, fmt.Errorf("invalid scan trigger %q", trigger)
+	}
+	if startedAt.IsZero() {
+		startedAt = r.now().UTC()
+	}
+	result, err := r.db.ExecContext(ctx, `
+		INSERT INTO scan_runs(trigger_type, started_at, status)
+		VALUES (?, ?, 'running')
+	`, trigger, startedAt.UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return 0, fmt.Errorf("start scan run: %w", err)
+	}
+	runID, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("read scan run ID: %w", err)
+	}
+	return runID, nil
+}
+
+func (r *SQLiteRepository) FinishScanRun(ctx context.Context, runID int64, completion ScanCompletion) error {
+	if runID < 1 {
+		return errors.New("scan run ID must be positive")
+	}
+	switch completion.Status {
+	case "completed", "partial", "failed":
+	default:
+		return fmt.Errorf("invalid finished scan status %q", completion.Status)
+	}
+	if completion.FinishedAt.IsZero() {
+		completion.FinishedAt = r.now().UTC()
+	}
+	result, err := r.db.ExecContext(ctx, `
+		UPDATE scan_runs SET
+			finished_at = ?, status = ?, sources_succeeded = ?, sources_failed = ?,
+			new_listings_count = ?, error_summary = NULLIF(?, '')
+		WHERE id = ? AND status = 'running'
+	`, completion.FinishedAt.UTC().Format(time.RFC3339Nano), completion.Status,
+		completion.SourcesSucceeded, completion.SourcesFailed, completion.NewListings,
+		completion.ErrorSummary, runID)
+	if err != nil {
+		return fmt.Errorf("finish scan run: %w", err)
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read finished scan rows: %w", err)
+	}
+	if updated != 1 {
+		return fmt.Errorf("running scan %d was not found", runID)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) RecordSourceSuccess(ctx context.Context, sourceKey string, finishedAt time.Time) error {
+	return r.recordSourceResult(ctx, sourceKey, finishedAt, "")
+}
+
+func (r *SQLiteRepository) RecordSourceFailure(
+	ctx context.Context,
+	sourceKey string,
+	finishedAt time.Time,
+	reason string,
+) error {
+	reason = strings.TrimSpace(reason)
+	if reason == "" {
+		return errors.New("source failure reason is required")
+	}
+	return r.recordSourceResult(ctx, sourceKey, finishedAt, reason)
+}
+
+func (r *SQLiteRepository) recordSourceResult(
+	ctx context.Context,
+	sourceKey string,
+	finishedAt time.Time,
+	reason string,
+) error {
+	if strings.TrimSpace(sourceKey) == "" {
+		return errors.New("source key is required")
+	}
+	if finishedAt.IsZero() {
+		finishedAt = r.now().UTC()
+	}
+	var result sql.Result
+	var err error
+	if reason == "" {
+		result, err = r.db.ExecContext(ctx, `
+			UPDATE company_sources
+			SET last_success_at = ?, last_error = NULL, updated_at = CURRENT_TIMESTAMP
+			WHERE source_key = ?
+		`, finishedAt.UTC().Format(time.RFC3339Nano), sourceKey)
+	} else {
+		result, err = r.db.ExecContext(ctx, `
+			UPDATE company_sources
+			SET last_error = ?, updated_at = CURRENT_TIMESTAMP
+			WHERE source_key = ?
+		`, finishedAt.UTC().Format(time.RFC3339Nano)+": "+reason, sourceKey)
+	}
+	if err != nil {
+		return fmt.Errorf("record source %q result: %w", sourceKey, err)
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read source %q result rows: %w", sourceKey, err)
+	}
+	if updated != 1 {
+		return fmt.Errorf("source %q was not found", sourceKey)
+	}
+	return nil
+}
+
 func (r *SQLiteRepository) Dashboard(ctx context.Context) (DashboardSnapshot, error) {
 	newListings, err := r.dashboardListings(ctx, `
 		WHERE listing_analyses.is_relevant = 1
@@ -217,12 +328,42 @@ func (r *SQLiteRepository) Dashboard(ctx context.Context) (DashboardSnapshot, er
 		return DashboardSnapshot{}, fmt.Errorf("load active applications: %w", err)
 	}
 
+	lastScan, err := r.lastScan(ctx)
+	if err != nil {
+		return DashboardSnapshot{}, fmt.Errorf("load last scan: %w", err)
+	}
+
 	return DashboardSnapshot{
 		NewListings:        newListings,
 		NeedsDecision:      needsDecision,
 		ActiveApplications: activeApplications,
-		LastScan:           nil,
+		LastScan:           lastScan,
 	}, nil
+}
+
+func (r *SQLiteRepository) lastScan(ctx context.Context) (*ScanSummary, error) {
+	var summary ScanSummary
+	var finishedAt string
+	err := r.db.QueryRowContext(ctx, `
+		SELECT id, finished_at, status, sources_succeeded, sources_failed,
+			new_listings_count, COALESCE(error_summary, '')
+		FROM scan_runs
+		WHERE finished_at IS NOT NULL
+		ORDER BY id DESC
+		LIMIT 1
+	`).Scan(&summary.ID, &finishedAt, &summary.Status, &summary.SourcesSucceeded,
+		&summary.SourcesFailed, &summary.NewListings, &summary.ErrorSummary)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	summary.FinishedAt, err = time.Parse(time.RFC3339Nano, finishedAt)
+	if err != nil {
+		return nil, fmt.Errorf("parse finished_at: %w", err)
+	}
+	return &summary, nil
 }
 
 func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string) ([]DashboardListing, error) {

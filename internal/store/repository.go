@@ -17,8 +17,13 @@ type DashboardListing struct {
 }
 
 type ScanSummary struct {
-	FinishedAt time.Time `json:"finished_at"`
-	Status     string    `json:"status"`
+	ID               int64     `json:"id"`
+	FinishedAt       time.Time `json:"finished_at"`
+	Status           string    `json:"status"`
+	SourcesSucceeded int       `json:"sources_succeeded"`
+	SourcesFailed    int       `json:"sources_failed"`
+	NewListings      int       `json:"new_listings_count"`
+	ErrorSummary     string    `json:"error_summary,omitempty"`
 }
 
 type DashboardSnapshot struct {
@@ -31,6 +36,27 @@ type DashboardSnapshot struct {
 type ListingRepository interface {
 	UpsertRawListing(ctx context.Context, listing domain.RawListing) (listingID string, isNew bool, err error)
 	SaveAnalysis(ctx context.Context, listingID string, analysis domain.ListingAnalysis) error
+}
+
+type ScanCompletion struct {
+	FinishedAt       time.Time
+	Status           string
+	SourcesSucceeded int
+	SourcesFailed    int
+	NewListings      int
+	ErrorSummary     string
+}
+
+type ScanRepository interface {
+	StartScanRun(ctx context.Context, trigger string, startedAt time.Time) (int64, error)
+	FinishScanRun(ctx context.Context, runID int64, completion ScanCompletion) error
+	RecordSourceSuccess(ctx context.Context, sourceKey string, finishedAt time.Time) error
+	RecordSourceFailure(ctx context.Context, sourceKey string, finishedAt time.Time, reason string) error
+}
+
+type Repository interface {
+	ListingRepository
+	ScanRepository
 }
 
 type DashboardRepository interface {

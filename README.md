@@ -68,13 +68,15 @@ salt okunur bağlar; SQLite verisini adlandırılmış bir volume içinde korur.
 ## API
 
 - `GET /health`: süreç sağlık bilgisi
-- `GET /api/v1/dashboard`: uygun yeni ilanlar ve takip özetleri
+- `GET /api/v1/dashboard`: uygun yeni ilanlar, takip özetleri ve kalıcı son
+  tarama raporu
 - `POST /api/v1/scan`: etkin kaynakları hemen tarar; toplam bulunan/yeni ilan
-  sayılarını ve kaynak bazlı hataları döndürür
+  sayılarını, kalıcı tarama kimliğini/durumunu ve kaynak bazlı hataları döndürür
 
 Manuel tarama tamamlandıktan sonra PWA dashboard'u yeniden yükler. Bir kaynak
 hatası diğer kaynakların çalışmasını durdurmaz; kısmi sonuç HTTP `207` ile
-döner.
+döner. Her kaynak için son başarı zamanı veya zaman damgalı kısa hata nedeni
+SQLite'ta tutulur.
 
 ## Dizinler
 

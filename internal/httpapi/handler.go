@@ -12,7 +12,7 @@ import (
 )
 
 type ScanRunner interface {
-	Run(ctx context.Context) orchestrator.ScanResult
+	Run(ctx context.Context, trigger string) (orchestrator.ScanResult, error)
 }
 
 type Handler struct {
@@ -87,8 +87,16 @@ func (h Handler) scan(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	result := h.scanner.Run(request.Context())
-	response := scanResponse{Sources: make([]sourceScanResponse, 0, len(result.Sources))}
+	result, err := h.scanner.Run(request.Context(), "manual")
+	if err != nil {
+		h.logger.Error("scan failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "scan could not be completed"})
+		return
+	}
+	response := scanResponse{
+		RunID: result.RunID, Status: result.Status, StartedAt: result.StartedAt,
+		FinishedAt: result.FinishedAt, Sources: make([]sourceScanResponse, 0, len(result.Sources)),
+	}
 	status := http.StatusOK
 	for _, source := range result.Sources {
 		sourceResponse := sourceScanResponse{
@@ -111,6 +119,10 @@ func (h Handler) scan(writer http.ResponseWriter, request *http.Request) {
 }
 
 type scanResponse struct {
+	RunID         int64                `json:"run_id"`
+	Status        string               `json:"status"`
+	StartedAt     time.Time            `json:"started_at"`
+	FinishedAt    time.Time            `json:"finished_at"`
 	Found         int                  `json:"found"`
 	New           int                  `json:"new"`
 	ProcessErrors int                  `json:"process_errors"`
