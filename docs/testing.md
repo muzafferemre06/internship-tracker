@@ -90,7 +90,9 @@ HTTP handler'ını birlikte kullanır. İlk taramada bir, ikinci taramada sıfı
 ilan; tek kalıcı kayıt; tek model çağrısı; provider/model/token/tahmini maliyet
 alanları ve `kismen_uygun` dashboard sonucu beklenir. Canlı karşılığı yalnızca
 `RUN_REAL_LISTING_ACCEPTANCE=1`, `integration` etiketi ve `GEMINI_API_KEY` birlikte
-verildiğinde çalışır.
+verildiğinde çalışır. Canlı analiz başarısız olursa repoya veya test artefaktına
+ham sağlayıcı cevabı yazmadan SQLite'taki 500 baytla sınırlı güvenli hata nedenini
+test çıktısında gösterir.
 
 Orchestrator devre kesici testi aynı scope'taki ilk kaynağın 403 vermesinden
 sonra ikinci kaynağın taşıma katmanına hiç ulaşmadığını, tek rezervasyon

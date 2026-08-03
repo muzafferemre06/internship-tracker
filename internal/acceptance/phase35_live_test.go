@@ -59,11 +59,17 @@ func TestPhase35LiveOfficialListingWithGemini(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first live acceptance scan: %v", err)
 	}
+	if len(first.Sources) != 1 {
+		t.Fatalf("first live scan returned unexpected sources: %#v", first)
+	}
+	if first.Sources[0].ProcessError != 0 {
+		t.Fatalf("first live scan analysis failed: %s", readAcceptanceFailure(t, db))
+	}
 	second, err := service.Run(ctx, "manual")
 	if err != nil {
 		t.Fatalf("second live acceptance scan: %v", err)
 	}
-	if len(first.Sources) != 1 || first.Sources[0].Found != 1 || first.Sources[0].New != 1 || first.Sources[0].ProcessError != 0 {
+	if first.Sources[0].Found != 1 || first.Sources[0].New != 1 {
 		t.Fatalf("first live scan did not complete: %#v", first)
 	}
 	if len(second.Sources) != 1 || second.Sources[0].Found != 1 || second.Sources[0].New != 0 || second.Sources[0].ProcessError != 0 {

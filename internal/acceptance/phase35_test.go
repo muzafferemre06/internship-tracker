@@ -176,6 +176,17 @@ func readAcceptanceRecord(t *testing.T, db *sql.DB) acceptanceRecord {
 	return result
 }
 
+func readAcceptanceFailure(t *testing.T, db *sql.DB) string {
+	t.Helper()
+	var reason string
+	if err := db.QueryRow(`
+		SELECT COALESCE(MAX(last_error), '') FROM listing_analyses
+	`).Scan(&reason); err != nil {
+		t.Fatalf("read acceptance failure: %v", err)
+	}
+	return reason
+}
+
 func assertDashboardAPI(
 	t *testing.T,
 	service *orchestrator.Service,
