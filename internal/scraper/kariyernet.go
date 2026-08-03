@@ -15,6 +15,7 @@ import (
 )
 
 const maxCareerPageBytes = 5 << 20
+const maxAccessErrorBodyBytes = 64 << 10
 
 var ErrUnexpectedPage = errors.New("career page structure is not recognized")
 
@@ -67,6 +68,15 @@ func NewKariyerNetSource(
 
 func (s *KariyerNetSource) Name() string { return s.name }
 
+func (s *KariyerNetSource) AccessPolicy() AccessPolicy {
+	return AccessPolicy{
+		Scope:           strings.ToLower(s.profileURL.Hostname()),
+		MinimumInterval: 24 * time.Hour,
+		BaseCooldown:    6 * time.Hour,
+		MaximumCooldown: 24 * time.Hour,
+	}
+}
+
 func (s *KariyerNetSource) FetchListings(ctx context.Context) ([]domain.RawListing, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, s.profileURL.String(), nil)
 	if err != nil {
@@ -82,7 +92,8 @@ func (s *KariyerNetSource) FetchListings(ctx context.Context) ([]domain.RawListi
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("fetch kariyer.net profile: unexpected HTTP status %d", response.StatusCode)
+		body, _ := io.ReadAll(io.LimitReader(response.Body, maxAccessErrorBodyBytes))
+		return nil, fmt.Errorf("fetch kariyer.net profile: %w", accessError(response, body, s.now().UTC()))
 	}
 
 	body, err := io.ReadAll(io.LimitReader(response.Body, maxCareerPageBytes+1))
@@ -92,12 +103,51 @@ func (s *KariyerNetSource) FetchListings(ctx context.Context) ([]domain.RawListi
 	if len(body) > maxCareerPageBytes {
 		return nil, fmt.Errorf("read kariyer.net profile: response exceeds %d bytes", maxCareerPageBytes)
 	}
+	if isAccessChallenge(response, body) {
+		return nil, fmt.Errorf("fetch kariyer.net profile: %w", accessError(response, body, s.now().UTC()))
+	}
 
 	root, err := html.Parse(strings.NewReader(string(body)))
 	if err != nil {
 		return nil, fmt.Errorf("parse kariyer.net profile: %w", err)
 	}
 	return s.parseListings(root)
+}
+
+func accessError(response *http.Response, body []byte, now time.Time) *AccessError {
+	return &AccessError{
+		StatusCode: response.StatusCode,
+		RetryAfter: parseRetryAfter(response.Header.Get("Retry-After"), now),
+		Server:     strings.TrimSpace(response.Header.Get("Server")),
+		CFRay:      strings.TrimSpace(response.Header.Get("CF-Ray")),
+		Challenge:  isAccessChallenge(response, body),
+	}
+}
+
+func isAccessChallenge(response *http.Response, body []byte) bool {
+	if strings.EqualFold(strings.TrimSpace(response.Header.Get("cf-mitigated")), "challenge") {
+		return true
+	}
+	text := strings.ToLower(string(body))
+	return strings.Contains(text, "cf-chl-") ||
+		strings.Contains(text, "challenge-platform") ||
+		strings.Contains(text, "just a moment...")
+}
+
+func parseRetryAfter(value string, now time.Time) *time.Time {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	if seconds, err := time.ParseDuration(value + "s"); err == nil && seconds >= 0 {
+		retryAt := now.Add(seconds).UTC()
+		return &retryAt
+	}
+	if retryAt, err := http.ParseTime(value); err == nil {
+		retryAt = retryAt.UTC()
+		return &retryAt
+	}
+	return nil
 }
 
 func (s *KariyerNetSource) parseListings(root *html.Node) ([]domain.RawListing, error) {

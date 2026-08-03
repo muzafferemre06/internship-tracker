@@ -12,3 +12,6 @@ tanınmayan sayfa senaryolarını kapsar.
 `aselsan-listings.html` ve `aselsannet-listings.html`, aynı şirket grubundaki
 farklı profil başlıklarını ve profiller arası ortak ilan dedup davranışını
 doğrular.
+
+`access-challenge.html`, HTTP 200 dönse bile Cloudflare challenge işaretlerinin
+geçerli bir şirket sayfası gibi işlenmemesini doğrular.

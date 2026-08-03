@@ -121,6 +121,52 @@ func TestKariyerNetSourceReportsTimeout(t *testing.T) {
 	}
 }
 
+func TestKariyerNetSourceReturnsAccessDiagnostics(t *testing.T) {
+	now := time.Date(2026, 8, 3, 9, 0, 0, 0, time.UTC)
+	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusTooManyRequests,
+			Header: http.Header{
+				"Retry-After": []string{"3600"},
+				"Server":      []string{"cloudflare"},
+				"Cf-Ray":      []string{"test-ray-IST"},
+			},
+			Body:    io.NopCloser(strings.NewReader("rate limited")),
+			Request: request,
+		}, nil
+	})}
+	source, err := NewKariyerNetSource(
+		"meteksan-kariyer-net", "Meteksan", "Meteksan",
+		"https://www.kariyer.net/firma-profil/meteksan", client,
+	)
+	if err != nil {
+		t.Fatalf("create source: %v", err)
+	}
+	source.now = func() time.Time { return now }
+
+	_, err = source.FetchListings(context.Background())
+	var accessErr *AccessError
+	if !errors.As(err, &accessErr) {
+		t.Fatalf("expected typed access error, got %v", err)
+	}
+	if !accessErr.Protective() || accessErr.StatusCode != 429 || accessErr.Server != "cloudflare" || accessErr.CFRay != "test-ray-IST" {
+		t.Fatalf("unexpected access diagnostics: %#v", accessErr)
+	}
+	if accessErr.RetryAfter == nil || !accessErr.RetryAfter.Equal(now.Add(time.Hour)) {
+		t.Fatalf("unexpected retry time: %#v", accessErr.RetryAfter)
+	}
+}
+
+func TestKariyerNetSourceDetectsSuccessfulChallengePage(t *testing.T) {
+	source := sourceWithFixture(t, "testdata/kariyernet/access-challenge.html", http.StatusOK)
+
+	_, err := source.FetchListings(context.Background())
+	var accessErr *AccessError
+	if !errors.As(err, &accessErr) || !accessErr.Protective() || !accessErr.Challenge {
+		t.Fatalf("expected protective challenge error, got %v", err)
+	}
+}
+
 func TestKariyerNetSourceHonorsContextCancellation(t *testing.T) {
 	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		<-request.Context().Done()

@@ -75,3 +75,7 @@ başarılı/başarısız kaynak sayıları, yeni ilan sayısı ve kısa JSON hat
 kalıcılaştırılır. HTTP yanıtı tarama kimliğini ve aynı özeti taşır, dashboard
 ise en son tamamlanmış raporu SQLite'tan okur. İstek iptal edilmiş olsa bile
 başlatılmış raporu kapatmak için yalnızca raporlama yazıları iptalden ayrılır.
+
+Kariyer.net adapter'ı 403/429 ve HTTP 200 içindeki challenge sayfalarını tipli
+erişim hatası olarak döndürür. Yanıt gövdesi saklanmaz; teşhis için yalnızca
+durum kodu, `Retry-After`, `Server`, `CF-Ray` ve challenge işareti taşınır.

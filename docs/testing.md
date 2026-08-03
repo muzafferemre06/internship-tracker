@@ -13,6 +13,8 @@ kontrolleri ayrı ve isteğe bağlı entegrasyon testleri olarak tutulmalıdır.
 Kariyer.net adapter testi bellek içi sahte bir HTTP taşıma katmanı kullanır;
 iki ilan, tekrarlı bağlantı, sıfır ilan, eksik başlık, değişmiş sayfa işareti,
 HTTP 403/418/429/5xx, timeout ve iptal edilen istek senaryolarını kapsar.
+HTTP 200 challenge fixture'ı ile 429 testi ayrıca `Retry-After`, `Server` ve
+`CF-Ray` teşhis bilgilerinin tipli erişim hatasına aktarıldığını doğrular.
 
 Faz 2 fixture kabul testi tanınmayan STM sayfasını önce çalıştırır; ardından
 ASELSAN ve ASELSANNET profillerinin tamamlandığını, iki profilde görülen ortak
