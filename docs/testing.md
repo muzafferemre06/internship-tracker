@@ -33,6 +33,9 @@ enum/aralık şema hatasını; timeout'u; kalıcı 4xx'i; 429'u; geçici 5xx'i v
 denemelik retry sınırını kapsar. Sahte HTTP transport testi OpenRouter request'inin
 model ve strict JSON Schema taşıdığını, Bearer anahtarını yalnızca backend
 header'ında kullandığını ve usage alanlarını okuduğunu doğrular.
+Karar durumu invariant'ının model talimatında bulunduğu ve ilk cevap bu kuralı
+ihlal ettiğinde ikinci denemeye kısa doğrulama geri bildirimi eklendiği de fake
+provider ile doğrulanır.
 
 Google adapter testleri aynı şekilde sahte HTTP transport kullanır; endpoint/model
 seçimini, `x-goog-api-key` header'ını, anahtarın JSON gövdeye girmediğini, strict

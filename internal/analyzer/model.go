@@ -77,9 +77,12 @@ func (a *ModelAnalyzer) Analyze(ctx context.Context, listing domain.RawListing, 
 		return domain.ListingAnalysis{}, errors.New("listing title is required")
 	}
 
+	const systemPrompt = `İlanı yalnızca verilen aday özelliklerine göre değerlendir. JSON şemasına tam uy ve bilinmeyen bilgi uydurma.
+eligibility tam olarak "karar_bekliyor" ise needs_user_decision true ve decision_question cevaplanabilir tek bir soru olmalıdır.
+Diğer tüm eligibility değerlerinde needs_user_decision false ve decision_question boş metin olmalıdır.`
 	request := ProviderRequest{
 		Model:        a.model,
-		SystemPrompt: "İlanı yalnızca verilen aday özelliklerine göre değerlendir. JSON şemasına tam uy ve bilinmeyen bilgi uydurma.",
+		SystemPrompt: systemPrompt,
 		Input:        input,
 		JSONSchema:   analysisJSONSchema(),
 	}
@@ -108,6 +111,7 @@ func (a *ModelAnalyzer) Analyze(ctx context.Context, listing domain.RawListing, 
 				return analysis, nil
 			}
 			err = fmt.Errorf("validate model response: %w", decodeErr)
+			request.SystemPrompt = systemPrompt + "\nÖnceki cevap şu doğrulama hatasını verdi; yalnızca bu hatayı düzelterek yeniden üret: " + decodeErr.Error()
 		}
 		lastErr = err
 		if attempt == a.maxAttempts || (!IsTemporary(err) && !isResponseValidationError(err)) {

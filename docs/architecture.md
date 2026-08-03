@@ -98,6 +98,11 @@ hataları tekrarlanmaz. Başarılı denemelerin prompt/completion/toplam tokenla
 model için ayarlanan milyon-token fiyatlarından hesaplanan tahmini USD maliyeti
 `listing_analyses` içinde provider/model ile saklanır.
 
+Model talimatı `karar_bekliyor`, `needs_user_decision` ve `decision_question`
+alanlarının birlikte değişme kuralını açıkça taşır. Backend doğrulaması yine
+otoritedir; cevap iş kuralını ihlal ederse sonraki sınırlı denemeye yalnızca kısa
+doğrulama nedeni eklenir ve katı doğrulama gevşetilmez.
+
 Ham ilan analizden önce kalıcılaştırılır. Analiz başarısızlığı aynı ilan için
 `eligibility_status=karar_bekliyor`, `processing_status=pending`, artan
 `retry_count` ve kısaltılmış `last_error` üretir; kayıt dashboard karar kuyruğunda

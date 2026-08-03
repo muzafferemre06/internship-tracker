@@ -82,6 +82,9 @@ func TestModelAnalyzerReturnsStrictValidatedAnalysisAndUsage(t *testing.T) {
 	if len(provider.requests) != 1 || provider.requests[0].Model != "test/model" {
 		t.Fatalf("model was not forwarded: %#v", provider.requests)
 	}
+	if !strings.Contains(provider.requests[0].SystemPrompt, `eligibility tam olarak "karar_bekliyor"`) {
+		t.Fatalf("decision invariant is missing from system prompt: %q", provider.requests[0].SystemPrompt)
+	}
 }
 
 func TestModelAnalyzerMinimizesCandidateProfile(t *testing.T) {
@@ -132,6 +135,18 @@ func TestModelAnalyzerRequiresEverySchemaField(t *testing.T) {
 	_, err := newTestModelAnalyzer(t, provider).Analyze(context.Background(), domain.RawListing{Title: "Staj"}, CandidateProfile{})
 	if err == nil || !strings.Contains(err.Error(), "required field") {
 		t.Fatalf("expected missing field error, got %v", err)
+	}
+}
+
+func TestModelAnalyzerAddsValidationFeedbackToRetry(t *testing.T) {
+	invalid := strings.Replace(validAnalysisJSON, `"needs_user_decision":false`, `"needs_user_decision":true`, 1)
+	provider := &fakeProvider{responses: []ProviderResponse{{Content: invalid}, {Content: validAnalysisJSON}}}
+	_, err := newTestModelAnalyzer(t, provider).Analyze(context.Background(), domain.RawListing{Title: "Staj"}, CandidateProfile{})
+	if err != nil {
+		t.Fatalf("analyze corrected response: %v", err)
+	}
+	if len(provider.requests) != 2 || !strings.Contains(provider.requests[1].SystemPrompt, "needs_user_decision must match") {
+		t.Fatalf("validation feedback was not included in retry: %#v", provider.requests)
 	}
 }
 

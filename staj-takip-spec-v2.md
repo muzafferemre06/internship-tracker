@@ -377,6 +377,11 @@ decision_question
 Geçersiz JSON veya API hatasında sınırlı retry yapılmalı; başarısız kayıt
 `islenemedi` olarak saklanıp sonraki taramada yeniden denenmelidir.
 
+`karar_bekliyor`, `needs_user_decision` ve `decision_question` alanlarının
+birlikte değişme kuralı model talimatında açık olmalı ve backend'de yeniden
+doğrulanmalıdır. Şema/iş kuralı hatasında sonraki sınırlı denemeye kısa hata
+geri bildirimi eklenebilir; backend doğrulaması gevşetilmemelidir.
+
 Mümkün olan alanlar önce deterministik olarak çıkarılabilir. LLM yalnızca
 yeni veya içerik özeti değişmiş ilanlarda çağrılarak maliyet azaltılmalıdır.
 
