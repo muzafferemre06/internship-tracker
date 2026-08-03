@@ -1,23 +1,40 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/muzaffer/internship-tracker/internal/orchestrator"
+	"github.com/muzaffer/internship-tracker/internal/store"
 )
 
-type Handler struct {
-	allowedOrigin string
-	logger        *slog.Logger
-	startedAt     time.Time
+type ScanRunner interface {
+	Run(ctx context.Context) orchestrator.ScanResult
 }
 
-func NewHandler(allowedOrigin string, logger *slog.Logger) http.Handler {
+type Handler struct {
+	allowedOrigin  string
+	logger         *slog.Logger
+	startedAt      time.Time
+	scanner        ScanRunner
+	dashboardStore store.DashboardRepository
+}
+
+func NewHandler(
+	allowedOrigin string,
+	logger *slog.Logger,
+	scanner ScanRunner,
+	dashboardStore store.DashboardRepository,
+) http.Handler {
 	handler := Handler{
-		allowedOrigin: allowedOrigin,
-		logger:        logger,
-		startedAt:     time.Now().UTC(),
+		allowedOrigin:  allowedOrigin,
+		logger:         logger,
+		startedAt:      time.Now().UTC(),
+		scanner:        scanner,
+		dashboardStore: dashboardStore,
 	}
 
 	mux := http.NewServeMux()
@@ -46,12 +63,17 @@ func (h Handler) dashboard(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	writeJSON(writer, http.StatusOK, map[string]any{
-		"new_listings":       []any{},
-		"needs_decision":     []any{},
-		"active_applications": []any{},
-		"last_scan":          nil,
-	})
+	if h.dashboardStore == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "dashboard store is unavailable"})
+		return
+	}
+	dashboard, err := h.dashboardStore.Dashboard(request.Context())
+	if err != nil {
+		h.logger.Error("dashboard query failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "dashboard could not be loaded"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, dashboard)
 }
 
 func (h Handler) scan(writer http.ResponseWriter, request *http.Request) {
@@ -60,9 +82,47 @@ func (h Handler) scan(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	writeJSON(writer, http.StatusNotImplemented, map[string]string{
-		"error": "scan runner is not wired yet",
-	})
+	if h.scanner == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "scan runner is unavailable"})
+		return
+	}
+
+	result := h.scanner.Run(request.Context())
+	response := scanResponse{Sources: make([]sourceScanResponse, 0, len(result.Sources))}
+	status := http.StatusOK
+	for _, source := range result.Sources {
+		sourceResponse := sourceScanResponse{
+			Source: source.Source, Found: source.Found, New: source.New,
+			ProcessErrors: source.ProcessError,
+		}
+		if source.FetchError != nil {
+			sourceResponse.FetchError = source.FetchError.Error()
+			status = http.StatusMultiStatus
+		}
+		if source.ProcessError > 0 {
+			status = http.StatusMultiStatus
+		}
+		response.Found += source.Found
+		response.New += source.New
+		response.ProcessErrors += source.ProcessError
+		response.Sources = append(response.Sources, sourceResponse)
+	}
+	writeJSON(writer, status, response)
+}
+
+type scanResponse struct {
+	Found         int                  `json:"found"`
+	New           int                  `json:"new"`
+	ProcessErrors int                  `json:"process_errors"`
+	Sources       []sourceScanResponse `json:"sources"`
+}
+
+type sourceScanResponse struct {
+	Source        string `json:"source"`
+	Found         int    `json:"found"`
+	New           int    `json:"new"`
+	ProcessErrors int    `json:"process_errors"`
+	FetchError    string `json:"fetch_error,omitempty"`
 }
 
 func (h Handler) withMiddleware(next http.Handler) http.Handler {

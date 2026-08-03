@@ -43,7 +43,7 @@ orchestrator ---> scraper adapters
 
 İlk gerçek özellik, fixture tabanlı Meteksan/kariyer.net adapter'ı ile
 SQLite repository'nin bağlandığı tek kaynaklı dikey dilimdir. `/api/v1/scan`
-bu dilim tamamlanana kadar kasıtlı olarak `501 Not Implemented` döndürür.
+bu orchestrator zincirini senkron çalıştırır ve kaynak bazlı sonucu döndürür.
 
 Kariyer.net adapter'ı şirket profilindeki `/is-ilani/` bağlantılarını standart
 ilanlara dönüştürür. Şirket başlığı bulunamazsa sayfa değişmiş veya erişim

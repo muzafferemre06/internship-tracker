@@ -3,16 +3,23 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/muzaffer/internship-tracker/internal/analyzer"
 	"github.com/muzaffer/internship-tracker/internal/config"
 	"github.com/muzaffer/internship-tracker/internal/database"
+	"github.com/muzaffer/internship-tracker/internal/domain"
 	"github.com/muzaffer/internship-tracker/internal/httpapi"
+	"github.com/muzaffer/internship-tracker/internal/orchestrator"
+	"github.com/muzaffer/internship-tracker/internal/scraper"
+	"github.com/muzaffer/internship-tracker/internal/store"
 )
 
 func main() {
@@ -26,9 +33,37 @@ func main() {
 	}
 	defer db.Close()
 
+	candidateConfig, err := config.LoadCandidateProfile(cfg.CandidateProfilePath)
+	if err != nil {
+		logger.Error("candidate profile initialization failed", "error", err)
+		os.Exit(1)
+	}
+	sourcesConfig, err := config.LoadSources(cfg.SourcesPath)
+	if err != nil {
+		logger.Error("source configuration initialization failed", "error", err)
+		os.Exit(1)
+	}
+
+	repository, err := store.NewSQLiteRepository(db)
+	if err != nil {
+		logger.Error("repository initialization failed", "error", err)
+		os.Exit(1)
+	}
+	sources, err := configureSources(context.Background(), sourcesConfig, repository)
+	if err != nil {
+		logger.Error("source initialization failed", "error", err)
+		os.Exit(1)
+	}
+	scanService := &orchestrator.Service{
+		Sources:  sources,
+		Analyzer: analyzer.NewDeterministicAnalyzer(),
+		Store:    repository,
+		Profile:  analyzerProfile(candidateConfig),
+	}
+
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpapi.NewHandler(cfg.AllowedOrigin, logger),
+		Handler:           httpapi.NewHandler(cfg.AllowedOrigin, logger, scanService, repository),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -56,4 +91,65 @@ func main() {
 	}
 
 	logger.Info("api stopped")
+}
+
+func configureSources(
+	ctx context.Context,
+	configured config.SourcesConfig,
+	repository *store.SQLiteRepository,
+) ([]scraper.Source, error) {
+	sources := make([]scraper.Source, 0)
+	for _, company := range configured.Companies {
+		for _, sourceConfig := range company.Sources {
+			registration := domain.SourceRegistration{
+				Key:           sourceConfig.ID,
+				Company:       company.Name,
+				PriorityGroup: company.PriorityGroup,
+				Type:          sourceConfig.Type,
+				URL:           sourceConfig.URL,
+				Adapter:       sourceConfig.Adapter,
+				Enabled:       sourceConfig.Enabled,
+			}
+			if err := repository.RegisterSource(ctx, registration); err != nil {
+				return nil, err
+			}
+			if !sourceConfig.Enabled {
+				continue
+			}
+
+			switch sourceConfig.Adapter {
+			case "kariyer_net":
+				source, err := scraper.NewKariyerNetSource(
+					sourceConfig.ID,
+					company.Name,
+					sourceConfig.URL,
+					nil,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("configure source %q: %w", sourceConfig.ID, err)
+				}
+				sources = append(sources, source)
+			default:
+				return nil, fmt.Errorf("source %q uses unsupported adapter %q", sourceConfig.ID, sourceConfig.Adapter)
+			}
+		}
+	}
+	return sources, nil
+}
+
+func analyzerProfile(profile config.CandidateProfile) analyzer.CandidateProfile {
+	experienceNotes := make([]string, 0, len(profile.Experience))
+	for _, experience := range profile.Experience {
+		experienceNotes = append(
+			experienceNotes,
+			experience.Organization+": "+strings.Join(experience.Areas, ", "),
+		)
+	}
+	return analyzer.CandidateProfile{
+		Education:       strings.TrimSpace(profile.Education.University + " " + profile.Education.Department),
+		ClassYear:       profile.Education.ClassYear,
+		GPA:             profile.Education.GPA,
+		FocusAreas:      append([]string(nil), profile.FocusAreas...),
+		ExperienceNotes: experienceNotes,
+	}
 }

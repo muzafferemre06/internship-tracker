@@ -194,6 +194,73 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 	return nil
 }
 
+func (r *SQLiteRepository) Dashboard(ctx context.Context) (DashboardSnapshot, error) {
+	newListings, err := r.dashboardListings(ctx, `
+		WHERE listing_analyses.is_relevant = 1
+			AND listing_analyses.is_application_open = 1
+			AND listing_analyses.eligibility_status IN ('uygun', 'kismen_uygun')
+	`)
+	if err != nil {
+		return DashboardSnapshot{}, fmt.Errorf("load new listings: %w", err)
+	}
+	needsDecision, err := r.dashboardListings(ctx, `
+		WHERE listing_analyses.eligibility_status = 'karar_bekliyor'
+	`)
+	if err != nil {
+		return DashboardSnapshot{}, fmt.Errorf("load decision listings: %w", err)
+	}
+	activeApplications, err := r.dashboardListings(ctx, `
+		JOIN application_tracking ON application_tracking.listing_id = listings.id
+		WHERE application_tracking.status IN ('incelenecek', 'basvuruldu', 'sinav_mulakat')
+	`)
+	if err != nil {
+		return DashboardSnapshot{}, fmt.Errorf("load active applications: %w", err)
+	}
+
+	return DashboardSnapshot{
+		NewListings:        newListings,
+		NeedsDecision:      needsDecision,
+		ActiveApplications: activeApplications,
+		LastScan:           nil,
+	}, nil
+}
+
+func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string) ([]DashboardListing, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT listings.id, companies.name, listings.title, listings.canonical_url,
+			companies.priority_group, COALESCE(listing_analyses.eligibility_status, '')
+		FROM listings
+		JOIN companies ON companies.id = listings.company_id
+		LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
+	`+clause+`
+		ORDER BY listings.first_seen_at DESC, listings.id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	listings := make([]DashboardListing, 0)
+	for rows.Next() {
+		var listing DashboardListing
+		if err := rows.Scan(
+			&listing.ID,
+			&listing.Company,
+			&listing.Title,
+			&listing.URL,
+			&listing.Priority,
+			&listing.Eligibility,
+		); err != nil {
+			return nil, err
+		}
+		listings = append(listings, listing)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return listings, nil
+}
+
 func CanonicalURL(rawURL string) (string, error) {
 	parsedURL, err := url.Parse(strings.TrimSpace(rawURL))
 	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {

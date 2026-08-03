@@ -98,6 +98,14 @@ func TestSQLiteRepositorySavesAnalysis(t *testing.T) {
 	if status != "processed" || provider != "deterministic" {
 		t.Fatalf("unexpected analysis state: status=%q provider=%q", status, provider)
 	}
+
+	dashboard, err := repository.Dashboard(context.Background())
+	if err != nil {
+		t.Fatalf("load dashboard: %v", err)
+	}
+	if len(dashboard.NewListings) != 1 || dashboard.NewListings[0].ID != listingID {
+		t.Fatalf("analysis was not exposed on dashboard: %#v", dashboard)
+	}
 }
 
 func TestCanonicalURL(t *testing.T) {
