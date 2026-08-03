@@ -1,0 +1,18 @@
+{
+  "name": "Staj Takip",
+  "short_name": "Staj Takip",
+  "description": "Kişisel staj ilanı takip ve başvuru hatırlatma uygulaması",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f6f4",
+  "theme_color": "#0b5d4b",
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

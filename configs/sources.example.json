@@ -1,0 +1,36 @@
+{
+  "companies": [
+    {
+      "name": "Meteksan",
+      "priority_group": "primary",
+      "sources": [
+        {
+          "type": "career_page",
+          "url": "https://example.invalid/meteksan-career-profile",
+          "adapter": "kariyer_net",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "ASELSAN",
+      "priority_group": "primary",
+      "sources": []
+    },
+    {
+      "name": "STM",
+      "priority_group": "secondary",
+      "sources": []
+    },
+    {
+      "name": "Baykar",
+      "priority_group": "primary",
+      "sources": []
+    },
+    {
+      "name": "Samsung",
+      "priority_group": "primary",
+      "sources": []
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Staj Takip">
+  <rect width="512" height="512" rx="112" fill="#0b5d4b"/>
+  <path d="M130 180h252v200H130z" fill="#d7ffef"/>
+  <path d="M192 148c0-22 18-40 40-40h48c22 0 40 18 40 40v32h-32v-24c0-9-7-16-16-16h-32c-9 0-16 7-16 16v24h-32z" fill="#d7ffef"/>
+  <path d="M130 224h252v48c-35 20-77 30-126 30s-91-10-126-30z" fill="#9ce6d1"/>
+  <circle cx="256" cy="270" r="18" fill="#0b5d4b"/>
+</svg>

@@ -1,0 +1,26 @@
+{
+  "education": {
+    "university": "Bilkent University",
+    "department": "CTIS",
+    "class_year": 2,
+    "gpa": 3.97
+  },
+  "focus_areas": [
+    "backend",
+    "network",
+    "system_administration",
+    "autonomous_software",
+    "ground_control_station"
+  ],
+  "experience": [
+    {
+      "organization": "ODTU Altek Teknofest Savasan IHA Takimi",
+      "areas": ["autonomous_software", "ground_control_station"]
+    }
+  ],
+  "location_preferences": {
+    "primary": ["Ankara", "remote"],
+    "summer_other_cities": true,
+    "term_time_part_time_other_cities": false
+  }
+}

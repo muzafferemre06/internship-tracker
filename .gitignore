@@ -1,0 +1,30 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+configs/candidate-profile.json
+
+# Go
+bin/
+coverage.out
+*.test
+
+# Frontend
+web/node_modules/
+web/dist/
+web/coverage/
+
+# Runtime data
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local tooling
+.tmp/

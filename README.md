@@ -1,0 +1,63 @@
+# Internship Tracker
+
+Kişisel staj ilanı takip ve başvuru hatırlatma uygulaması. Backend Go,
+istemci ise React/Vite tabanlı bir PWA olarak yapılandırılmıştır.
+
+Ürün kararları için [v2 spec](./staj-takip-spec-v2.md), ilk fikir belgesi için
+[ilk spec](./staj-takip-spec-initial.md) kullanılmalıdır.
+
+## Gereksinimler
+
+- Go 1.22+
+- Node.js 20+
+- npm 10+
+- Docker ve Docker Compose (isteğe bağlı)
+
+## Yerel geliştirme
+
+```bash
+cp .env.example .env
+cp configs/candidate-profile.example.json configs/candidate-profile.json
+go run ./cmd/api
+```
+
+Başka bir terminalde:
+
+```bash
+npm --prefix web install
+npm --prefix web run dev
+```
+
+API varsayılan olarak `http://localhost:8080`, PWA ise
+`http://localhost:5173` adresinde çalışır.
+
+## Test
+
+```bash
+go test ./...
+npm --prefix web test
+```
+
+Gerçek OpenRouter çağrıları normal test akışına dahil değildir. API anahtarları
+yalnızca yerel `.env` veya deployment secret sistemi üzerinden verilmelidir.
+
+## Docker ile çalıştırma
+
+```bash
+docker compose -f deploy/compose.yml up --build
+```
+
+PWA bu kurulumda `http://localhost:8081` adresinden açılır. Compose dosyası
+SQLite verisini adlandırılmış bir volume içinde korur.
+
+## Dizinler
+
+```text
+cmd/api/             API uygulamasının giriş noktası
+internal/            Backend domain ve uygulama katmanları
+migrations/          SQLite migration dosyaları
+configs/             Secret içermeyen örnek kaynak ayarları
+web/                 React/Vite PWA
+deploy/              Container ve deployment dosyaları
+docs/                Mimari ve geliştirme notları
+```
