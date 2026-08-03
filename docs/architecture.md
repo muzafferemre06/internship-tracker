@@ -53,3 +53,8 @@ SQLite repository kaynakları kararlı `source_key` değerleriyle şirketlere
 bağlar. İlan kimliği şirket adı ve canonical URL'nin SHA-256 özetidir. Canonical
 URL'den fragment, UTM ve bilinen reklam takip parametreleri çıkarılır; sorgu
 parametreleri kararlı sıraya getirilir.
+
+Faz 1 analizcisi yalnızca deterministik metin sinyallerini kullanır. Fırsat
+türü, profilin öncelikli alanları, sınıf şartı, Ankara/uzaktan sinyali ve
+çalışma modeli çıkarılır. Bu sonuç bir LLM kararı sayılmaz; Faz 3'te aynı
+`ListingAnalyzer` arayüzünün arkasına sağlayıcı tabanlı analiz eklenecektir.

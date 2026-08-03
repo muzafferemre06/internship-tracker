@@ -14,8 +14,9 @@ hazırlanır. Faz 1'in fixture tabanlı Meteksan/kariyer.net adapter'ı hazırd�
 - Transaction kullanan, tekrar uygulanmayan SQLite migration çalıştırıcısı
 - Meteksan profilinden ilan bağlantılarını normalize eden kariyer.net adapter'ı
 - Canonical URL, kararlı kimlik ve duplicate kontrolü yapan SQLite repository
+- Profil alanlarıyla temel uygunluk üreten deterministik ilan analizcisi
 - Test, CI, Docker ve secret yönetimi başlangıç dosyaları
 
 ## Sıradaki iş
 
-Deterministik analizciyi ekleyip tarama akışını gerçek bağımlılıklarla kurmak.
+Tarama akışını gerçek bağımlılıklarla kurup HTTP API'ye bağlamak.

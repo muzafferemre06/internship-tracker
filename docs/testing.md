@@ -18,6 +18,9 @@ OpenRouter normal testlerde çağrılmaz. `ListingAnalyzer` fake/mock
 uygulamalarıyla geçerli JSON, geçersiz cevap, timeout ve retry senaryoları
 test edilir.
 
+Deterministik analizci testleri ilgili bir backend stajını, daha yüksek sınıf
+şartını, kapanmış ilanı ve iptal edilen context'i kapsar.
+
 Veritabanı testleri geçici dizinde gerçek SQLite dosyası açar. Migration'ların
 ilk açılışta uygulanması ve sonraki açılışlarda tekrar çalışmaması doğrulanır.
 Repository testleri takip parametreleri farklı aynı URL'nin tek ilan olarak
