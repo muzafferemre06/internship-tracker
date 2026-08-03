@@ -22,7 +22,7 @@ retry alır ve başarısız analizler yeniden işlenebilir karar kuyruğunda sak
 - PWA'da son taramanın başarılı ve başarısız kaynak sayıları
 - Kilit dosyasıyla tekrarlanabilir frontend kurulumu ve sıfır npm audit bulgusu
 - Test, CI, Docker ve secret yönetimi başlangıç dosyaları
-- Ayarlardan seçilen deterministik/OpenRouter analiz sağlayıcısı ve model
+- Ayarlardan seçilen deterministik/OpenRouter/Google analiz sağlayıcısı ve model
 - Minimize aday profili, strict JSON Schema ve backend çıktı doğrulaması
 - Sınırlı model retry'sı ile pending analizlerin kaynak bağımsız yeniden işlenmesi
 - Provider/model, token kullanımı ve ayarlanabilir oranlarla tahmini maliyet kalıcılığı
@@ -42,6 +42,8 @@ retry alır ve başarısız analizler yeniden işlenebilir karar kuyruğunda sak
 - Başarısız analiz ham ilanı kaybetmez; dashboard karar kuyruğunda kalır ve
   kaynak fetch'i olmadan başarılı biçimde yeniden işlenir.
 - Başarılı analizde provider, model, token kullanımı ve tahmini maliyet saklanır.
+- Google Gemini adapter'ının header/schema/usage/hata davranışı fake transport ile,
+  tam şema akışı ise opt-in canlı integration testiyle doğrulanabilir.
 
 ## Sıradaki iş
 

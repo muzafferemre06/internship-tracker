@@ -28,6 +28,14 @@ denemelik retry sınırını kapsar. Sahte HTTP transport testi OpenRouter reque
 model ve strict JSON Schema taşıdığını, Bearer anahtarını yalnızca backend
 header'ında kullandığını ve usage alanlarını okuduğunu doğrular.
 
+Google adapter testleri aynı şekilde sahte HTTP transport kullanır; endpoint/model
+seçimini, `x-goog-api-key` header'ını, anahtarın JSON gövdeye girmediğini, strict
+response schema'yı, Gemini düşünme seviyesini, Gemma için thinking config'in
+çıkarılmasını, usage dönüşümünü ve kalıcı/geçici HTTP hata sınıflandırmasını
+kapsar. `google_live_test.go` yalnızca `integration` build tag'i ve ortamdan
+`GEMINI_API_KEY` ile açıkça çağrıldığında gerçek Gemini API'ye gider; normal
+`go test ./...` canlı veya ücretli API çağrısı yapmaz.
+
 Profil minimizasyon testi model input'unda yalnızca bölüm/alan, sınıf, GPA, odak,
 deneyim alanı ve konum tercihlerinin bulunduğunu doğrular. Üniversite ve deneyim
 kurumu adları `analyzerProfile` dönüşümünde atılır.

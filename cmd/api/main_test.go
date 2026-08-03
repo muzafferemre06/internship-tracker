@@ -24,6 +24,22 @@ func TestConfigureAnalyzerSelectsProviderAndValidatesOpenRouterSettings(t *testi
 	if err != nil || configured == nil {
 		t.Fatalf("configure OpenRouter analyzer: analyzer=%#v err=%v", configured, err)
 	}
+
+	_, err = configureAnalyzer(config.Config{
+		LLMProvider: "google", LLMModel: "gemini-3.1-flash-lite",
+		LLMInputCost: "0", LLMOutputCost: "0", LLMThinkingLevel: "minimal",
+	})
+	if err == nil {
+		t.Fatal("Google provider must require a Gemini API key")
+	}
+
+	configured, err = configureAnalyzer(config.Config{
+		LLMProvider: "google", LLMModel: "gemini-3.1-flash-lite", GeminiAPIKey: "secret",
+		LLMInputCost: "0", LLMOutputCost: "0", LLMThinkingLevel: "minimal",
+	})
+	if err != nil || configured == nil {
+		t.Fatalf("configure Google analyzer: analyzer=%#v err=%v", configured, err)
+	}
 }
 
 func TestAnalyzerProfileRemovesInstitutionNames(t *testing.T) {

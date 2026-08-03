@@ -59,11 +59,27 @@ LLM_INPUT_COST_PER_MILLION_USD=0
 LLM_OUTPUT_COST_PER_MILLION_USD=0
 ```
 
-Model ve sağlayıcı yalnızca backend başlangıcında seçilir. OpenRouter seçiliyken
-model adı ve API anahtarı zorunludur; maliyet oranları negatif olmayan USD
-değerleri olmalıdır. Gerçek model fiyatları değişebildiği için milyon input ve
-output token başına oranlar seçilen modelin güncel fiyatıyla kullanıcı tarafından
-ayarlanır. Anahtar ve yerel `.env` repoya eklenmez.
+Google Gemini API'yi doğrudan kullanmak için:
+
+```dotenv
+LLM_PROVIDER=google
+LLM_MODEL=gemini-3.1-flash-lite
+GEMINI_API_KEY=local-secret
+LLM_THINKING_LEVEL=minimal
+LLM_INPUT_COST_PER_MILLION_USD=0
+LLM_OUTPUT_COST_PER_MILLION_USD=0
+```
+
+Model ve sağlayıcı yalnızca backend başlangıcında seçilir. OpenRouter veya Google
+seçiliyken model adı ve ilgili API anahtarı zorunludur; maliyet oranları negatif
+olmayan USD değerleri olmalıdır. `LLM_PROVIDER=gemini`, `google` için alias'tır.
+Google adapter'ı Gemini 3 modellerinde `minimal`, `low`, `medium` veya `high`
+düşünme seviyesini kullanır; Gemma modellerine Gemini'ye özgü bu alanı göndermez.
+Google istekleri, düşünmeli modellerin gecikmesini karşılamak için 60 saniyelik
+istemci timeout'u kullanır.
+Gerçek model fiyatları değişebildiği için milyon input ve output token başına
+oranlar seçilen modelin güncel fiyatıyla kullanıcı tarafından ayarlanır. Anahtar
+ve yerel `.env` repoya eklenmez.
 
 Modele adayın adı, iletişim bilgileri, üniversite adı veya deneyim kurumları
 gönderilmez. Yalnızca bölüm/alan, sınıf, GPA, odak alanları, deneyim konu başlıkları
@@ -76,8 +92,18 @@ go test ./...
 npm --prefix web test
 ```
 
-Gerçek OpenRouter çağrıları normal test akışına dahil değildir. API anahtarları
-yalnızca yerel `.env` veya deployment secret sistemi üzerinden verilmelidir.
+Gerçek OpenRouter ve Google çağrıları normal test akışına dahil değildir. API
+anahtarları yalnızca yerel `.env` veya deployment secret sistemi üzerinden
+verilmelidir. Google adapter'ının opt-in canlı testi açıkça şöyle çalıştırılır:
+
+```bash
+GEMINI_API_KEY=... go test -tags=integration ./internal/analyzer \
+  -run TestGoogleProviderLive -v
+```
+
+Test varsayılan olarak `gemini-3.1-flash-lite` kullanır;
+`GEMINI_LIVE_TEST_MODEL` ile model değiştirilebilir. Bu komut gerçek API kotası
+kullanır ve anahtar yoksa testi atlar.
 
 ## Docker ile çalıştırma
 

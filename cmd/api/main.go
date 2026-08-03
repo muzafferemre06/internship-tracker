@@ -72,7 +72,7 @@ func main() {
 		Handler:           httpapi.NewHandler(cfg.AllowedOrigin, logger, scanService, repository),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      30 * time.Second,
+		WriteTimeout:      90 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 
@@ -168,22 +168,34 @@ func configureAnalyzer(cfg config.Config) (analyzer.ListingAnalyzer, error) {
 	case "deterministic":
 		return analyzer.NewDeterministicAnalyzer(), nil
 	case "openrouter":
-		inputCost, err := strconv.ParseFloat(cfg.LLMInputCost, 64)
-		if err != nil || inputCost < 0 {
-			return nil, fmt.Errorf("LLM_INPUT_COST_PER_MILLION_USD must be a non-negative number")
-		}
-		outputCost, err := strconv.ParseFloat(cfg.LLMOutputCost, 64)
-		if err != nil || outputCost < 0 {
-			return nil, fmt.Errorf("LLM_OUTPUT_COST_PER_MILLION_USD must be a non-negative number")
-		}
 		provider, err := analyzer.NewOpenRouterProvider(cfg.OpenRouterAPIKey, &http.Client{Timeout: 20 * time.Second})
 		if err != nil {
 			return nil, err
 		}
-		return analyzer.NewModelAnalyzer(provider, cfg.LLMModel, analyzer.CostRates{
-			InputPerMillionUSD: inputCost, OutputPerMillionUSD: outputCost,
-		})
+		return newConfiguredModelAnalyzer(provider, cfg)
+	case "google", "gemini":
+		provider, err := analyzer.NewGoogleProvider(
+			cfg.GeminiAPIKey, cfg.LLMThinkingLevel, &http.Client{Timeout: 60 * time.Second},
+		)
+		if err != nil {
+			return nil, err
+		}
+		return newConfiguredModelAnalyzer(provider, cfg)
 	default:
 		return nil, fmt.Errorf("unsupported LLM provider %q", cfg.LLMProvider)
 	}
+}
+
+func newConfiguredModelAnalyzer(provider analyzer.ModelProvider, cfg config.Config) (analyzer.ListingAnalyzer, error) {
+	inputCost, err := strconv.ParseFloat(cfg.LLMInputCost, 64)
+	if err != nil || inputCost < 0 {
+		return nil, fmt.Errorf("LLM_INPUT_COST_PER_MILLION_USD must be a non-negative number")
+	}
+	outputCost, err := strconv.ParseFloat(cfg.LLMOutputCost, 64)
+	if err != nil || outputCost < 0 {
+		return nil, fmt.Errorf("LLM_OUTPUT_COST_PER_MILLION_USD must be a non-negative number")
+	}
+	return analyzer.NewModelAnalyzer(provider, cfg.LLMModel, analyzer.CostRates{
+		InputPerMillionUSD: inputCost, OutputPerMillionUSD: outputCost,
+	})
 }

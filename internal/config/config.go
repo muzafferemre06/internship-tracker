@@ -14,7 +14,9 @@ type Config struct {
 	LLMModel             string
 	LLMInputCost         string
 	LLMOutputCost        string
+	LLMThinkingLevel     string
 	OpenRouterAPIKey     string
+	GeminiAPIKey         string
 	ScanSchedule         string
 }
 
@@ -34,7 +36,9 @@ func Load() Config {
 		LLMModel:         os.Getenv("LLM_MODEL"),
 		LLMInputCost:     envOrDefault("LLM_INPUT_COST_PER_MILLION_USD", "0"),
 		LLMOutputCost:    envOrDefault("LLM_OUTPUT_COST_PER_MILLION_USD", "0"),
+		LLMThinkingLevel: envOrDefault("LLM_THINKING_LEVEL", "minimal"),
 		OpenRouterAPIKey: os.Getenv("OPENROUTER_API_KEY"),
+		GeminiAPIKey:     os.Getenv("GEMINI_API_KEY"),
 		ScanSchedule:     envOrDefault("SCAN_SCHEDULE", "0 9 * * 1"),
 	}
 }

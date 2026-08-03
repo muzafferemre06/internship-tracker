@@ -571,6 +571,9 @@ kurum ve doğrudan kimlik bilgileri çıkarılarak minimize edilir. Başarısız
 ham ilanla birlikte `karar_bekliyor/pending` saklanır ve kaynak siteye yeniden
 erişmeden ayrı retry akışıyla işlenebilir. Başarılı analiz provider/model, token
 kullanımı ve yapılandırılmış fiyat oranlarından hesaplanan tahmini maliyeti taşır.
+OpenRouter yanında aynı `ModelProvider` portunu kullanan doğrudan Google Gemini
+adapter'ı test/alternatif sağlayıcı olarak seçilebilir; normal testler her iki
+adapter için de yalnızca fake HTTP cevapları kullanır.
 
 ### Faz 4 — Sade PWA ve başvuru takibi
 

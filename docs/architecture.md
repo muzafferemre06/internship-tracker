@@ -60,9 +60,9 @@ parametreleri kararlı sıraya getirilir.
 Deterministik analizci API anahtarı gerektirmeyen varsayılan seçenektir. Sağlayıcı
 tabanlı akış aynı `ListingAnalyzer` portunun arkasındaki `ModelAnalyzer` ile
 kurulur. `ModelProvider` yalnızca model isteğini ve ham cevabı taşır; OpenRouter
-HTTP ayrıntıları adapter içinde kalır. `LLM_PROVIDER` ve `LLM_MODEL` uygulama
-başlangıcında seçilir, desteklenmeyen sağlayıcı veya eksik OpenRouter secret'ı
-başlangıcı durdurur.
+ve Google Gemini HTTP ayrıntıları kendi adapter'larında kalır. `LLM_PROVIDER` ve
+`LLM_MODEL` uygulama başlangıcında seçilir; desteklenmeyen sağlayıcı veya seçilen
+adapter'ın eksik secret'ı başlangıcı durdurur.
 
 `ModelAnalyzer`, sağlayıcıya doğrudan config profilini vermez. Minimize edilmiş
 istek yalnızca bölüm/alan, sınıf, GPA, odak alanları, deneyim alanları ve konum
@@ -70,6 +70,15 @@ tercihlerini içerir; üniversite ve deneyim kurumu adları dışarıda bırakı
 OpenRouter isteği strict JSON Schema response formatını kullanır. Dönen içerik
 backend'de `DisallowUnknownFields`, enum, aralık, zorunlu alan ve karar durumu
 tutarlılığı kontrollerinden tekrar geçer.
+
+Google adapter'ı aynı şemayı `responseJsonSchema` ve `application/json` response
+mime type ile gönderir; `usageMetadata` alanını ortak prompt/completion/toplam
+token tipine dönüştürür. Gemini 3 modellerinde çıktı bütçesinin düşünme tarafından
+tüketilmesini sınırlamak için ayarlanabilir `thinkingLevel` kullanılır. Gemma
+model adlarında Gemini'ye özgü thinking config gönderilmez. API anahtarı yalnızca
+`x-goog-api-key` header'ında taşınır. Google istemcisinin 60 saniyelik timeout'u
+ve API sunucusunun 90 saniyelik write timeout'u düşünmeli Flash modellerinin
+ölçülen daha yüksek gecikmesine alan bırakır.
 
 Geçici taşıma hataları, timeout, 408/429/5xx, bozuk JSON ve şema ihlalleri 100/200
 ms beklemeli ve toplam üç denemeli sınırlı retry alır. 4xx gibi kalıcı sağlayıcı

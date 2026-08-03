@@ -27,16 +27,20 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if cfg.LLMProvider != "deterministic" {
 		t.Fatalf("unexpected default analyzer %q", cfg.LLMProvider)
 	}
+	if cfg.LLMThinkingLevel != "minimal" {
+		t.Fatalf("unexpected default thinking level %q", cfg.LLMThinkingLevel)
+	}
 }
 
 func TestLoadReadsEnvironment(t *testing.T) {
 	t.Setenv("HTTP_ADDR", ":9090")
 	t.Setenv("LLM_PROVIDER", "openrouter")
 	t.Setenv("LLM_MODEL", "example/model")
+	t.Setenv("GEMINI_API_KEY", "test-key")
 
 	cfg := Load()
 
-	if cfg.HTTPAddr != ":9090" || cfg.LLMModel != "example/model" {
+	if cfg.HTTPAddr != ":9090" || cfg.LLMModel != "example/model" || cfg.GeminiAPIKey != "test-key" {
 		t.Fatalf("environment was not loaded: %#v", cfg)
 	}
 }
