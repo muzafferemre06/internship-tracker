@@ -63,8 +63,9 @@ type minimizedProfile struct {
 
 type modelInput struct {
 	Listing struct {
-		Title   string `json:"title"`
-		Content string `json:"content"`
+		Title     string `json:"title"`
+		Content   string `json:"content"`
+		FetchedAt string `json:"fetched_at"`
 	} `json:"listing"`
 	Candidate minimizedProfile `json:"candidate"`
 }
@@ -73,13 +74,17 @@ func (a *ModelAnalyzer) Analyze(ctx context.Context, listing domain.RawListing, 
 	input := modelInput{Candidate: minimizeProfile(profile)}
 	input.Listing.Title = strings.TrimSpace(listing.Title)
 	input.Listing.Content = strings.TrimSpace(listing.RawText)
+	if !listing.FetchedAt.IsZero() {
+		input.Listing.FetchedAt = listing.FetchedAt.UTC().Format(time.RFC3339)
+	}
 	if input.Listing.Title == "" {
 		return domain.ListingAnalysis{}, errors.New("listing title is required")
 	}
 
 	const systemPrompt = `İlanı yalnızca verilen aday özelliklerine göre değerlendir. JSON şemasına tam uy ve bilinmeyen bilgi uydurma.
 eligibility tam olarak "karar_bekliyor" ise needs_user_decision true ve decision_question cevaplanabilir tek bir soru olmalıdır.
-Diğer tüm eligibility değerlerinde needs_user_decision false ve decision_question boş metin olmalıdır.`
+Diğer tüm eligibility değerlerinde needs_user_decision false ve decision_question boş metin olmalıdır.
+fetched_at anında aday ilan şartının tam bir sınıf altındaysa ve fırsat sonraki akademik dönemde başlıyorsa sınıf geçişini varsayma; uygun_degil yerine karar_bekliyor seçip başlangıçta gereken sınıfa geçmiş olup olmayacağını sor.`
 	request := ProviderRequest{
 		Model:        a.model,
 		SystemPrompt: systemPrompt,

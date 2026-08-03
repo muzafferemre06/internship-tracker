@@ -36,6 +36,9 @@ header'ında kullandığını ve usage alanlarını okuduğunu doğrular.
 Karar durumu invariant'ının model talimatında bulunduğu ve ilk cevap bu kuralı
 ihlal ettiğinde ikinci denemeye kısa doğrulama geri bildirimi eklendiği de fake
 provider ile doğrulanır.
+Profil minimizasyon testi ayrıca kişisel olmayan ilan erişim zamanının modele
+iletildiğini ve gelecek akademik dönemdeki tek sınıflık geçiş belirsizliği için
+karar bekleme talimatının bulunduğunu doğrular.
 
 Google adapter testleri aynı şekilde sahte HTTP transport kullanır; endpoint/model
 seçimini, `x-goog-api-key` header'ını, anahtarın JSON gövdeye girmediğini, strict

@@ -91,7 +91,8 @@ func TestModelAnalyzerMinimizesCandidateProfile(t *testing.T) {
 	provider := &fakeProvider{responses: []ProviderResponse{{Content: validAnalysisJSON}}}
 	modelAnalyzer := newTestModelAnalyzer(t, provider)
 
-	_, err := modelAnalyzer.Analyze(context.Background(), domain.RawListing{Title: "Staj", RawText: "İlan"}, CandidateProfile{
+	fetchedAt := time.Date(2026, 8, 3, 12, 0, 0, 0, time.UTC)
+	_, err := modelAnalyzer.Analyze(context.Background(), domain.RawListing{Title: "Staj", RawText: "İlan", FetchedAt: fetchedAt}, CandidateProfile{
 		EducationField: "CTIS", ExperienceAreas: []string{"backend"},
 	})
 	if err != nil {
@@ -100,6 +101,12 @@ func TestModelAnalyzerMinimizesCandidateProfile(t *testing.T) {
 	encoded := provider.requests[0].Input.(modelInput)
 	if encoded.Candidate.EducationField != "CTIS" || len(encoded.Candidate.ExperienceAreas) != 1 {
 		t.Fatalf("minimized profile lost required fields: %#v", encoded.Candidate)
+	}
+	if encoded.Listing.FetchedAt != "2026-08-03T12:00:00Z" {
+		t.Fatalf("listing evidence time was not forwarded: %#v", encoded.Listing)
+	}
+	if !strings.Contains(provider.requests[0].SystemPrompt, "sonraki akademik dönemde") {
+		t.Fatalf("class transition rule is missing from system prompt: %q", provider.requests[0].SystemPrompt)
 	}
 }
 

@@ -103,6 +103,11 @@ alanlarının birlikte değişme kuralını açıkça taşır. Backend doğrulam
 otoritedir; cevap iş kuralını ihlal ederse sonraki sınırlı denemeye yalnızca kısa
 doğrulama nedeni eklenir ve katı doğrulama gevşetilmez.
 
+Model ilan metniyle birlikte kişisel olmayan `fetched_at` kanıt zamanını da alır.
+Aday tarama anında ilan şartının tam bir sınıf altındaysa fakat fırsat sonraki
+akademik dönemde başlıyorsa sınıf geçişi varsayılmaz; ilan elenmek yerine
+başlangıçtaki sınıf durumunu soran `karar_bekliyor` sonucuna yönlendirilir.
+
 Ham ilan analizden önce kalıcılaştırılır. Analiz başarısızlığı aynı ilan için
 `eligibility_status=karar_bekliyor`, `processing_status=pending`, artan
 `retry_count` ve kısaltılmış `last_error` üretir; kayıt dashboard karar kuyruğunda

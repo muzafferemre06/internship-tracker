@@ -382,6 +382,11 @@ birlikte değişme kuralı model talimatında açık olmalı ve backend'de yenid
 doğrulanmalıdır. Şema/iş kuralı hatasında sonraki sınırlı denemeye kısa hata
 geri bildirimi eklenebilir; backend doğrulaması gevşetilmemelidir.
 
+İlanın erişim zamanı kişisel olmayan analiz bağlamı olarak modele verilebilir.
+Aday erişim anında şartın tam bir sınıf altındaysa ve fırsat sonraki akademik
+dönemde başlıyorsa sınıf geçişi varsayılmamalı; başlangıçtaki sınıf durumu
+`karar_bekliyor` sorusuyla kullanıcıya bırakılmalıdır.
+
 Mümkün olan alanlar önce deterministik olarak çıkarılabilir. LLM yalnızca
 yeni veya içerik özeti değişmiş ilanlarda çağrılarak maliyet azaltılmalıdır.
 
