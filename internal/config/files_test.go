@@ -37,11 +37,12 @@ func TestLoadSources(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load example sources: %v", err)
 	}
-	if len(sources.Companies) != 5 || sources.Companies[0].Name != "Meteksan" {
+	if len(sources.Companies) != 6 || sources.Companies[0].Name != "Commencis" ||
+		sources.Companies[0].Sources[0].Adapter != "lever" {
 		t.Fatalf("unexpected sources: %#v", sources)
 	}
-	if len(sources.Companies[1].Sources) != 2 || sources.Companies[1].Sources[1].PageName != "Aselsannet" {
-		t.Fatalf("expected ASELSAN multi-profile configuration, got %#v", sources.Companies[1])
+	if len(sources.Companies[2].Sources) != 2 || sources.Companies[2].Sources[1].PageName != "Aselsannet" {
+		t.Fatalf("expected ASELSAN multi-profile configuration, got %#v", sources.Companies[2])
 	}
 }
 
