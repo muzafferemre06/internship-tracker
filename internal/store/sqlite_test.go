@@ -165,6 +165,82 @@ func TestSQLiteRepositoryPersistsScanReportAndSourceState(t *testing.T) {
 	}
 }
 
+func TestSQLiteRepositoryPersistsDomainAccessReservationAndCooldown(t *testing.T) {
+	repository, db := newTestRepository(t)
+	now := time.Date(2026, 8, 3, 9, 0, 0, 0, time.UTC)
+
+	decision, err := repository.ReserveSourceAccess(context.Background(), "KARIYER.NET", now, 24*time.Hour)
+	if err != nil {
+		t.Fatalf("reserve first access: %v", err)
+	}
+	if !decision.Allowed {
+		t.Fatalf("expected first access to be allowed: %#v", decision)
+	}
+
+	decision, err = repository.ReserveSourceAccess(context.Background(), "kariyer.net", now.Add(time.Hour), 24*time.Hour)
+	if err != nil {
+		t.Fatalf("reserve repeated access: %v", err)
+	}
+	if decision.Allowed || decision.RetryAt == nil || !decision.RetryAt.Equal(now.Add(24*time.Hour)) {
+		t.Fatalf("expected daily access budget to deny retry: %#v", decision)
+	}
+
+	retryAfter := now.Add(30 * time.Hour)
+	decision, err = repository.RecordSourceAccessFailure(
+		context.Background(), "kariyer.net", now.Add(2*time.Hour), AccessFailure{
+			StatusCode: 429, RetryAfter: &retryAfter, Server: "cloudflare",
+			CFRay: "test-ray-IST", Reason: "unexpected HTTP status 429",
+		}, 6*time.Hour, 24*time.Hour,
+	)
+	if err != nil {
+		t.Fatalf("record access failure: %v", err)
+	}
+	if decision.FailCount != 1 || decision.RetryAt == nil || !decision.RetryAt.Equal(retryAfter) {
+		t.Fatalf("expected Retry-After to extend cooldown: %#v", decision)
+	}
+
+	var failures, status int
+	var server, cfRay, blockedUntil string
+	if err := db.QueryRow(`
+		SELECT failure_count, last_status_code, last_server, last_cf_ray, blocked_until
+		FROM source_access_states WHERE scope = 'kariyer.net'
+	`).Scan(&failures, &status, &server, &cfRay, &blockedUntil); err != nil {
+		t.Fatalf("read access state: %v", err)
+	}
+	if failures != 1 || status != 429 || server != "cloudflare" || cfRay != "test-ray-IST" || blockedUntil != retryAfter.Format(time.RFC3339Nano) {
+		t.Fatalf("unexpected persisted access diagnostics: failures=%d status=%d server=%q ray=%q blocked=%q", failures, status, server, cfRay, blockedUntil)
+	}
+
+	if err := repository.RecordSourceAccessSuccess(context.Background(), "kariyer.net", retryAfter.Add(time.Minute)); err != nil {
+		t.Fatalf("record access recovery: %v", err)
+	}
+	var clearedStatus sql.NullInt64
+	if err := db.QueryRow(`
+		SELECT failure_count, last_status_code FROM source_access_states WHERE scope = 'kariyer.net'
+	`).Scan(&failures, &clearedStatus); err != nil {
+		t.Fatalf("read recovered access state: %v", err)
+	}
+	if failures != 0 || clearedStatus.Valid {
+		t.Fatalf("expected diagnostics to reset after success: failures=%d status=%#v", failures, clearedStatus)
+	}
+}
+
+func TestExponentialCooldownCapsAtMaximum(t *testing.T) {
+	for _, test := range []struct {
+		failures int
+		want     time.Duration
+	}{
+		{failures: 1, want: 6 * time.Hour},
+		{failures: 2, want: 12 * time.Hour},
+		{failures: 3, want: 24 * time.Hour},
+		{failures: 4, want: 24 * time.Hour},
+	} {
+		if got := exponentialCooldown(6*time.Hour, 24*time.Hour, test.failures); got != test.want {
+			t.Fatalf("failure %d: expected %s, got %s", test.failures, test.want, got)
+		}
+	}
+}
+
 func TestCanonicalURL(t *testing.T) {
 	canonical, err := CanonicalURL("HTTPS://Example.COM:443/jobs/42/?b=2&utm_medium=email&a=1#apply")
 	if err != nil {

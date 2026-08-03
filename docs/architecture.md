@@ -79,3 +79,6 @@ başlatılmış raporu kapatmak için yalnızca raporlama yazıları iptalden ay
 Kariyer.net adapter'ı 403/429 ve HTTP 200 içindeki challenge sayfalarını tipli
 erişim hatası olarak döndürür. Yanıt gövdesi saklanmaz; teşhis için yalnızca
 durum kodu, `Retry-After`, `Server`, `CF-Ray` ve challenge işareti taşınır.
+Domain erişim bütçesi `source_access_states` tablosunda tutulur. Son deneme,
+sonraki izin zamanı, cooldown, ardışık koruma hatası ve son güvenli teşhis
+alanları süreç yeniden başlatıldığında kaybolmaz.

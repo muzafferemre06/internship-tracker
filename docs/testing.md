@@ -35,6 +35,10 @@ kalmasını, içeriğin/`last_seen_at` alanının yenilenmesini ve analizin kal�
 olarak yazılmasını doğrular. Scan repository testi kaynak hatasının zaman ve
 kısa sebeple saklanmasını, sonraki başarıda temizlenmesini ve dashboard'un son
 kalıcı tarama raporunu döndürmesini kapsar.
+Erişim durumu testi ilk domain rezervasyonunun izinli, 24 saat içindeki ikinci
+rezervasyonun engelli olduğunu; `Retry-After` değerinin cooldown'u uzattığını,
+6/12/24 saat geri çekilme tavanını ve başarı sonrası hata durumunun sıfırlandığını
+gerçek SQLite üzerinde doğrular.
 
 ## Frontend
 

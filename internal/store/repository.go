@@ -54,9 +54,43 @@ type ScanRepository interface {
 	RecordSourceFailure(ctx context.Context, sourceKey string, finishedAt time.Time, reason string) error
 }
 
+type AccessDecision struct {
+	Allowed   bool
+	RetryAt   *time.Time
+	Reason    string
+	FailCount int
+}
+
+type AccessFailure struct {
+	StatusCode int
+	RetryAfter *time.Time
+	Server     string
+	CFRay      string
+	Reason     string
+}
+
+type AccessRepository interface {
+	ReserveSourceAccess(
+		ctx context.Context,
+		scope string,
+		attemptedAt time.Time,
+		minimumInterval time.Duration,
+	) (AccessDecision, error)
+	RecordSourceAccessFailure(
+		ctx context.Context,
+		scope string,
+		failedAt time.Time,
+		failure AccessFailure,
+		baseCooldown time.Duration,
+		maximumCooldown time.Duration,
+	) (AccessDecision, error)
+	RecordSourceAccessSuccess(ctx context.Context, scope string, succeededAt time.Time) error
+}
+
 type Repository interface {
 	ListingRepository
 	ScanRepository
+	AccessRepository
 }
 
 type DashboardRepository interface {

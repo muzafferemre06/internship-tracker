@@ -305,6 +305,213 @@ func (r *SQLiteRepository) recordSourceResult(
 	return nil
 }
 
+func (r *SQLiteRepository) ReserveSourceAccess(
+	ctx context.Context,
+	scope string,
+	attemptedAt time.Time,
+	minimumInterval time.Duration,
+) (AccessDecision, error) {
+	scope = strings.TrimSpace(strings.ToLower(scope))
+	if scope == "" {
+		return AccessDecision{}, errors.New("access scope is required")
+	}
+	if minimumInterval <= 0 {
+		return AccessDecision{}, errors.New("minimum access interval must be positive")
+	}
+	if attemptedAt.IsZero() {
+		attemptedAt = r.now().UTC()
+	}
+	attemptedAt = attemptedAt.UTC()
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return AccessDecision{}, fmt.Errorf("begin access reservation: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO source_access_states(scope) VALUES (?)
+		ON CONFLICT(scope) DO NOTHING
+	`, scope); err != nil {
+		return AccessDecision{}, fmt.Errorf("initialize access scope %q: %w", scope, err)
+	}
+
+	var failureCount int
+	var nextAllowedText, blockedUntilText sql.NullString
+	if err := tx.QueryRowContext(ctx, `
+		SELECT failure_count, next_allowed_at, blocked_until
+		FROM source_access_states WHERE scope = ?
+	`, scope).Scan(&failureCount, &nextAllowedText, &blockedUntilText); err != nil {
+		return AccessDecision{}, fmt.Errorf("load access scope %q: %w", scope, err)
+	}
+
+	nextAllowed, err := latestStoredTime(nextAllowedText, blockedUntilText)
+	if err != nil {
+		return AccessDecision{}, fmt.Errorf("parse access scope %q timing: %w", scope, err)
+	}
+	if nextAllowed != nil && attemptedAt.Before(*nextAllowed) {
+		if err := tx.Commit(); err != nil {
+			return AccessDecision{}, fmt.Errorf("commit denied access reservation: %w", err)
+		}
+		return AccessDecision{
+			Allowed: false, RetryAt: nextAllowed, Reason: "domain access cooldown is active",
+			FailCount: failureCount,
+		}, nil
+	}
+
+	nextAttempt := attemptedAt.Add(minimumInterval)
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE source_access_states
+		SET last_attempt_at = ?, next_allowed_at = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE scope = ?
+	`, attemptedAt.Format(time.RFC3339Nano), nextAttempt.Format(time.RFC3339Nano), scope); err != nil {
+		return AccessDecision{}, fmt.Errorf("reserve access scope %q: %w", scope, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return AccessDecision{}, fmt.Errorf("commit access reservation: %w", err)
+	}
+	return AccessDecision{Allowed: true, FailCount: failureCount}, nil
+}
+
+func (r *SQLiteRepository) RecordSourceAccessFailure(
+	ctx context.Context,
+	scope string,
+	failedAt time.Time,
+	failure AccessFailure,
+	baseCooldown time.Duration,
+	maximumCooldown time.Duration,
+) (AccessDecision, error) {
+	scope = strings.TrimSpace(strings.ToLower(scope))
+	if scope == "" || strings.TrimSpace(failure.Reason) == "" {
+		return AccessDecision{}, errors.New("access scope and failure reason are required")
+	}
+	if baseCooldown <= 0 || maximumCooldown < baseCooldown {
+		return AccessDecision{}, errors.New("access cooldown durations are invalid")
+	}
+	if failedAt.IsZero() {
+		failedAt = r.now().UTC()
+	}
+	failedAt = failedAt.UTC()
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return AccessDecision{}, fmt.Errorf("begin access failure: %w", err)
+	}
+	defer tx.Rollback()
+
+	var failureCount int
+	var nextAllowedText sql.NullString
+	if err := tx.QueryRowContext(ctx, `
+		SELECT failure_count, next_allowed_at
+		FROM source_access_states WHERE scope = ?
+	`, scope).Scan(&failureCount, &nextAllowedText); err != nil {
+		return AccessDecision{}, fmt.Errorf("load failed access scope %q: %w", scope, err)
+	}
+	failureCount++
+	cooldown := exponentialCooldown(baseCooldown, maximumCooldown, failureCount)
+	blockedUntil := failedAt.Add(cooldown)
+	if failure.RetryAfter != nil && failure.RetryAfter.After(blockedUntil) {
+		blockedUntil = failure.RetryAfter.UTC()
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE source_access_states SET
+			failure_count = ?, blocked_until = ?, last_status_code = NULLIF(?, 0),
+			last_server = NULLIF(?, ''), last_cf_ray = NULLIF(?, ''),
+			last_error = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE scope = ?
+	`, failureCount, blockedUntil.Format(time.RFC3339Nano), failure.StatusCode,
+		failure.Server, failure.CFRay, failure.Reason, scope); err != nil {
+		return AccessDecision{}, fmt.Errorf("record access failure for %q: %w", scope, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return AccessDecision{}, fmt.Errorf("commit access failure: %w", err)
+	}
+
+	retryAt := blockedUntil
+	if nextAllowed, err := parseStoredTime(nextAllowedText); err != nil {
+		return AccessDecision{}, fmt.Errorf("parse next access for %q: %w", scope, err)
+	} else if nextAllowed != nil && nextAllowed.After(retryAt) {
+		retryAt = *nextAllowed
+	}
+	return AccessDecision{
+		Allowed: false, RetryAt: &retryAt, Reason: "domain access protection was triggered",
+		FailCount: failureCount,
+	}, nil
+}
+
+func (r *SQLiteRepository) RecordSourceAccessSuccess(
+	ctx context.Context,
+	scope string,
+	succeededAt time.Time,
+) error {
+	scope = strings.TrimSpace(strings.ToLower(scope))
+	if scope == "" {
+		return errors.New("access scope is required")
+	}
+	if succeededAt.IsZero() {
+		succeededAt = r.now().UTC()
+	}
+	result, err := r.db.ExecContext(ctx, `
+		UPDATE source_access_states SET
+			failure_count = 0, blocked_until = NULL, last_success_at = ?,
+			last_status_code = NULL, last_server = NULL, last_cf_ray = NULL,
+			last_error = NULL, updated_at = CURRENT_TIMESTAMP
+		WHERE scope = ?
+	`, succeededAt.UTC().Format(time.RFC3339Nano), scope)
+	if err != nil {
+		return fmt.Errorf("record access success for %q: %w", scope, err)
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read access success rows for %q: %w", scope, err)
+	}
+	if updated != 1 {
+		return fmt.Errorf("access scope %q was not found", scope)
+	}
+	return nil
+}
+
+func exponentialCooldown(base, maximum time.Duration, failureCount int) time.Duration {
+	cooldown := base
+	for attempt := 1; attempt < failureCount && cooldown < maximum; attempt++ {
+		if cooldown > maximum/2 {
+			return maximum
+		}
+		cooldown *= 2
+	}
+	if cooldown > maximum {
+		return maximum
+	}
+	return cooldown
+}
+
+func latestStoredTime(values ...sql.NullString) (*time.Time, error) {
+	var latest *time.Time
+	for _, value := range values {
+		parsed, err := parseStoredTime(value)
+		if err != nil {
+			return nil, err
+		}
+		if parsed != nil && (latest == nil || parsed.After(*latest)) {
+			copy := *parsed
+			latest = &copy
+		}
+	}
+	return latest, nil
+}
+
+func parseStoredTime(value sql.NullString) (*time.Time, error) {
+	if !value.Valid || strings.TrimSpace(value.String) == "" {
+		return nil, nil
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, value.String)
+	if err != nil {
+		return nil, err
+	}
+	return &parsed, nil
+}
+
 func (r *SQLiteRepository) Dashboard(ctx context.Context) (DashboardSnapshot, error) {
 	newListings, err := r.dashboardListings(ctx, `
 		WHERE listing_analyses.is_relevant = 1
