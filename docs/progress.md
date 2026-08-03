@@ -4,7 +4,7 @@
 
 Faz 0 tamamlanıyor. Repo ve uygulama iskeleti hazırdır; yapılandırma dosyaları
 doğrulanır ve SQLite veritabanı başlangıçta migration kayıtları izlenerek
-hazırlanır.
+hazırlanır. Faz 1'in fixture tabanlı Meteksan/kariyer.net adapter'ı hazırdır.
 
 ## Tamamlananlar
 
@@ -12,8 +12,9 @@ hazırlanır.
 - Go API ve React/Vite PWA iskeleti
 - Aday profili ve şirket kaynak yapılandırması için doğrulanan yükleyiciler
 - Transaction kullanan, tekrar uygulanmayan SQLite migration çalıştırıcısı
+- Meteksan profilinden ilan bağlantılarını normalize eden kariyer.net adapter'ı
 - Test, CI, Docker ve secret yönetimi başlangıç dosyaları
 
 ## Sıradaki iş
 
-Faz 1 için Meteksan/kariyer.net fixture adapter'ını uygulamak.
+SQLite listing repository'sini canonical URL ve dedup davranışıyla uygulamak.

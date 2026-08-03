@@ -6,9 +6,9 @@
       "sources": [
         {
           "type": "career_page",
-          "url": "https://example.invalid/meteksan-career-profile",
+          "url": "https://www.kariyer.net/firma-profil/meteksan-savunma-sanayi-a-s-7324-220178",
           "adapter": "kariyer_net",
-          "enabled": false
+          "enabled": true
         }
       ]
     },
