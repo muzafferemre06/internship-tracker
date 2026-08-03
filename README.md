@@ -111,6 +111,21 @@ Test varsayılan olarak `gemini-3.1-flash-lite` kullanır;
 `GEMINI_LIVE_TEST_MODEL` ile model değiştirilebilir. Bu komut gerçek API kotası
 kullanır ve anahtar yoksa testi atlar.
 
+Faz 3.5 uçtan uca canlı kabul testi ayrıca açıkça etkinleştirilmelidir:
+
+```bash
+RUN_REAL_LISTING_ACCEPTANCE=1 GEMINI_API_KEY=... \
+  go test -tags=integration ./internal/acceptance \
+  -run TestPhase35LiveOfficialListingWithGemini -v
+```
+
+Test varsayılan Commencis Lever ilanını geçici SQLite üzerinde iki kez işler;
+canlı Gemini kullanım metadatasını, dashboard API görünürlüğünü ve ikinci
+çalıştırmada sıfır yeni kayıt sonucunu doğrular. İlan kapandığında yeni bir resmî
+Lever sayfası `REAL_LISTING_URL`, `REAL_LISTING_COMPANY` ve
+`REAL_LISTING_EXPECTED_TITLE` ile verilebilir. Geçici veritabanı test sonunda
+silinir; API anahtarı ve canlı sayfa gövdesi kaydedilmez.
+
 ## Docker ile çalıştırma
 
 ```bash

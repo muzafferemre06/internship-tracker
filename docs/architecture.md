@@ -59,6 +59,11 @@ ilana ait `/apply` bağlantısı birlikte bulunmadığında kaynak kapalı ya da
 değişmiş sayılır. SQLite'a sayfanın tamamı yerine başlık, kategoriler, iş tanımı
 ve gereksinimlerden oluşan normalize metin gider.
 
+Faz 3.5 kabul akışı adapter'ı doğrudan SQLite repository ve `ModelAnalyzer` ile
+orchestrator içinde çalıştırır. İkinci tarama aynı canonical URL'yi günceller,
+ancak işlenmiş analizi yeniden çağırmaz. Sonuç, üretimde kullanılan dashboard
+HTTP handler'ından okunur; kabul veritabanı yalnızca geçici dizinde oluşturulur.
+
 SQLite repository kaynakları kararlı `source_key` değerleriyle şirketlere
 bağlar. İlan kimliği şirket adı ve canonical URL'nin SHA-256 özetidir. Canonical
 URL'den fragment, UTM ve bilinen reklam takip parametreleri çıkarılır; sorgu

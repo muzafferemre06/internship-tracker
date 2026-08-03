@@ -73,7 +73,8 @@ işleme sonucunu `207` olarak döndürür.
 
 Gerçek ilan kabul testi normal `go test ./...` akışından ayrılır. Test yalnızca
 açıkça verilen build tag/ortam ayarlarıyla resmî kariyer kaynağına ve Gemini
-API'ye gider; site erişim bütçesini ve devre kesiciyi kullanır. Çıktı aktif ilan
+API'ye gider. Yalnızca herkese açık tek Lever ilan URL'sini okur; erişim engeli
+veya kapalı ilanı aşmaya çalışmaz. Çıktı aktif ilan
 kanıt zamanını, canonical URL'yi, analiz durumunu, provider/model/token bilgisini,
 dashboard görünürlüğünü ve ikinci çalıştırmadaki dedup sonucunu raporlar.
 
@@ -82,6 +83,14 @@ cevabı kullanır. Fixture yalnızca parser ve durum kanıtı için gerekli alan
 içerir; canlı sayfanın tamamı, API anahtarı ve üretilen SQLite dosyası repoya
 eklenmez. Canlı kaynak erişilemiyor veya başvuru kapanmışsa test başarılı sayılmaz
 ve sahte ilanla çıkış kriteri karşılanmış kabul edilmez.
+
+Normal `internal/acceptance` testi fixture Lever adapter'ını, strict şemadan
+geçen fake Google cevabını, gerçek migration/SQLite repository'yi ve dashboard
+HTTP handler'ını birlikte kullanır. İlk taramada bir, ikinci taramada sıfır yeni
+ilan; tek kalıcı kayıt; tek model çağrısı; provider/model/token/tahmini maliyet
+alanları ve `kismen_uygun` dashboard sonucu beklenir. Canlı karşılığı yalnızca
+`RUN_REAL_LISTING_ACCEPTANCE=1`, `integration` etiketi ve `GEMINI_API_KEY` birlikte
+verildiğinde çalışır.
 
 Orchestrator devre kesici testi aynı scope'taki ilk kaynağın 403 vermesinden
 sonra ikinci kaynağın taşıma katmanına hiç ulaşmadığını, tek rezervasyon

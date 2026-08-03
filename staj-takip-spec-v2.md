@@ -605,6 +605,11 @@ izlenir. Adapter yalnızca `jobs.lever.co` HTTPS URL'sini, beklenen ilan yapıs�
 ve aynı ilana ait aktif `/apply` bağlantısını kabul eder; sayfanın tamamı yerine
 analiz için gereken normalize ilan alanları saklanır.
 
+Kabul testi aynı orchestrator yolunu normal suite'te fixture/fake provider ve
+geçici SQLite ile, `integration` etiketinde ise canlı Lever/Gemini ile çalıştırır.
+Canlı test ayrıca açık opt-in ortam bayrağı olmadan başlamaz ve ikinci taramada
+işlenmiş duplicate ilan için modeli yeniden çağırmaz.
+
 ### Faz 4 — Sade PWA ve başvuru takibi
 
 - responsive dashboard

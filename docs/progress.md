@@ -49,6 +49,8 @@ başlamamıştır.
   tam şema akışı ise opt-in canlı integration testiyle doğrulanabilir.
 - Resmî tek ilan sayfasını güvenli alanlarla normalize eden Lever adapter'ı;
   aktif başvuru bağlantısı ve beklenen sayfa yapısı için fixture testleriyle doğrulanır.
+- Fixture Lever kaynağı, strict fake model, geçici SQLite ve dashboard HTTP
+  handler'ını iki taramada birleştiren Faz 3.5 normal kabul testi tamamlandı.
 
 ## Sıradaki iş
 
