@@ -15,6 +15,8 @@ kullanır. Resmî ilan URL'sinin ve tanıtıcı User-Agent'in istendiğini; baş
 konum, çalışma türü, son başvuru tarihi ve gereksinimlerin normalize edildiğini;
 aktif `/apply` bağlantısı olmayan veya beklenen yapıyı taşımayan sayfanın ilan
 olarak kabul edilmediğini doğrular.
+Adapter'ın `jobs.lever.co` için bir saniyelik kalıcı erişim bütçesi bildirdiği de
+test edilir; fixture kabul testindeki saat ikinci taramadan önce bu kadar ilerler.
 
 Kariyer.net adapter testi bellek içi sahte bir HTTP taşıma katmanı kullanır;
 iki ilan, tekrarlı bağlantı, sıfır ilan, eksik başlık, değişmiş sayfa işareti,

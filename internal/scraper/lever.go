@@ -51,6 +51,15 @@ func NewLeverSource(name string, company string, postingURL string, client *http
 
 func (s *LeverSource) Name() string { return s.name }
 
+func (s *LeverSource) AccessPolicy() AccessPolicy {
+	return AccessPolicy{
+		Scope:           "jobs.lever.co",
+		MinimumInterval: time.Second,
+		BaseCooldown:    time.Minute,
+		MaximumCooldown: time.Hour,
+	}
+}
+
 func (s *LeverSource) FetchListings(ctx context.Context) ([]domain.RawListing, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, s.postingURL.String(), nil)
 	if err != nil {
@@ -65,8 +74,8 @@ func (s *LeverSource) FetchListings(ctx context.Context) ([]domain.RawListing, e
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, maxAccessErrorBodyBytes))
-		return nil, fmt.Errorf("fetch Lever posting: unexpected HTTP status %d", response.StatusCode)
+		body, _ := io.ReadAll(io.LimitReader(response.Body, maxAccessErrorBodyBytes))
+		return nil, fmt.Errorf("fetch Lever posting: %w", accessError(response, body, s.now().UTC()))
 	}
 	body, err := io.ReadAll(io.LimitReader(response.Body, maxLeverPageBytes+1))
 	if err != nil {

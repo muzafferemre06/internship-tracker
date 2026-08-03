@@ -65,6 +65,9 @@ func TestPhase35LiveOfficialListingWithGemini(t *testing.T) {
 	if first.Sources[0].ProcessError != 0 {
 		t.Fatalf("first live scan analysis failed: %s", readAcceptanceFailure(t, db))
 	}
+	if remaining := time.Until(first.StartedAt.Add(time.Second)); remaining > 0 {
+		time.Sleep(remaining)
+	}
 	second, err := service.Run(ctx, "manual")
 	if err != nil {
 		t.Fatalf("second live acceptance scan: %v", err)

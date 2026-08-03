@@ -50,6 +50,8 @@ sayfasındaki tek ilanı izler. Yalnızca aktif başvuru bağlantısı bulunan s
 kabul eder; takip parametrelerini kaynak URL'sinden çıkarır ve başlık, ilan
 kategorileri ile açıklama alanlarını normalize eder. Örnek kaynak dosyasında
 Commencis'in resmî Lever ilanı bu adapter'ın yapılandırmasını gösterir.
+Lever istekleri alanın robots politikasındaki bir saniyelik minimum aralıkla
+kalıcı erişim bütçesinden geçirilir.
 
 ## İlan analizi
 

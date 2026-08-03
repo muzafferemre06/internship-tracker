@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/muzaffer/internship-tracker/internal/analyzer"
 	"github.com/muzaffer/internship-tracker/internal/database"
@@ -76,11 +77,14 @@ func TestPhase35FixturePathPersistsAnalysisAndDeduplicates(t *testing.T) {
 		Sources: []scraper.Source{source}, Analyzer: modelAnalyzer, Store: repository,
 		Profile: minimizedAcceptanceProfile(),
 	}
+	now := time.Date(2026, 8, 3, 12, 0, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
 
 	first, err := service.Run(context.Background(), "manual")
 	if err != nil {
 		t.Fatalf("first acceptance scan: %v", err)
 	}
+	now = now.Add(time.Second)
 	second, err := service.Run(context.Background(), "manual")
 	if err != nil {
 		t.Fatalf("second acceptance scan: %v", err)

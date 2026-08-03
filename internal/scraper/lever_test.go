@@ -30,6 +30,10 @@ func TestLeverSourceParsesActivePosting(t *testing.T) {
 		t.Fatalf("create source: %v", err)
 	}
 	source.now = func() time.Time { return time.Date(2026, 8, 3, 12, 0, 0, 0, time.UTC) }
+	policy := source.AccessPolicy()
+	if policy.Scope != "jobs.lever.co" || policy.MinimumInterval != time.Second {
+		t.Fatalf("unexpected Lever access policy: %#v", policy)
+	}
 
 	listings, err := source.FetchListings(context.Background())
 	if err != nil {

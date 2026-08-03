@@ -58,6 +58,9 @@ kimliğinden oluşan yolu kabul eder. Sayfadaki `posting-page`, ilan başlığı
 ilana ait `/apply` bağlantısı birlikte bulunmadığında kaynak kapalı ya da yapısı
 değişmiş sayılır. SQLite'a sayfanın tamamı yerine başlık, kategoriler, iş tanımı
 ve gereksinimlerden oluşan normalize metin gider.
+Lever'ın herkese açık robots politikasındaki bir saniyelik crawl aralığı aynı
+kalıcı domain erişim bütçesiyle uygulanır. 403/429/challenge yanıtları kısa ve
+güvenli teşhislerle devre kesiciyi tetikler; yanıt gövdesi saklanmaz.
 
 Faz 3.5 kabul akışı adapter'ı doğrudan SQLite repository ve `ModelAnalyzer` ile
 orchestrator içinde çalıştırır. İkinci tarama aynı canonical URL'yi günceller,
