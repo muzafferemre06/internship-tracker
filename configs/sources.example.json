@@ -5,6 +5,7 @@
       "priority_group": "primary",
       "sources": [
         {
+          "id": "meteksan-kariyer-net",
           "type": "career_page",
           "url": "https://www.kariyer.net/firma-profil/meteksan-savunma-sanayi-a-s-7324-220178",
           "adapter": "kariyer_net",

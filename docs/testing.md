@@ -20,6 +20,9 @@ test edilir.
 
 Veritabanı testleri geçici dizinde gerçek SQLite dosyası açar. Migration'ların
 ilk açılışta uygulanması ve sonraki açılışlarda tekrar çalışmaması doğrulanır.
+Repository testleri takip parametreleri farklı aynı URL'nin tek ilan olarak
+kalmasını, içeriğin/`last_seen_at` alanının yenilenmesini ve analizin kalıcı
+olarak yazılmasını doğrular.
 
 ## Frontend
 

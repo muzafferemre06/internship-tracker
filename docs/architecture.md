@@ -48,3 +48,8 @@ bu dilim tamamlanana kadar kasıtlı olarak `501 Not Implemented` döndürür.
 Kariyer.net adapter'ı şirket profilindeki `/is-ilani/` bağlantılarını standart
 ilanlara dönüştürür. Şirket başlığı bulunamazsa sayfa değişmiş veya erişim
 engellenmiş kabul edilir; bu durum geçerli bir “sıfır ilan” sonucu değildir.
+
+SQLite repository kaynakları kararlı `source_key` değerleriyle şirketlere
+bağlar. İlan kimliği şirket adı ve canonical URL'nin SHA-256 özetidir. Canonical
+URL'den fragment, UTM ve bilinen reklam takip parametreleri çıkarılır; sorgu
+parametreleri kararlı sıraya getirilir.

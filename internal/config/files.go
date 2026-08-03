@@ -46,6 +46,7 @@ type CompanyConfig struct {
 }
 
 type SourceConfig struct {
+	ID      string `json:"id"`
 	Type    string `json:"type"`
 	URL     string `json:"url"`
 	Adapter string `json:"adapter"`
@@ -120,6 +121,7 @@ func (c SourcesConfig) validate() error {
 	}
 
 	companyNames := make(map[string]struct{}, len(c.Companies))
+	sourceIDs := make(map[string]struct{})
 	for companyIndex, company := range c.Companies {
 		name := strings.TrimSpace(company.Name)
 		if name == "" {
@@ -140,12 +142,19 @@ func (c SourcesConfig) validate() error {
 			if err := source.validate(); err != nil {
 				return fmt.Errorf("company %q source %d: %w", name, sourceIndex, err)
 			}
+			if _, exists := sourceIDs[source.ID]; exists {
+				return fmt.Errorf("source id %q is defined more than once", source.ID)
+			}
+			sourceIDs[source.ID] = struct{}{}
 		}
 	}
 	return nil
 }
 
 func (s SourceConfig) validate() error {
+	if strings.TrimSpace(s.ID) == "" {
+		return errors.New("id is required")
+	}
 	if strings.TrimSpace(s.Type) == "" {
 		return errors.New("type is required")
 	}

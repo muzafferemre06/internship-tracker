@@ -46,7 +46,7 @@ func TestLoadSourcesRejectsInvalidURL(t *testing.T) {
 	path := writeConfigTestFile(t, `{
 		"companies":[{
 			"name":"Test", "priority_group":"primary",
-			"sources":[{"type":"career_page", "url":"not-a-url", "adapter":"fixture", "enabled":true}]
+			"sources":[{"id":"test", "type":"career_page", "url":"not-a-url", "adapter":"fixture", "enabled":true}]
 		}]
 	}`)
 

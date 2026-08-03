@@ -40,6 +40,8 @@ izlenir.
 Uygulama aday profili ve kaynak dosyalarını katı bir JSON şemasıyla okur;
 bilinmeyen alanlar ve geçersiz şirket/kaynak değerleri başlangıç hatasıdır.
 Dosya yolları `CANDIDATE_PROFILE_PATH` ve `SOURCES_PATH` ile değiştirilebilir.
+Her kaynak, taramalar ve veritabanı kayıtları arasında değişmeyen benzersiz bir
+`id` alanına sahip olmalıdır.
 
 ## Test
 
