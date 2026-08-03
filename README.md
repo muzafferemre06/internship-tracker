@@ -60,7 +60,19 @@ docker compose -f deploy/compose.yml up --build
 ```
 
 PWA bu kurulumda `http://localhost:8081` adresinden açılır. Compose dosyası
-SQLite verisini adlandırılmış bir volume içinde korur.
+yerel `configs/candidate-profile.json` ve `configs/sources.json` dosyalarını
+salt okunur bağlar; SQLite verisini adlandırılmış bir volume içinde korur.
+
+## API
+
+- `GET /health`: süreç sağlık bilgisi
+- `GET /api/v1/dashboard`: uygun yeni ilanlar ve takip özetleri
+- `POST /api/v1/scan`: etkin kaynakları hemen tarar; toplam bulunan/yeni ilan
+  sayılarını ve kaynak bazlı hataları döndürür
+
+Manuel tarama tamamlandıktan sonra PWA dashboard'u yeniden yükler. Bir kaynak
+hatası diğer kaynakların çalışmasını durdurmaz; kısmi sonuç HTTP `207` ile
+döner.
 
 ## Dizinler
 
@@ -73,3 +85,6 @@ web/                 React/Vite PWA
 deploy/              Container ve deployment dosyaları
 docs/                Mimari ve geliştirme notları
 ```
+
+Güncel faz durumu ve sıradaki uygulama işi için
+[`docs/progress.md`](./docs/progress.md) kullanılmalıdır.

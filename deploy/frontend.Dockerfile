@@ -1,8 +1,8 @@
 FROM node:20-alpine AS builder
 
 WORKDIR /src
-COPY web/package.json ./
-RUN npm install
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
 COPY web ./
 ARG VITE_API_BASE_URL=
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL

@@ -36,6 +36,16 @@ npm --prefix web run build
 
 Saf sınıflandırma ve görünüm yardımcıları Vitest ile test edilir. Dashboard
 akışları geliştikçe component ve tarayıcı tabanlı uçtan uca testler eklenir.
+Frontend araçları Node 20.19 veya daha yeni bir Node 20 sürümü gerektirir;
+Vite 7 ve Vitest 4 güvenlik yamaları alınmış sabit sürümlere kilitlenir.
+Vite yapılandırması TypeScript tarafından yalnızca tip kontrolünden geçirilir;
+`npm run typecheck` uygulama ve Vite yapılandırmasını ayrı ayrı `noEmit` ile
+kontrol eder ve kaynak ağacına JavaScript/derleme-meta çıktısı üretmez.
+
+Faz 1 backend kabul testi aynı Meteksan fixture'ını scraper, deterministik
+analizci ve gerçek SQLite repository üzerinden iki kez çalıştırır. İlk tarama
+iki yeni kayıt, ikinci tarama sıfır yeni kayıt üretmeli; uygun staj dashboard
+sorgusunda görünmelidir.
 
 ## CI
 

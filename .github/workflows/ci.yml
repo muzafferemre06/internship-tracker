@@ -24,6 +24,9 @@ jobs:
       - name: Test
         run: go test -race -coverprofile=coverage.out ./...
 
+      - name: Format
+        run: test -z "$(gofmt -l $(git ls-files '*.go'))"
+
       - name: Build
         run: go build ./cmd/api
 
@@ -42,7 +45,7 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Test
         run: npm test

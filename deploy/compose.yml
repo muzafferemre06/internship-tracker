@@ -9,12 +9,16 @@ services:
       ALLOWED_ORIGIN: http://localhost:8081
       DATABASE_PATH: /app/data/internship-tracker.db
       MIGRATIONS_PATH: /app/migrations
+      CANDIDATE_PROFILE_PATH: /app/configs/candidate-profile.json
+      SOURCES_PATH: /app/configs/sources.json
       LLM_PROVIDER: ${LLM_PROVIDER:-openrouter}
       LLM_MODEL: ${LLM_MODEL:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       SCAN_SCHEDULE: ${SCAN_SCHEDULE:-0 9 * * 1}
     volumes:
       - tracker_data:/app/data
+      - ../configs/candidate-profile.json:/app/configs/candidate-profile.json:ro
+      - ../configs/sources.json:/app/configs/sources.json:ro
     restart: unless-stopped
 
   web:

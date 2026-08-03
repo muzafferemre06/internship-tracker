@@ -8,6 +8,12 @@ type DashboardResponse = {
   last_scan: null | { finished_at: string; status: string };
 };
 
+type ScanResponse = {
+  found: number;
+  new: number;
+  process_errors: number;
+};
+
 const apiBaseUrl = import.meta.env.DEV
   ? (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080")
   : (import.meta.env.VITE_API_BASE_URL ?? "");
@@ -49,7 +55,9 @@ export default function App() {
         const payload = (await response.json()) as { error?: string };
         throw new Error(payload.error ?? `HTTP ${response.status}`);
       }
-      setMessage("Tarama başlatıldı.");
+      const result = (await response.json()) as ScanResponse;
+      await loadDashboard();
+      setMessage(`${result.found} ilan kontrol edildi, ${result.new} yeni ilan bulundu.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Tarama başlatılamadı.");
     } finally {
