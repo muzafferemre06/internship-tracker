@@ -119,9 +119,14 @@ func configureSources(
 
 			switch sourceConfig.Adapter {
 			case "kariyer_net":
+				pageName := sourceConfig.PageName
+				if strings.TrimSpace(pageName) == "" {
+					pageName = company.Name
+				}
 				source, err := scraper.NewKariyerNetSource(
 					sourceConfig.ID,
 					company.Name,
+					pageName,
 					sourceConfig.URL,
 					nil,
 				)

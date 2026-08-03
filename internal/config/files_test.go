@@ -40,6 +40,9 @@ func TestLoadSources(t *testing.T) {
 	if len(sources.Companies) != 5 || sources.Companies[0].Name != "Meteksan" {
 		t.Fatalf("unexpected sources: %#v", sources)
 	}
+	if len(sources.Companies[1].Sources) != 2 || sources.Companies[1].Sources[1].PageName != "Aselsannet" {
+		t.Fatalf("expected ASELSAN multi-profile configuration, got %#v", sources.Companies[1])
+	}
 }
 
 func TestLoadSourcesRejectsInvalidURL(t *testing.T) {

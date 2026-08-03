@@ -46,11 +46,12 @@ type CompanyConfig struct {
 }
 
 type SourceConfig struct {
-	ID      string `json:"id"`
-	Type    string `json:"type"`
-	URL     string `json:"url"`
-	Adapter string `json:"adapter"`
-	Enabled bool   `json:"enabled"`
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	URL      string `json:"url"`
+	Adapter  string `json:"adapter"`
+	PageName string `json:"page_name,omitempty"`
+	Enabled  bool   `json:"enabled"`
 }
 
 func LoadCandidateProfile(path string) (CandidateProfile, error) {

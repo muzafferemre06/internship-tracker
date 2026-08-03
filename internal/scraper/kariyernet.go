@@ -21,6 +21,7 @@ var ErrUnexpectedPage = errors.New("career page structure is not recognized")
 type KariyerNetSource struct {
 	name       string
 	company    string
+	pageName   string
 	profileURL *url.URL
 	client     *http.Client
 	now        func() time.Time
@@ -29,16 +30,21 @@ type KariyerNetSource struct {
 func NewKariyerNetSource(
 	name string,
 	company string,
+	pageName string,
 	profileURL string,
 	client *http.Client,
 ) (*KariyerNetSource, error) {
 	name = strings.TrimSpace(name)
 	company = strings.TrimSpace(company)
+	pageName = strings.TrimSpace(pageName)
 	if name == "" {
 		return nil, errors.New("source name is required")
 	}
 	if company == "" {
 		return nil, errors.New("company name is required")
+	}
+	if pageName == "" {
+		return nil, errors.New("page name is required")
 	}
 
 	parsedURL, err := url.Parse(profileURL)
@@ -52,6 +58,7 @@ func NewKariyerNetSource(
 	return &KariyerNetSource{
 		name:       name,
 		company:    company,
+		pageName:   pageName,
 		profileURL: parsedURL,
 		client:     client,
 		now:        time.Now,
@@ -94,7 +101,7 @@ func (s *KariyerNetSource) FetchListings(ctx context.Context) ([]domain.RawListi
 }
 
 func (s *KariyerNetSource) parseListings(root *html.Node) ([]domain.RawListing, error) {
-	if !containsCompanyHeading(root, s.company) {
+	if !containsCompanyHeading(root, s.pageName) {
 		return nil, ErrUnexpectedPage
 	}
 

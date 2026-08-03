@@ -46,6 +46,23 @@ func TestKariyerNetSourceAllowsRecognizedPageWithoutListings(t *testing.T) {
 	}
 }
 
+func TestKariyerNetSourceKeepsGroupCompanyWithDifferentPageName(t *testing.T) {
+	source := sourceWithNamedFixture(
+		t,
+		"testdata/kariyernet/aselsannet-listings.html",
+		"ASELSAN",
+		"Aselsannet",
+	)
+
+	listings, err := source.FetchListings(context.Background())
+	if err != nil {
+		t.Fatalf("fetch affiliate listings: %v", err)
+	}
+	if len(listings) != 2 || listings[0].Company != "ASELSAN" {
+		t.Fatalf("unexpected affiliate listings: %#v", listings)
+	}
+}
+
 func TestKariyerNetSourceRejectsChangedPage(t *testing.T) {
 	source := sourceWithFixture(t, "testdata/kariyernet/unrecognized.html", http.StatusOK)
 
@@ -81,6 +98,7 @@ func TestKariyerNetSourceHonorsContextCancellation(t *testing.T) {
 	source, err := NewKariyerNetSource(
 		"meteksan-kariyer-net",
 		"Meteksan",
+		"Meteksan",
 		"https://www.kariyer.net/firma-profil/meteksan",
 		client,
 	)
@@ -114,7 +132,35 @@ func sourceWithFixture(t *testing.T, fixturePath string, status int) *KariyerNet
 	source, err := NewKariyerNetSource(
 		"meteksan-kariyer-net",
 		"Meteksan Savunma",
+		"Meteksan Savunma",
 		"https://www.kariyer.net/firma-profil/meteksan-savunma-7324-220178",
+		client,
+	)
+	if err != nil {
+		t.Fatalf("create source: %v", err)
+	}
+	return source
+}
+
+func sourceWithNamedFixture(t *testing.T, fixturePath, company, pageName string) *KariyerNetSource {
+	t.Helper()
+	body, err := os.ReadFile(fixturePath)
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(bytes.NewReader(body)),
+			Request:    request,
+		}, nil
+	})}
+	source, err := NewKariyerNetSource(
+		"affiliate-kariyer-net",
+		company,
+		pageName,
+		"https://www.kariyer.net/firma-profil/affiliate",
 		client,
 	)
 	if err != nil {

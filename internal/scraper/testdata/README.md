@@ -8,3 +8,7 @@ ettiği senaryo test dosyasında belirtilmelidir.
 profili davranışının küçültülmüş ve kişisel veri içermeyen temsilleridir. Canlı
 sayfanın birebir kopyası değildir; ilan bağlantısı, başlık, sıfır ilan ve
 tanınmayan sayfa senaryolarını kapsar.
+
+`aselsan-listings.html` ve `aselsannet-listings.html`, aynı şirket grubundaki
+farklı profil başlıklarını ve profiller arası ortak ilan dedup davranışını
+doğrular.

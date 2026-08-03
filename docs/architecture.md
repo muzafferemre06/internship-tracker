@@ -48,6 +48,9 @@ bu orchestrator zincirini senkron çalıştırır ve kaynak bazlı sonucu dönd�
 Kariyer.net adapter'ı şirket profilindeki `/is-ilani/` bağlantılarını standart
 ilanlara dönüştürür. Şirket başlığı bulunamazsa sayfa değişmiş veya erişim
 engellenmiş kabul edilir; bu durum geçerli bir “sıfır ilan” sonucu değildir.
+Her profil URL'si bağımsız bir kaynak adapter'ıdır. Aynı şirket altındaki
+birden fazla `sources[]` girdisi ortak şirket kimliğiyle dedup edilir;
+iştiraklerde farklı olan beklenen `<h1>` değeri `page_name` ile tanımlanır.
 
 SQLite repository kaynakları kararlı `source_key` değerleriyle şirketlere
 bağlar. İlan kimliği şirket adı ve canonical URL'nin SHA-256 özetidir. Canonical

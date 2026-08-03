@@ -16,22 +16,63 @@
     {
       "name": "ASELSAN",
       "priority_group": "primary",
-      "sources": []
+      "sources": [
+        {
+          "id": "aselsan-kariyer-net",
+          "type": "career_page",
+          "url": "https://www.kariyer.net/firma-profil/aselsan-elektronik-san-ve-tic-a-s-32156-24345",
+          "adapter": "kariyer_net",
+          "enabled": true
+        },
+        {
+          "id": "aselsannet-kariyer-net",
+          "type": "career_page",
+          "url": "https://www.kariyer.net/firma-profil/aselsannet-elekt-ve-haber-sist-san-tic-ins-71293-42219",
+          "adapter": "kariyer_net",
+          "page_name": "Aselsannet",
+          "enabled": true
+        }
+      ]
     },
     {
       "name": "STM",
       "priority_group": "secondary",
-      "sources": []
+      "sources": [
+        {
+          "id": "stm-kariyer-net",
+          "type": "career_page",
+          "url": "https://www.kariyer.net/firma-profil/stm-savunma-teknolojileri-muhendislik-ve-ticaret-a-7947-32825",
+          "adapter": "kariyer_net",
+          "enabled": true
+        }
+      ]
     },
     {
       "name": "Baykar",
       "priority_group": "primary",
-      "sources": []
+      "sources": [
+        {
+          "id": "baykar-kariyer-net",
+          "type": "career_page",
+          "url": "https://www.kariyer.net/firma-profil/baykar-makina-san-ve-tic-as-22478-13704",
+          "adapter": "kariyer_net",
+          "enabled": true
+        }
+      ]
     },
     {
       "name": "Samsung",
       "priority_group": "primary",
-      "sources": []
+      "sources": [
+        {
+          "id": "samsung-electronics-kariyer-net",
+          "type": "career_page",
+          "url": "https://www.kariyer.net/firma-profil/samsung-electronics-3187-24030",
+          "adapter": "kariyer_net",
+          "page_name": "Samsung Electronics",
+          "enabled": true
+        }
+      ]
     }
   ]
 }
