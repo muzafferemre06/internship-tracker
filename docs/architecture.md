@@ -11,6 +11,10 @@
 - `internal/httpapi`: PWA'nın kullandığı HTTP uçları.
 - `web`: backend secret'larına erişmeyen PWA istemcisi.
 
+Kaynak ve aday profili ayarları `internal/config` tarafından katı biçimde
+doğrulanır. Bilinmeyen JSON alanları kabul edilmez; böylece yazım hataları
+sessizce varsayılan davranışa dönüşmez.
+
 ## Bağımlılık yönü
 
 Domain dış servisleri bilmez. Scraper, analyzer ve store katmanları domain

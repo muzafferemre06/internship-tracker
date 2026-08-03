@@ -18,6 +18,12 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if cfg.DatabasePath != "data/internship-tracker.db" {
 		t.Fatalf("unexpected database path %q", cfg.DatabasePath)
 	}
+	if cfg.MigrationsPath != "migrations" {
+		t.Fatalf("unexpected migrations path %q", cfg.MigrationsPath)
+	}
+	if cfg.CandidateProfilePath != "configs/candidate-profile.json" {
+		t.Fatalf("unexpected candidate profile path %q", cfg.CandidateProfilePath)
+	}
 }
 
 func TestLoadReadsEnvironment(t *testing.T) {

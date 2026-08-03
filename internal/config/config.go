@@ -3,22 +3,31 @@ package config
 import "os"
 
 type Config struct {
-	AppEnv          string
-	HTTPAddr        string
-	AllowedOrigin   string
-	DatabasePath    string
-	LLMProvider     string
-	LLMModel        string
-	OpenRouterAPIKey string
-	ScanSchedule    string
+	AppEnv               string
+	HTTPAddr             string
+	AllowedOrigin        string
+	DatabasePath         string
+	MigrationsPath       string
+	CandidateProfilePath string
+	SourcesPath          string
+	LLMProvider          string
+	LLMModel             string
+	OpenRouterAPIKey     string
+	ScanSchedule         string
 }
 
 func Load() Config {
 	return Config{
-		AppEnv:           envOrDefault("APP_ENV", "development"),
-		HTTPAddr:         envOrDefault("HTTP_ADDR", ":8080"),
-		AllowedOrigin:    envOrDefault("ALLOWED_ORIGIN", "http://localhost:5173"),
-		DatabasePath:     envOrDefault("DATABASE_PATH", "data/internship-tracker.db"),
+		AppEnv:         envOrDefault("APP_ENV", "development"),
+		HTTPAddr:       envOrDefault("HTTP_ADDR", ":8080"),
+		AllowedOrigin:  envOrDefault("ALLOWED_ORIGIN", "http://localhost:5173"),
+		DatabasePath:   envOrDefault("DATABASE_PATH", "data/internship-tracker.db"),
+		MigrationsPath: envOrDefault("MIGRATIONS_PATH", "migrations"),
+		CandidateProfilePath: envOrDefault(
+			"CANDIDATE_PROFILE_PATH",
+			"configs/candidate-profile.json",
+		),
+		SourcesPath:      envOrDefault("SOURCES_PATH", "configs/sources.json"),
 		LLMProvider:      envOrDefault("LLM_PROVIDER", "openrouter"),
 		LLMModel:         os.Getenv("LLM_MODEL"),
 		OpenRouterAPIKey: os.Getenv("OPENROUTER_API_KEY"),

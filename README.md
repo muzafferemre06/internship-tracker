@@ -18,6 +18,7 @@ istemci ise React/Vite tabanlı bir PWA olarak yapılandırılmıştır.
 ```bash
 cp .env.example .env
 cp configs/candidate-profile.example.json configs/candidate-profile.json
+cp configs/sources.example.json configs/sources.json
 go run ./cmd/api
 ```
 
@@ -30,6 +31,10 @@ npm --prefix web run dev
 
 API varsayılan olarak `http://localhost:8080`, PWA ise
 `http://localhost:5173` adresinde çalışır.
+
+Uygulama aday profili ve kaynak dosyalarını katı bir JSON şemasıyla okur;
+bilinmeyen alanlar ve geçersiz şirket/kaynak değerleri başlangıç hatasıdır.
+Dosya yolları `CANDIDATE_PROFILE_PATH` ve `SOURCES_PATH` ile değiştirilebilir.
 
 ## Test
 
