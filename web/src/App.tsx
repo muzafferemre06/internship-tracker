@@ -5,10 +5,20 @@ type DashboardResponse = {
   new_listings: Listing[];
   needs_decision: Listing[];
   active_applications: Listing[];
-  last_scan: null | { finished_at: string; status: string };
+  last_scan: null | {
+    id: number;
+    finished_at: string;
+    status: "completed" | "partial" | "failed";
+    sources_succeeded: number;
+    sources_failed: number;
+    new_listings_count: number;
+    error_summary?: string;
+  };
 };
 
 type ScanResponse = {
+  run_id: number;
+  status: "completed" | "partial" | "failed";
   found: number;
   new: number;
   process_errors: number;
@@ -57,7 +67,8 @@ export default function App() {
       }
       const result = (await response.json()) as ScanResponse;
       await loadDashboard();
-      setMessage(`${result.found} ilan kontrol edildi, ${result.new} yeni ilan bulundu.`);
+      const warning = result.status === "completed" ? "" : " Bazı kaynaklar tamamlanamadı.";
+      setMessage(`${result.found} ilan kontrol edildi, ${result.new} yeni ilan bulundu.${warning}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Tarama başlatılamadı.");
     } finally {
@@ -81,6 +92,12 @@ export default function App() {
       </header>
 
       <p className="status" role="status">{message}</p>
+      {dashboard.last_scan ? (
+        <p className="muted">
+          Son tarama #{dashboard.last_scan.id}: {dashboard.last_scan.sources_succeeded} kaynak başarılı,
+          {" "}{dashboard.last_scan.sources_failed} kaynak başarısız.
+        </p>
+      ) : null}
 
       <section className="metrics" aria-label="Özet">
         <article><strong>{grouped.priority.length}</strong><span>Öncelikli yeni ilan</span></article>

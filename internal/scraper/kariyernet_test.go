@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -82,11 +83,41 @@ func TestKariyerNetSourceRejectsListingWithoutTitle(t *testing.T) {
 }
 
 func TestKariyerNetSourceReportsHTTPFailure(t *testing.T) {
-	source := sourceWithFixture(t, "testdata/kariyernet/meteksan-empty.html", http.StatusTooManyRequests)
+	for _, status := range []int{
+		http.StatusForbidden,
+		http.StatusTeapot,
+		http.StatusTooManyRequests,
+		http.StatusInternalServerError,
+	} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			source := sourceWithFixture(t, "testdata/kariyernet/meteksan-empty.html", status)
 
-	_, err := source.FetchListings(context.Background())
-	if err == nil || !strings.Contains(err.Error(), "429") {
-		t.Fatalf("expected HTTP status error, got %v", err)
+			_, err := source.FetchListings(context.Background())
+			if err == nil || !strings.Contains(err.Error(), fmt.Sprint(status)) {
+				t.Fatalf("expected HTTP %d status error, got %v", status, err)
+			}
+		})
+	}
+}
+
+func TestKariyerNetSourceReportsTimeout(t *testing.T) {
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, context.DeadlineExceeded
+	})}
+	source, err := NewKariyerNetSource(
+		"meteksan-kariyer-net",
+		"Meteksan",
+		"Meteksan",
+		"https://www.kariyer.net/firma-profil/meteksan",
+		client,
+	)
+	if err != nil {
+		t.Fatalf("create source: %v", err)
+	}
+
+	_, err = source.FetchListings(context.Background())
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected timeout error, got %v", err)
 	}
 }
 

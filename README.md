@@ -9,7 +9,7 @@ istemci ise React/Vite tabanlı bir PWA olarak yapılandırılmıştır.
 ## Gereksinimler
 
 - Go 1.22+
-- Node.js 20+
+- Node.js 20.19+
 - npm 10+
 - Docker ve Docker Compose (isteğe bağlı)
 
