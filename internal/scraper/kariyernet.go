@@ -69,8 +69,12 @@ func NewKariyerNetSource(
 func (s *KariyerNetSource) Name() string { return s.name }
 
 func (s *KariyerNetSource) AccessPolicy() AccessPolicy {
+	scope := strings.ToLower(s.profileURL.Hostname())
+	if scope == "kariyer.net" || strings.HasSuffix(scope, ".kariyer.net") {
+		scope = "kariyer.net"
+	}
 	return AccessPolicy{
-		Scope:           strings.ToLower(s.profileURL.Hostname()),
+		Scope:           scope,
 		MinimumInterval: 24 * time.Hour,
 		BaseCooldown:    6 * time.Hour,
 		MaximumCooldown: 24 * time.Hour,

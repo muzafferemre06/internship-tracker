@@ -22,6 +22,11 @@ type ScanResponse = {
   found: number;
   new: number;
   process_errors: number;
+  sources: Array<{
+    source: string;
+    skipped?: boolean;
+    retry_at?: string;
+  }>;
 };
 
 const apiBaseUrl = import.meta.env.DEV
@@ -67,7 +72,11 @@ export default function App() {
       }
       const result = (await response.json()) as ScanResponse;
       await loadDashboard();
-      const warning = result.status === "completed" ? "" : " Bazı kaynaklar tamamlanamadı.";
+      const retryAt = result.sources.find((source) => source.retry_at)?.retry_at;
+      const retryMessage = retryAt
+        ? ` Korunan kaynağı ${new Date(retryAt).toLocaleString("tr-TR")} tarihinden önce tekrar deneme.`
+        : "";
+      const warning = result.status === "completed" ? "" : ` Bazı kaynaklar tamamlanamadı.${retryMessage}`;
       setMessage(`${result.found} ilan kontrol edildi, ${result.new} yeni ilan bulundu.${warning}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Tarama başlatılamadı.");

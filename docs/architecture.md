@@ -82,3 +82,15 @@ durum kodu, `Retry-After`, `Server`, `CF-Ray` ve challenge işareti taşınır.
 Domain erişim bütçesi `source_access_states` tablosunda tutulur. Son deneme,
 sonraki izin zamanı, cooldown, ardışık koruma hatası ve son güvenli teşhis
 alanları süreç yeniden başlatıldığında kaybolmaz.
+
+Kariyer.net ve alt alan adları tek `kariyer.net` scope'una normalize edilir.
+Orchestrator scan başında bu scope'u atomik olarak rezerve eder; 24 saatlik
+minimum aralık eşzamanlı veya tekrarlı manuel taramalarla aşılamaz. İlk
+403/429/challenge hatası 6, 12 ve en fazla 24 saatlik ardışık cooldown'u
+başlatır, `Retry-After` daha ilerideyse onu seçer ve aynı scandeki kalan
+Kariyer.net profillerini ağ çağrısı yapmadan atlar. Günlük erişim bütçesi daha
+ilerideyse kullanıcıya gösterilen tekrar zamanı iki sınırın en geç olanıdır.
+
+Devre kesici yalnızca aynı erişim scope'undaki kaynakları durdurur; başka
+domainlerdeki kaynak izolasyonu devam eder. Ayrı sunucu dağıtımı ev IP'sini
+izole eder fakat erişim politikasını değiştirmez ve korumayı aşma amacı taşımaz.

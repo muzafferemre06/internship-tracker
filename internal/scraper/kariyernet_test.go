@@ -16,6 +16,9 @@ import (
 func TestKariyerNetSourceParsesListings(t *testing.T) {
 	source := sourceWithFixture(t, "testdata/kariyernet/meteksan-listings.html", http.StatusOK)
 	source.now = func() time.Time { return time.Date(2026, 8, 3, 9, 0, 0, 0, time.UTC) }
+	if policy := source.AccessPolicy(); policy.Scope != "kariyer.net" || policy.MinimumInterval != 24*time.Hour {
+		t.Fatalf("unexpected access policy: %#v", policy)
+	}
 
 	listings, err := source.FetchListings(context.Background())
 	if err != nil {

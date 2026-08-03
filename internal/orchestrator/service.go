@@ -19,6 +19,9 @@ type SourceResult struct {
 	New          int
 	ProcessError int
 	FetchError   error
+	Skipped      bool
+	RetryAt      *time.Time
+	AccessReason string
 }
 
 type ScanResult struct {
@@ -51,12 +54,65 @@ func (s Service) Run(ctx context.Context, trigger string) (ScanResult, error) {
 		RunID: runID, Trigger: trigger, StartedAt: startedAt,
 		Sources: make([]SourceResult, 0, len(s.Sources)),
 	}
+	accessStates := make(map[string]*accessRunState)
+	var runErrors []error
 
 	for _, source := range s.Sources {
 		sourceResult := SourceResult{Source: source.Name()}
+		if protected, ok := source.(scraper.ProtectedSource); ok {
+			policy := protected.AccessPolicy()
+			state, exists := accessStates[policy.Scope]
+			if !exists {
+				decision, reserveErr := s.Store.ReserveSourceAccess(
+					ctx, policy.Scope, s.now().UTC(), policy.MinimumInterval,
+				)
+				state = &accessRunState{decision: decision, reserved: reserveErr == nil && decision.Allowed}
+				accessStates[policy.Scope] = state
+				if reserveErr != nil {
+					state.decision = store.AccessDecision{Allowed: false, Reason: "domain access reservation failed"}
+					runErrors = append(runErrors, reserveErr)
+				}
+			}
+			if !state.decision.Allowed {
+				sourceResult.Skipped = true
+				sourceResult.RetryAt = state.decision.RetryAt
+				sourceResult.AccessReason = accessReason(state.decision)
+				if err := s.Store.RecordSourceFailure(
+					context.WithoutCancel(ctx), source.Name(), s.now().UTC(), sourceResult.AccessReason,
+				); err != nil {
+					sourceResult.ProcessError++
+					runErrors = append(runErrors, err)
+				}
+				result.Sources = append(result.Sources, sourceResult)
+				continue
+			}
+		}
+
 		listings, err := source.FetchListings(ctx)
 		if err != nil {
 			sourceResult.FetchError = err
+			var accessErr *scraper.AccessError
+			if protected, ok := source.(scraper.ProtectedSource); ok &&
+				errors.As(err, &accessErr) && accessErr.Protective() {
+				policy := protected.AccessPolicy()
+				decision, recordErr := s.Store.RecordSourceAccessFailure(
+					context.WithoutCancel(ctx), policy.Scope, s.now().UTC(), store.AccessFailure{
+						StatusCode: accessErr.StatusCode,
+						RetryAfter: accessErr.RetryAfter,
+						Server:     accessErr.Server,
+						CFRay:      accessErr.CFRay,
+						Reason:     shortError(err),
+					}, policy.BaseCooldown, policy.MaximumCooldown,
+				)
+				state := accessStates[policy.Scope]
+				state.protectionTriggered = true
+				if recordErr != nil {
+					runErrors = append(runErrors, recordErr)
+					decision = store.AccessDecision{Allowed: false, Reason: "domain access protection was triggered"}
+				}
+				state.decision = decision
+				sourceResult.RetryAt = decision.RetryAt
+			}
 			if recordErr := s.Store.RecordSourceFailure(
 				context.WithoutCancel(ctx), source.Name(), s.now().UTC(), shortError(err),
 			); recordErr != nil {
@@ -64,6 +120,9 @@ func (s Service) Run(ctx context.Context, trigger string) (ScanResult, error) {
 			}
 			result.Sources = append(result.Sources, sourceResult)
 			continue
+		}
+		if protected, ok := source.(scraper.ProtectedSource); ok {
+			accessStates[protected.AccessPolicy().Scope].successfulFetch = true
 		}
 
 		sourceResult.Found = len(listings)
@@ -100,13 +159,40 @@ func (s Service) Run(ctx context.Context, trigger string) (ScanResult, error) {
 		result.Sources = append(result.Sources, sourceResult)
 	}
 
+	for scope, state := range accessStates {
+		if !state.reserved || state.protectionTriggered || !state.successfulFetch {
+			continue
+		}
+		if err := s.Store.RecordSourceAccessSuccess(context.WithoutCancel(ctx), scope, s.now().UTC()); err != nil {
+			runErrors = append(runErrors, err)
+		}
+	}
+
 	result.FinishedAt = s.now().UTC()
 	completion := summarize(result)
 	result.Status = completion.Status
 	if err := s.Store.FinishScanRun(context.WithoutCancel(ctx), result.RunID, completion); err != nil {
 		return result, err
 	}
-	return result, nil
+	return result, errors.Join(runErrors...)
+}
+
+type accessRunState struct {
+	decision            store.AccessDecision
+	reserved            bool
+	protectionTriggered bool
+	successfulFetch     bool
+}
+
+func accessReason(decision store.AccessDecision) string {
+	reason := strings.TrimSpace(decision.Reason)
+	if reason == "" {
+		reason = "domain access is not allowed yet"
+	}
+	if decision.RetryAt != nil {
+		return fmt.Sprintf("%s; retry after %s", reason, decision.RetryAt.UTC().Format(time.RFC3339))
+	}
+	return reason
 }
 
 func (s Service) now() time.Time {
@@ -126,13 +212,15 @@ func summarize(result ScanResult) store.ScanCompletion {
 	errorsBySource := make([]sourceError, 0)
 	for _, source := range result.Sources {
 		completion.NewListings += source.New
-		if source.FetchError == nil && source.ProcessError == 0 {
+		if source.FetchError == nil && source.ProcessError == 0 && !source.Skipped {
 			completion.SourcesSucceeded++
 			continue
 		}
 		completion.SourcesFailed++
 		reason := ""
-		if source.FetchError != nil {
+		if source.Skipped {
+			reason = source.AccessReason
+		} else if source.FetchError != nil {
 			reason = shortError(source.FetchError)
 		} else {
 			reason = fmt.Sprintf("%d listing processing error(s)", source.ProcessError)

@@ -78,6 +78,17 @@ hatası diğer kaynakların çalışmasını durdurmaz; kısmi sonuç HTTP `207`
 döner. Her kaynak için son başarı zamanı veya zaman damgalı kısa hata nedeni
 SQLite'ta tutulur.
 
+Kariyer.net kaynakları aynı domain erişim bütçesini paylaşır. Başarılı veya
+başlatılmış iki Kariyer.net taraması arasında en az 24 saat bırakılır. İlk
+403/429/challenge yanıtı kalan Kariyer.net profillerini çağırmadan durdurur;
+cooldown ve en erken tekrar zamanı SQLite'ta kalır ve manuel tarama düğmesiyle
+aşılamaz. API/PWA atlanan kaynakları ve tekrar zamanını gösterir.
+
+Zamanlanmış taramayı ayrı bir sunucuda çalıştırmak ev bağlantısını otomasyon
+trafiğinden izole eder, ancak erişim izni sağlamaz ve veri merkezi IP'leri de
+engellenebilir. Aynı bütçe/devre kesici sunucuda korunmalı; proxy rotasyonu veya
+challenge aşma yöntemi olarak kullanılmamalıdır.
+
 ## Dizinler
 
 ```text

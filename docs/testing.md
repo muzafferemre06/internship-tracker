@@ -40,6 +40,12 @@ rezervasyonun engelli olduğunu; `Retry-After` değerinin cooldown'u uzattığı
 6/12/24 saat geri çekilme tavanını ve başarı sonrası hata durumunun sıfırlandığını
 gerçek SQLite üzerinde doğrular.
 
+Orchestrator devre kesici testi aynı scope'taki ilk kaynağın 403 vermesinden
+sonra ikinci kaynağın taşıma katmanına hiç ulaşmadığını, tek rezervasyon
+yapıldığını, güvenli teşhislerin repository'ye aktarıldığını ve başarı kaydıyla
+cooldown'un yanlışlıkla temizlenmediğini doğrular. HTTP testi atlanan kaynağın
+`skipped` ve `retry_at` alanlarını `207` yanıtta gösterir.
+
 ## Frontend
 
 ```bash

@@ -19,6 +19,7 @@ edilir; tarama ve kaynak sonuçları SQLite'a kalıcı olarak yazılır.
 - Profil alanlarıyla temel uygunluk üreten deterministik ilan analizcisi
 - Gerçek bağımlılıklarla çalışan manuel scan API'si ve SQLite dashboard sorgusu
 - Kalıcı `completed`/`partial`/`failed` scan-run raporu ve kaynak sağlık durumu
+- Kalıcı domain erişim bütçesi, 24 saat alt sınır ve 403/429 challenge devre kesicisi
 - PWA'da son taramanın başarılı ve başarısız kaynak sayıları
 - Kilit dosyasıyla tekrarlanabilir frontend kurulumu ve sıfır npm audit bulgusu
 - Test, CI, Docker ve secret yönetimi başlangıç dosyaları
@@ -32,6 +33,7 @@ edilir; tarama ve kaynak sonuçları SQLite'a kalıcı olarak yazılır.
 - Tanınmayan bir kaynak sayfası hata verirken diğer iki profil tamamlanır.
 - İki ASELSAN profilindeki ortak ilan tek kayıt olur; rapor `partial` kapanır.
 - 403, 418, 429, 5xx, timeout ve selector bozulması testleri geçer.
+- İlk koruma hatasından sonra aynı domaindeki diğer profillere istek gönderilmez.
 
 ## Sıradaki iş
 

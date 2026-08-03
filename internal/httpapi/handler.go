@@ -101,13 +101,13 @@ func (h Handler) scan(writer http.ResponseWriter, request *http.Request) {
 	for _, source := range result.Sources {
 		sourceResponse := sourceScanResponse{
 			Source: source.Source, Found: source.Found, New: source.New,
-			ProcessErrors: source.ProcessError,
+			ProcessErrors: source.ProcessError, Skipped: source.Skipped, RetryAt: source.RetryAt,
 		}
 		if source.FetchError != nil {
 			sourceResponse.FetchError = source.FetchError.Error()
 			status = http.StatusMultiStatus
 		}
-		if source.ProcessError > 0 {
+		if source.ProcessError > 0 || source.Skipped {
 			status = http.StatusMultiStatus
 		}
 		response.Found += source.Found
@@ -130,11 +130,13 @@ type scanResponse struct {
 }
 
 type sourceScanResponse struct {
-	Source        string `json:"source"`
-	Found         int    `json:"found"`
-	New           int    `json:"new"`
-	ProcessErrors int    `json:"process_errors"`
-	FetchError    string `json:"fetch_error,omitempty"`
+	Source        string     `json:"source"`
+	Found         int        `json:"found"`
+	New           int        `json:"new"`
+	ProcessErrors int        `json:"process_errors"`
+	FetchError    string     `json:"fetch_error,omitempty"`
+	Skipped       bool       `json:"skipped,omitempty"`
+	RetryAt       *time.Time `json:"retry_at,omitempty"`
 }
 
 func (h Handler) withMiddleware(next http.Handler) http.Handler {

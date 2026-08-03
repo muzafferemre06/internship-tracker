@@ -29,6 +29,19 @@ func (f fakeSource) FetchListings(context.Context) ([]domain.RawListing, error) 
 	return f.listings, f.err
 }
 
+type protectedFakeSource struct {
+	fakeSource
+	policy scraper.AccessPolicy
+	calls  *int
+}
+
+func (f protectedFakeSource) FetchListings(ctx context.Context) ([]domain.RawListing, error) {
+	(*f.calls)++
+	return f.fakeSource.FetchListings(ctx)
+}
+
+func (f protectedFakeSource) AccessPolicy() scraper.AccessPolicy { return f.policy }
+
 type fakeAnalyzer struct{}
 
 func (fakeAnalyzer) Analyze(
@@ -45,6 +58,9 @@ type fakeStore struct {
 	completion     store.ScanCompletion
 	succeeded      []string
 	failed         []string
+	reserveCalls   int
+	accessFailure  *store.AccessFailure
+	accessSuccess  []string
 }
 
 func (f *fakeStore) UpsertRawListing(
@@ -82,6 +98,39 @@ func (f *fakeStore) RecordSourceFailure(_ context.Context, sourceKey string, _ t
 	return nil
 }
 
+func (f *fakeStore) ReserveSourceAccess(
+	_ context.Context,
+	_ string,
+	_ time.Time,
+	_ time.Duration,
+) (store.AccessDecision, error) {
+	f.reserveCalls++
+	return store.AccessDecision{Allowed: true}, nil
+}
+
+func (f *fakeStore) RecordSourceAccessFailure(
+	_ context.Context,
+	_ string,
+	failedAt time.Time,
+	failure store.AccessFailure,
+	baseCooldown time.Duration,
+	_ time.Duration,
+) (store.AccessDecision, error) {
+	f.accessFailure = &failure
+	retryAt := failedAt.Add(baseCooldown)
+	if failure.RetryAfter != nil && failure.RetryAfter.After(retryAt) {
+		retryAt = *failure.RetryAfter
+	}
+	return store.AccessDecision{
+		Allowed: false, RetryAt: &retryAt, Reason: "domain access protection was triggered", FailCount: 1,
+	}, nil
+}
+
+func (f *fakeStore) RecordSourceAccessSuccess(_ context.Context, scope string, _ time.Time) error {
+	f.accessSuccess = append(f.accessSuccess, scope)
+	return nil
+}
+
 func TestRunContinuesAfterSourceFailure(t *testing.T) {
 	service := Service{
 		Sources: []scraper.Source{
@@ -108,6 +157,49 @@ func TestRunContinuesAfterSourceFailure(t *testing.T) {
 	}
 	if result.Status != "partial" || service.Store.(*fakeStore).completion.SourcesFailed != 1 {
 		t.Fatalf("expected persisted partial report, got %#v", result)
+	}
+}
+
+func TestRunStopsProtectedDomainAfterFirstAccessFailure(t *testing.T) {
+	firstCalls, secondCalls := 0, 0
+	policy := scraper.AccessPolicy{
+		Scope: "kariyer.net", MinimumInterval: 24 * time.Hour,
+		BaseCooldown: 6 * time.Hour, MaximumCooldown: 24 * time.Hour,
+	}
+	service := Service{
+		Sources: []scraper.Source{
+			protectedFakeSource{
+				fakeSource: fakeSource{name: "first", err: &scraper.AccessError{
+					StatusCode: 403, Server: "cloudflare", CFRay: "test-ray-IST",
+				}},
+				policy: policy, calls: &firstCalls,
+			},
+			protectedFakeSource{
+				fakeSource: fakeSource{name: "second", listings: []domain.RawListing{{URL: "https://example.test/1"}}},
+				policy:     policy, calls: &secondCalls,
+			},
+		},
+		Analyzer: fakeAnalyzer{},
+		Store:    &fakeStore{seen: map[string]bool{}},
+		Now:      func() time.Time { return time.Date(2026, 8, 3, 9, 0, 0, 0, time.UTC) },
+	}
+
+	result, err := service.Run(context.Background(), "manual")
+	if err != nil {
+		t.Fatalf("run scan: %v", err)
+	}
+	fakeRepository := service.Store.(*fakeStore)
+	if firstCalls != 1 || secondCalls != 0 || fakeRepository.reserveCalls != 1 {
+		t.Fatalf("expected one reservation and only first fetch, got first=%d second=%d reserve=%d", firstCalls, secondCalls, fakeRepository.reserveCalls)
+	}
+	if len(result.Sources) != 2 || result.Sources[0].RetryAt == nil || !result.Sources[1].Skipped || result.Sources[1].RetryAt == nil {
+		t.Fatalf("unexpected protected source results: %#v", result.Sources)
+	}
+	if fakeRepository.accessFailure == nil || fakeRepository.accessFailure.StatusCode != 403 || fakeRepository.accessFailure.CFRay != "test-ray-IST" {
+		t.Fatalf("access diagnostics were not persisted: %#v", fakeRepository.accessFailure)
+	}
+	if len(fakeRepository.accessSuccess) != 0 {
+		t.Fatalf("protected failure must not be reset as success: %#v", fakeRepository.accessSuccess)
 	}
 }
 
@@ -160,10 +252,17 @@ func TestMeteksanVerticalSliceDoesNotCountSecondScanAsNew(t *testing.T) {
 		Sources: []scraper.Source{source}, Analyzer: analyzer.NewDeterministicAnalyzer(), Store: repository,
 		Profile: analyzer.CandidateProfile{ClassYear: 2, FocusAreas: []string{"backend", "system_administration"}},
 	}
+	now := time.Date(2026, 8, 3, 9, 0, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
 	first, err := service.Run(context.Background(), "manual")
 	if err != nil {
 		t.Fatalf("run first scan: %v", err)
 	}
+	blocked, err := service.Run(context.Background(), "manual")
+	if err != nil {
+		t.Fatalf("run protected repeat scan: %v", err)
+	}
+	now = now.Add(24 * time.Hour)
 	second, err := service.Run(context.Background(), "manual")
 	if err != nil {
 		t.Fatalf("run second scan: %v", err)
@@ -171,6 +270,9 @@ func TestMeteksanVerticalSliceDoesNotCountSecondScanAsNew(t *testing.T) {
 
 	if len(first.Sources) != 1 || first.Sources[0].Found != 2 || first.Sources[0].New != 2 {
 		t.Fatalf("unexpected first scan: %#v", first)
+	}
+	if len(blocked.Sources) != 1 || !blocked.Sources[0].Skipped || blocked.Sources[0].RetryAt == nil {
+		t.Fatalf("immediate repeat scan was not blocked: %#v", blocked)
 	}
 	if len(second.Sources) != 1 || second.Sources[0].Found != 2 || second.Sources[0].New != 0 {
 		t.Fatalf("second scan counted duplicates as new: %#v", second)

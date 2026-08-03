@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/muzaffer/internship-tracker/internal/orchestrator"
 	"github.com/muzaffer/internship-tracker/internal/store"
@@ -62,6 +63,25 @@ func TestScanReturnsAggregatedResult(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), `"new":1`) || !strings.Contains(response.Body.String(), `"run_id":7`) {
 		t.Fatalf("unexpected response: %s", response.Body.String())
+	}
+}
+
+func TestScanReturnsSkippedSourceRetryTime(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	retryAt := time.Date(2026, 8, 4, 9, 0, 0, 0, time.UTC)
+	handler := NewHandler("http://localhost:5173", logger, fakeScanRunner{
+		result: orchestrator.ScanResult{RunID: 8, Status: "failed", Sources: []orchestrator.SourceResult{{
+			Source: "aselsan-kariyer-net", Skipped: true, RetryAt: &retryAt,
+		}}},
+	}, fakeDashboardRepository{})
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/scan", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusMultiStatus || !strings.Contains(response.Body.String(), `"skipped":true`) ||
+		!strings.Contains(response.Body.String(), `"retry_at":"2026-08-04T09:00:00Z"`) {
+		t.Fatalf("unexpected guarded scan response: status=%d body=%s", response.Code, response.Body.String())
 	}
 }
 
