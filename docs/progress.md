@@ -2,10 +2,11 @@
 
 ## Aktif faz
 
-Faz 3.5 tamamlandı; Faz 4 devam ediyor. Resmî Commencis Lever ilanı zaman
-damgalı aktiflik kanıtıyla standart ingestion, canlı Google Gemini analizi,
-SQLite kullanım kalıcılığı, dashboard karar kuyruğu ve ikinci tarama dedup
-kapılarından geçti.
+Faz 4 tamamlandı. Responsive PWA; ilan inceleme, başvuru durumu, manuel tarihler,
+yaklaşan tarihler ve manuel kaynak kontrolünü kalıcı API akışıyla sunuyor. Faz
+3.5'in resmî Commencis Lever ilanı da zaman damgalı aktiflik kanıtıyla standart
+ingestion, canlı Google Gemini analizi, SQLite kullanım kalıcılığı, dashboard
+karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 
 ## Tamamlananlar
 
@@ -30,6 +31,9 @@ kapılarından geçti.
 - İlan detayını ve başvuru takibini sunan HTTP/repository sözleşmesi
 - Durum, manuel tarih, mülakat zamanı ve notlar için doğrulanan SQLite upsert akışı
 - Kaynak hatalarından üretilen manuel kontrol listesi
+- Telefonda tek kolona inen dashboard ve tam genişlik ilan detay paneli
+- İlan uygunluk özeti, eşleşen alanlar ve resmî ilan bağlantısı
+- Dashboard'da aktif başvuru, yaklaşan tarih ve manuel kontrol bölümleri
 
 ## Doğrulanan çıkış kriterleri
 
@@ -54,8 +58,11 @@ kapılarından geçti.
   handler'ını iki taramada birleştiren Faz 3.5 normal kabul testi tamamlandı.
 - Resmî Commencis Lever ilanı canlı Google `gemini-3.1-flash-lite` ile işlendi;
   zaman damgalı güvenli kanıt `docs/acceptance/phase-3.5-2026-08-03.md` içinde.
+- Faz 4 fixture kabulü gerçek SQLite ve HTTP handler üzerinden ilan inceleme,
+  başvuru güncelleme, tarih sıralaması ve manuel kontrol görünürlüğünü doğrular.
 
 ## Sıradaki iş
 
-Faz 4 sade PWA ve başvuru takibidir. Backend sözleşmesi tamamlandı; responsive
-dashboard ve telefon kabul akışı doğrulanacaktır.
+Faz 5 otomatik çalışma ve PWA push'tır. Faz 4 çıkış kriterleri tamamlanmadan bu
+faza başlanmadı; sıradaki dilim barındırma kararı ve mevcut CI/Docker temelinin
+Faz 5 kriterlerine göre denetlenmesidir.

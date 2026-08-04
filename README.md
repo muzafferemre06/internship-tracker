@@ -160,6 +160,13 @@ hatası diğer kaynakların çalışmasını durdurmaz; kısmi sonuç HTTP `207`
 döner. Her kaynak için son başarı zamanı veya zaman damgalı kısa hata nedeni
 SQLite'ta tutulur.
 
+PWA kartları yeni/uygun, karar bekleyen ve aktif başvuruları ayrı bölümlerde
+gösterir. Bir karta dokunulduğunda uygunluk özeti, eşleşen alanlar, konum ve son
+başvuru tarihi açılır; aynı panelden başvuru durumu, manuel takip tarihi,
+sınav-mülakat zamanı ve notlar düzenlenir. Tarihi olan aktif başvurular yaklaşan
+tarihlerde sıralanır. Son taramada hata veren kaynaklar manuel kontrol listesinde
+resmî kaynak bağlantısıyla görünür.
+
 Başvuru güncelleme gövdesindeki `deadline` ve `interview_at` alanları RFC3339
 zaman damgası veya `null` olmalıdır. Durum; `incelenecek`, `basvuruldu`,
 `sinav_mulakat`, `olumlu` ya da `olumsuz` değerlerinden biridir. API ham ilan

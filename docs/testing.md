@@ -135,6 +135,17 @@ Vite yapılandırması TypeScript tarafından yalnızca tip kontrolünden geçir
 `npm run typecheck` uygulama ve Vite yapılandırmasını ayrı ayrı `noEmit` ile
 kontrol eder ve kaynak ağacına JavaScript/derleme-meta çıktısı üretmez.
 
+Faz 4 frontend testi öncelik gruplamasının yanında analiz, manuel takip ve
+mülakat tarihlerinden en erkenini seçen yaklaşan tarih yardımcısını kapsar.
+Typecheck; dashboard, detay ve başvuru formu API sözleşmelerinin React kullanımıyla
+uyumunu doğrular. Production build responsive dashboard, detay paneli ve formu
+aynı PWA bundle'ında üretir.
+
+`internal/acceptance/phase4_test.go`, gerçek migration/SQLite ile analizli ilan
+oluşturur; üretim HTTP handler'ından detayı okur, RFC3339 tarihli başvuru kaydını
+günceller ve son dashboard yanıtında aktif başvuruyu, yaklaşan tarihi ve manuel
+kontrol kaynağını birlikte doğrular. Test ağ veya ücretli sağlayıcı kullanmaz.
+
 Faz 1 backend kabul testi aynı Meteksan fixture'ını scraper, deterministik
 analizci ve gerçek SQLite repository üzerinden iki kez çalıştırır. İlk tarama
 iki yeni kayıt, ikinci tarama sıfır yeni kayıt üretmeli; uygun staj dashboard

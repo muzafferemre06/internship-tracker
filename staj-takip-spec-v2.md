@@ -638,6 +638,12 @@ dosyasındadır.
 Çıkış kriteri: Kullanıcı telefondan tarama başlatabilir, ilanı inceleyebilir
 ve başvuru durumunu yönetebilir.
 
+Tamamlama kanıtı: Responsive PWA kartları ve tam genişlik mobil detay paneli
+manuel taramayı, uygunluk incelemeyi, beş durumlu başvuru takibini, kullanıcı
+tarihi/mülakat zamanı/not kaydını ve hatalı kaynakların manuel kontrol listesini
+birleştirir. Fixture tabanlı Faz 4 kabul testi aynı akışı gerçek SQLite ve üretim
+HTTP handler'ı üzerinden ağ çağrısı olmadan doğrular.
+
 ### Faz 5 — Otomatik çalışma ve PWA push
 
 - uygun ücretsiz barındırma seçimi

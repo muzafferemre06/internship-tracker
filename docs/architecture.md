@@ -167,3 +167,10 @@ sınırlıdır. Kaydı olmayan bir ilan için `404`, bozuk durum/tarih için `40
 döner. Kaynak taraması sırasında yazılan zaman damgalı `last_error` kayıtları da
 dashboard'un manuel kontrol listesine girer ve sonraki kaynak başarısında listeden
 çıkar.
+
+React istemcisi dashboard snapshot'ını ana görünümün tek okuma modeli olarak
+kullanır. Liste kartı seçildiğinde detay ayrı istekle yüklenir ve sağ panel açılır;
+başvuru kaydı başarıyla değişince hem panel hem dashboard yeniden okunur. Böylece
+aktif başvuru sayısı, yaklaşan tarihler ve durum etiketi kalıcı SQLite sonucuyla
+aynı kalır. İki kolonlu masaüstü görünümü dar ekranda tek kolona iner; detay
+paneli telefonda ekran genişliğini kullanır.
