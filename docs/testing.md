@@ -72,6 +72,14 @@ rezervasyonun engelli olduğunu; `Retry-After` değerinin cooldown'u uzattığı
 6/12/24 saat geri çekilme tavanını ve başarı sonrası hata durumunun sıfırlandığını
 gerçek SQLite üzerinde doğrular.
 
+Faz 4 repository testleri analizli bir ilanın ayrıntı alanlarını okur; başvuru
+durumu, kullanıcı son tarihi, mülakat zamanı ve notlarını gerçek SQLite üzerinde
+upsert edip dashboard aktif başvuru görünümünü doğrular. Hatalı durum ve olmayan
+ilan reddedilir. Kaynak hatasının manuel kontrol listesine girdiği de tarama
+raporu testinin parçasıdır. HTTP testleri ilan ayrıntısı ile RFC3339 tarihli
+başvuru güncellemesini ve bozuk tarih için `400` yanıtını fake repository ile
+kapsar.
+
 Orchestrator yeniden işleme testleri duplicate pending ilanın sonraki taramada
 yeniden analiz edilip yeni ilan sayılmadığını ve ayrı retry API akışının kaynak
 fetch'i yapmadan saklanan ham metni işlediğini doğrular. HTTP testi kısmi yeniden

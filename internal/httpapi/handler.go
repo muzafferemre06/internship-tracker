@@ -3,10 +3,14 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/muzaffer/internship-tracker/internal/domain"
 	"github.com/muzaffer/internship-tracker/internal/orchestrator"
 	"github.com/muzaffer/internship-tracker/internal/store"
 )
@@ -26,6 +30,7 @@ type Handler struct {
 	scanner         ScanRunner
 	analysisRetrier AnalysisRetrier
 	dashboardStore  store.DashboardRepository
+	trackingStore   store.TrackingRepository
 }
 
 func NewHandler(
@@ -41,6 +46,7 @@ func NewHandler(
 		scanner:         scanner,
 		analysisRetrier: analysisRetrier(scanner),
 		dashboardStore:  dashboardStore,
+		trackingStore:   trackingRepository(dashboardStore),
 	}
 
 	mux := http.NewServeMux()
@@ -48,8 +54,121 @@ func NewHandler(
 	mux.HandleFunc("/api/v1/dashboard", handler.dashboard)
 	mux.HandleFunc("/api/v1/scan", handler.scan)
 	mux.HandleFunc("/api/v1/analyses/retry", handler.retryAnalyses)
+	mux.HandleFunc("/api/v1/listings/{id}", handler.listingDetail)
+	mux.HandleFunc("/api/v1/listings/{id}/application", handler.application)
 
 	return handler.withMiddleware(mux)
+}
+
+func trackingRepository(repository store.DashboardRepository) store.TrackingRepository {
+	if tracking, ok := repository.(store.TrackingRepository); ok {
+		return tracking
+	}
+	return nil
+}
+
+func (h Handler) listingDetail(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		methodNotAllowed(writer)
+		return
+	}
+	if h.trackingStore == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "listing store is unavailable"})
+		return
+	}
+	detail, err := h.trackingStore.ListingDetail(request.Context(), request.PathValue("id"))
+	if errors.Is(err, store.ErrListingNotFound) {
+		writeJSON(writer, http.StatusNotFound, map[string]string{"error": "listing was not found"})
+		return
+	}
+	if err != nil {
+		h.logger.Error("listing detail query failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "listing could not be loaded"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, detail)
+}
+
+type applicationRequest struct {
+	Status      string  `json:"status"`
+	Deadline    *string `json:"deadline"`
+	InterviewAt *string `json:"interview_at"`
+	Notes       string  `json:"notes"`
+}
+
+func (h Handler) application(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPut {
+		methodNotAllowed(writer)
+		return
+	}
+	if h.trackingStore == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "application store is unavailable"})
+		return
+	}
+	var input applicationRequest
+	decoder := json.NewDecoder(io.LimitReader(request.Body, 16*1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&input); err != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "request body is invalid"})
+		return
+	}
+	if err := ensureJSONEnd(decoder); err != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "request body must contain one JSON object"})
+		return
+	}
+	tracking := store.ApplicationTracking{Status: domain.ApplicationStatus(input.Status), Notes: input.Notes}
+	var err error
+	if tracking.Deadline, err = parseOptionalTime(input.Deadline); err != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "deadline must be an RFC3339 timestamp"})
+		return
+	}
+	if tracking.InterviewAt, err = parseOptionalTime(input.InterviewAt); err != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "interview_at must be an RFC3339 timestamp"})
+		return
+	}
+	if err := h.trackingStore.SaveApplication(request.Context(), request.PathValue("id"), tracking); err != nil {
+		if errors.Is(err, store.ErrListingNotFound) {
+			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "listing was not found"})
+			return
+		}
+		if strings.Contains(err.Error(), "invalid application status") || strings.Contains(err.Error(), "cannot exceed") {
+			writeJSON(writer, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		h.logger.Error("application tracking update failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "application could not be saved"})
+		return
+	}
+	detail, err := h.trackingStore.ListingDetail(request.Context(), request.PathValue("id"))
+	if err != nil {
+		h.logger.Error("saved application reload failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "saved application could not be loaded"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, detail)
+}
+
+func parseOptionalTime(value *string) (*time.Time, error) {
+	if value == nil || strings.TrimSpace(*value) == "" {
+		return nil, nil
+	}
+	parsed, err := time.Parse(time.RFC3339, strings.TrimSpace(*value))
+	if err != nil {
+		return nil, err
+	}
+	parsed = parsed.UTC()
+	return &parsed, nil
+}
+
+func ensureJSONEnd(decoder *json.Decoder) error {
+	var extra any
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
+		if err == nil {
+			return errors.New("additional JSON value")
+		}
+		return err
+	}
+	return nil
 }
 
 func analysisRetrier(scanner ScanRunner) AnalysisRetrier {
@@ -179,7 +298,7 @@ func (h Handler) withMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Access-Control-Allow-Origin", h.allowedOrigin)
 		writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
 
 		if request.Method == http.MethodOptions {
 			writer.WriteHeader(http.StatusNoContent)

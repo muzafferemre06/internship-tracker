@@ -204,6 +204,10 @@ func TestSQLiteRepositoryPersistsScanReportAndSourceState(t *testing.T) {
 	if dashboard.LastScan == nil || dashboard.LastScan.ID != runID || dashboard.LastScan.Status != "failed" || dashboard.LastScan.SourcesFailed != 1 {
 		t.Fatalf("unexpected last scan: %#v", dashboard.LastScan)
 	}
+	if len(dashboard.ManualChecks) != 1 || dashboard.ManualChecks[0].SourceID != "meteksan-kariyer-net" ||
+		!strings.Contains(dashboard.ManualChecks[0].Reason, "429") {
+		t.Fatalf("failed source was not exposed for manual checking: %#v", dashboard.ManualChecks)
+	}
 
 	if err := repository.RecordSourceSuccess(
 		context.Background(), "meteksan-kariyer-net", finishedAt.Add(time.Minute),
@@ -220,6 +224,69 @@ func TestSQLiteRepositoryPersistsScanReportAndSourceState(t *testing.T) {
 		t.Fatalf("expected source error to clear after success, got %q", clearedError.String)
 	}
 }
+
+func TestSQLiteRepositoryManagesApplicationTrackingAndListingDetail(t *testing.T) {
+	repository, _ := newTestRepository(t)
+	registerMeteksan(t, repository)
+	fetchedAt := time.Date(2026, 8, 4, 8, 0, 0, 0, time.UTC)
+	listingID, _, err := repository.UpsertRawListing(context.Background(), domain.RawListing{
+		Company: "Meteksan Savunma", SourceID: "meteksan-kariyer-net", Title: "Backend Stajyeri",
+		URL: "https://example.test/is-ilani/tracking", RawText: "Go ve backend", FetchedAt: fetchedAt,
+	})
+	if err != nil {
+		t.Fatalf("insert listing: %v", err)
+	}
+	applicationDue := fetchedAt.Add(7 * 24 * time.Hour)
+	if err := repository.SaveAnalysis(context.Background(), listingID, domain.ListingAnalysis{
+		OpportunityType: "staj", ApplicationOpen: true, Relevant: true,
+		MatchingAreas: []string{"backend", "go"}, ClassRequirement: intPointer(3),
+		GPARequirement: floatPointer(2.5), Location: "Ankara", WorkModel: "hibrit",
+		Eligibility: domain.EligibilitySuitable, ApplicationDueAt: &applicationDue,
+		Summary: "Backend ekibi için staj.", Confidence: 0.92,
+	}); err != nil {
+		t.Fatalf("save analysis: %v", err)
+	}
+	manualDeadline := fetchedAt.Add(5 * 24 * time.Hour)
+	interviewAt := fetchedAt.Add(10 * 24 * time.Hour)
+	if err := repository.SaveApplication(context.Background(), listingID, ApplicationTracking{
+		Status: domain.ApplicationSubmitted, Deadline: &manualDeadline,
+		InterviewAt: &interviewAt, Notes: "İK dönüşü bekleniyor.",
+	}); err != nil {
+		t.Fatalf("save application: %v", err)
+	}
+
+	detail, err := repository.ListingDetail(context.Background(), listingID)
+	if err != nil {
+		t.Fatalf("load detail: %v", err)
+	}
+	if detail.Summary != "Backend ekibi için staj." || len(detail.MatchingAreas) != 2 ||
+		detail.Application == nil || detail.Application.Status != domain.ApplicationSubmitted ||
+		detail.Application.Deadline == nil || !detail.Application.Deadline.Equal(manualDeadline) {
+		t.Fatalf("unexpected listing detail: %#v", detail)
+	}
+
+	dashboard, err := repository.Dashboard(context.Background())
+	if err != nil || len(dashboard.ActiveApplications) != 1 ||
+		dashboard.ActiveApplications[0].ApplicationStatus != domain.ApplicationSubmitted {
+		t.Fatalf("application was not exposed on dashboard: dashboard=%#v err=%v", dashboard, err)
+	}
+}
+
+func TestSQLiteRepositoryRejectsInvalidApplicationTracking(t *testing.T) {
+	repository, _ := newTestRepository(t)
+	if err := repository.SaveApplication(context.Background(), "missing", ApplicationTracking{
+		Status: domain.ApplicationStatus("unknown"),
+	}); err == nil || !strings.Contains(err.Error(), "invalid application status") {
+		t.Fatalf("expected invalid status error, got %v", err)
+	}
+	if _, err := repository.ListingDetail(context.Background(), "missing"); err != ErrListingNotFound {
+		t.Fatalf("expected listing not found, got %v", err)
+	}
+}
+
+func intPointer(value int) *int { return &value }
+
+func floatPointer(value float64) *float64 { return &value }
 
 func TestSQLiteRepositoryPersistsDomainAccessReservationAndCooldown(t *testing.T) {
 	repository, db := newTestRepository(t)

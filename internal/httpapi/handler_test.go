@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/muzaffer/internship-tracker/internal/domain"
 	"github.com/muzaffer/internship-tracker/internal/orchestrator"
 	"github.com/muzaffer/internship-tracker/internal/store"
 )
@@ -29,6 +30,35 @@ func (f fakeScanRunner) ReprocessPending(context.Context, int) (orchestrator.Rep
 
 type fakeDashboardRepository struct {
 	snapshot store.DashboardSnapshot
+}
+
+type fakeTrackingRepository struct {
+	detail store.ListingDetail
+	saved  store.ApplicationTracking
+}
+
+func (f *fakeTrackingRepository) Dashboard(context.Context) (store.DashboardSnapshot, error) {
+	return store.DashboardSnapshot{}, nil
+}
+
+func (f *fakeTrackingRepository) ListingDetail(_ context.Context, listingID string) (store.ListingDetail, error) {
+	if listingID != f.detail.ID {
+		return store.ListingDetail{}, store.ErrListingNotFound
+	}
+	result := f.detail
+	if f.saved.Status != "" {
+		result.Application = &f.saved
+		result.ApplicationStatus = f.saved.Status
+	}
+	return result, nil
+}
+
+func (f *fakeTrackingRepository) SaveApplication(_ context.Context, listingID string, tracking store.ApplicationTracking) error {
+	if listingID != f.detail.ID {
+		return store.ErrListingNotFound
+	}
+	f.saved = tracking
+	return nil
 }
 
 func (f fakeDashboardRepository) Dashboard(context.Context) (store.DashboardSnapshot, error) {
@@ -119,5 +149,51 @@ func TestRetryAnalysesReturnsReprocessResult(t *testing.T) {
 
 	if response.Code != http.StatusMultiStatus || !strings.Contains(response.Body.String(), `"processed":2`) {
 		t.Fatalf("unexpected retry response: status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestListingDetailAndApplicationUpdate(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repository := &fakeTrackingRepository{detail: store.ListingDetail{
+		DashboardListing: store.DashboardListing{
+			ID: "listing-1", Company: "Meteksan", Title: "Backend Stajyeri",
+			URL: "https://example.test/listing-1", Priority: "primary",
+			Eligibility: domain.EligibilitySuitable, Summary: "Backend stajı",
+		},
+		MatchingAreas: []string{"backend"},
+	}}
+	handler := NewHandler("http://localhost:5173", logger, nil, repository)
+
+	detailRequest := httptest.NewRequest(http.MethodGet, "/api/v1/listings/listing-1", nil)
+	detailResponse := httptest.NewRecorder()
+	handler.ServeHTTP(detailResponse, detailRequest)
+	if detailResponse.Code != http.StatusOK || !strings.Contains(detailResponse.Body.String(), `"summary":"Backend stajı"`) {
+		t.Fatalf("unexpected detail response: status=%d body=%s", detailResponse.Code, detailResponse.Body.String())
+	}
+
+	body := `{"status":"basvuruldu","deadline":"2026-08-10T18:00:00+03:00","interview_at":null,"notes":"Dönüş bekleniyor"}`
+	updateRequest := httptest.NewRequest(http.MethodPut, "/api/v1/listings/listing-1/application", strings.NewReader(body))
+	updateResponse := httptest.NewRecorder()
+	handler.ServeHTTP(updateResponse, updateRequest)
+	if updateResponse.Code != http.StatusOK || repository.saved.Status != domain.ApplicationSubmitted ||
+		repository.saved.Deadline == nil || repository.saved.Notes != "Dönüş bekleniyor" {
+		t.Fatalf("application was not saved: status=%d saved=%#v body=%s", updateResponse.Code, repository.saved, updateResponse.Body.String())
+	}
+}
+
+func TestApplicationUpdateRejectsInvalidTimestamp(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repository := &fakeTrackingRepository{detail: store.ListingDetail{
+		DashboardListing: store.DashboardListing{ID: "listing-1"},
+	}}
+	handler := NewHandler("http://localhost:5173", logger, nil, repository)
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/listings/listing-1/application",
+		strings.NewReader(`{"status":"basvuruldu","deadline":"tomorrow"}`))
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest || repository.saved.Status != "" {
+		t.Fatalf("unexpected invalid timestamp response: status=%d saved=%#v", response.Code, repository.saved)
 	}
 }

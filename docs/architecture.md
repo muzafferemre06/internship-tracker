@@ -152,3 +152,18 @@ ilerideyse kullanıcıya gösterilen tekrar zamanı iki sınırın en geç olan�
 Devre kesici yalnızca aynı erişim scope'undaki kaynakları durdurur; başka
 domainlerdeki kaynak izolasyonu devam eder. Ayrı sunucu dağıtımı ev IP'sini
 izole eder fakat erişim politikasını değiştirmez ve korumayı aşma amacı taşımaz.
+
+## Faz 4 başvuru takibi
+
+Dashboard repository çıktısı, kartlarda gösterilecek analiz özeti ve son başvuru
+tarihinin yanında aktif başvurunun durumunu, kullanıcı tarihini ve mülakat
+tarihini taşır. İlanın tam analiz alanları yalnızca kullanıcı kartı açtığında
+`GET /api/v1/listings/{id}` üzerinden okunur; ham ilan metni PWA'ya gönderilmez.
+
+`PUT /api/v1/listings/{id}/application`, tek kullanıcıya ait `application_tracking`
+kaydını upsert eder. Durum domain sözleşmesindeki beş değerden biri olmalıdır;
+tarih alanları RFC3339 olarak alınır, UTC saklanır ve notlar 2000 karakterle
+sınırlıdır. Kaydı olmayan bir ilan için `404`, bozuk durum/tarih için `400`
+döner. Kaynak taraması sırasında yazılan zaman damgalı `last_error` kayıtları da
+dashboard'un manuel kontrol listesine girer ve sonraki kaynak başarısında listeden
+çıkar.

@@ -150,11 +150,20 @@ salt okunur bağlar; SQLite verisini adlandırılmış bir volume içinde korur.
 - `POST /api/v1/analyses/retry`: en fazla 25 `pending` analizi, kaynak siteye
   yeniden bağlanmadan saklanan ham ilan metni üzerinden işler; işlenen ve tekrar
   başarısız olan kayıt sayılarını döndürür
+- `GET /api/v1/listings/{id}`: PWA detay paneli için normalize ilan, analiz ve
+  mevcut başvuru takibini döndürür
+- `PUT /api/v1/listings/{id}/application`: başvuru durumunu, manuel takip/son
+  tarihi, sınav-mülakat zamanını ve kullanıcı notunu kaydeder
 
 Manuel tarama tamamlandıktan sonra PWA dashboard'u yeniden yükler. Bir kaynak
 hatası diğer kaynakların çalışmasını durdurmaz; kısmi sonuç HTTP `207` ile
 döner. Her kaynak için son başarı zamanı veya zaman damgalı kısa hata nedeni
 SQLite'ta tutulur.
+
+Başvuru güncelleme gövdesindeki `deadline` ve `interview_at` alanları RFC3339
+zaman damgası veya `null` olmalıdır. Durum; `incelenecek`, `basvuruldu`,
+`sinav_mulakat`, `olumlu` ya da `olumsuz` değerlerinden biridir. API ham ilan
+metnini detay yanıtına koymaz.
 
 Kariyer.net kaynakları aynı domain erişim bütçesini paylaşır. Başarılı veya
 başlatılmış iki Kariyer.net taraması arasında en az 24 saat bırakılır. İlk

@@ -21,6 +21,8 @@ type SQLiteRepository struct {
 	now func() time.Time
 }
 
+var ErrListingNotFound = errors.New("listing not found")
+
 func NewSQLiteRepository(db *sql.DB) (*SQLiteRepository, error) {
 	if db == nil {
 		return nil, errors.New("database is required")
@@ -639,11 +641,14 @@ func (r *SQLiteRepository) Dashboard(ctx context.Context) (DashboardSnapshot, er
 		return DashboardSnapshot{}, fmt.Errorf("load decision listings: %w", err)
 	}
 	activeApplications, err := r.dashboardListings(ctx, `
-		JOIN application_tracking ON application_tracking.listing_id = listings.id
 		WHERE application_tracking.status IN ('incelenecek', 'basvuruldu', 'sinav_mulakat')
 	`)
 	if err != nil {
 		return DashboardSnapshot{}, fmt.Errorf("load active applications: %w", err)
+	}
+	manualChecks, err := r.manualChecks(ctx)
+	if err != nil {
+		return DashboardSnapshot{}, fmt.Errorf("load manual checks: %w", err)
 	}
 
 	lastScan, err := r.lastScan(ctx)
@@ -655,8 +660,40 @@ func (r *SQLiteRepository) Dashboard(ctx context.Context) (DashboardSnapshot, er
 		NewListings:        newListings,
 		NeedsDecision:      needsDecision,
 		ActiveApplications: activeApplications,
+		ManualChecks:       manualChecks,
 		LastScan:           lastScan,
 	}, nil
+}
+
+func (r *SQLiteRepository) manualChecks(ctx context.Context) ([]ManualCheck, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT company_sources.source_key, companies.name, company_sources.url,
+			COALESCE(company_sources.last_error, 'Bu kaynak manuel takip ediliyor.'),
+			company_sources.last_success_at
+		FROM company_sources
+		JOIN companies ON companies.id = company_sources.company_id
+		WHERE companies.tracking_status = 'manual' OR company_sources.last_error IS NOT NULL
+		ORDER BY companies.priority_group = 'primary' DESC, companies.name, company_sources.source_key
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	checks := make([]ManualCheck, 0)
+	for rows.Next() {
+		var check ManualCheck
+		var lastSuccess sql.NullString
+		if err := rows.Scan(&check.SourceID, &check.Company, &check.URL, &check.Reason, &lastSuccess); err != nil {
+			return nil, err
+		}
+		check.LastSuccessAt, err = parseStoredTime(lastSuccess)
+		if err != nil {
+			return nil, fmt.Errorf("parse manual check success time: %w", err)
+		}
+		checks = append(checks, check)
+	}
+	return checks, rows.Err()
 }
 
 func (r *SQLiteRepository) lastScan(ctx context.Context) (*ScanSummary, error) {
@@ -687,10 +724,14 @@ func (r *SQLiteRepository) lastScan(ctx context.Context) (*ScanSummary, error) {
 func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string) ([]DashboardListing, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT listings.id, companies.name, listings.title, listings.canonical_url,
-			companies.priority_group, COALESCE(listing_analyses.eligibility_status, '')
+			companies.priority_group, COALESCE(listing_analyses.eligibility_status, ''),
+			COALESCE(listing_analyses.summary, ''), listing_analyses.application_deadline,
+			COALESCE(application_tracking.status, ''), application_tracking.deadline,
+			application_tracking.interview_at
 		FROM listings
 		JOIN companies ON companies.id = listings.company_id
 		LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
+		LEFT JOIN application_tracking ON application_tracking.listing_id = listings.id
 	`+clause+`
 		ORDER BY listings.first_seen_at DESC, listings.id
 	`)
@@ -702,6 +743,7 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 	listings := make([]DashboardListing, 0)
 	for rows.Next() {
 		var listing DashboardListing
+		var applicationDue, trackingDeadline, interviewAt sql.NullString
 		if err := rows.Scan(
 			&listing.ID,
 			&listing.Company,
@@ -709,8 +751,25 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 			&listing.URL,
 			&listing.Priority,
 			&listing.Eligibility,
+			&listing.Summary,
+			&applicationDue,
+			&listing.ApplicationStatus,
+			&trackingDeadline,
+			&interviewAt,
 		); err != nil {
 			return nil, err
+		}
+		listing.ApplicationDueAt, err = parseStoredTime(applicationDue)
+		if err != nil {
+			return nil, fmt.Errorf("parse listing application deadline: %w", err)
+		}
+		listing.TrackingDeadline, err = parseStoredTime(trackingDeadline)
+		if err != nil {
+			return nil, fmt.Errorf("parse tracking deadline: %w", err)
+		}
+		listing.InterviewAt, err = parseStoredTime(interviewAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse interview time: %w", err)
 		}
 		listings = append(listings, listing)
 	}
@@ -718,6 +777,133 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 		return nil, err
 	}
 	return listings, nil
+}
+
+func (r *SQLiteRepository) ListingDetail(ctx context.Context, listingID string) (ListingDetail, error) {
+	listingID = strings.TrimSpace(listingID)
+	if listingID == "" {
+		return ListingDetail{}, errors.New("listing ID is required")
+	}
+
+	var detail ListingDetail
+	var matchingAreas string
+	var applicationDue, firstSeen, lastSeen sql.NullString
+	var trackingStatus, trackingDeadline, interviewAt, notes sql.NullString
+	var applicationOpen, relevant, needsDecision int
+	err := r.db.QueryRowContext(ctx, `
+		SELECT listings.id, companies.name, listings.title, listings.canonical_url,
+			companies.priority_group, COALESCE(listing_analyses.eligibility_status, ''),
+			COALESCE(listing_analyses.summary, ''), listing_analyses.application_deadline,
+			COALESCE(listing_analyses.opportunity_type, ''),
+			COALESCE(listing_analyses.is_application_open, 0),
+			COALESCE(listing_analyses.is_relevant, 0),
+			COALESCE(listing_analyses.matching_areas_json, '[]'),
+			listing_analyses.class_year_requirement, listing_analyses.gpa_requirement,
+			COALESCE(listing_analyses.location, ''), COALESCE(listing_analyses.work_model, ''),
+			COALESCE(listing_analyses.confidence, 0),
+			COALESCE(listing_analyses.needs_user_decision, 0),
+			COALESCE(listing_analyses.decision_question, ''),
+			listings.first_seen_at, listings.last_seen_at,
+			application_tracking.status, application_tracking.deadline,
+			application_tracking.interview_at, application_tracking.notes
+		FROM listings
+		JOIN companies ON companies.id = listings.company_id
+		LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
+		LEFT JOIN application_tracking ON application_tracking.listing_id = listings.id
+		WHERE listings.id = ?
+	`, listingID).Scan(
+		&detail.ID, &detail.Company, &detail.Title, &detail.URL, &detail.Priority,
+		&detail.Eligibility, &detail.Summary, &applicationDue, &detail.OpportunityType,
+		&applicationOpen, &relevant, &matchingAreas, &detail.ClassRequirement,
+		&detail.GPARequirement, &detail.Location, &detail.WorkModel, &detail.Confidence,
+		&needsDecision, &detail.DecisionQuestion, &firstSeen, &lastSeen, &trackingStatus,
+		&trackingDeadline, &interviewAt, &notes,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ListingDetail{}, ErrListingNotFound
+	}
+	if err != nil {
+		return ListingDetail{}, fmt.Errorf("load listing detail: %w", err)
+	}
+	if err := json.Unmarshal([]byte(matchingAreas), &detail.MatchingAreas); err != nil {
+		return ListingDetail{}, fmt.Errorf("decode listing matching areas: %w", err)
+	}
+	detail.ApplicationOpen = applicationOpen == 1
+	detail.Relevant = relevant == 1
+	detail.NeedsUserDecision = needsDecision == 1
+	if detail.ApplicationDueAt, err = parseStoredTime(applicationDue); err != nil {
+		return ListingDetail{}, fmt.Errorf("parse application deadline: %w", err)
+	}
+	if detail.FirstSeenAt, err = requiredStoredTime(firstSeen); err != nil {
+		return ListingDetail{}, fmt.Errorf("parse first seen time: %w", err)
+	}
+	if detail.LastSeenAt, err = requiredStoredTime(lastSeen); err != nil {
+		return ListingDetail{}, fmt.Errorf("parse last seen time: %w", err)
+	}
+	if trackingStatus.Valid {
+		tracking := &ApplicationTracking{Status: domain.ApplicationStatus(trackingStatus.String), Notes: notes.String}
+		if tracking.Deadline, err = parseStoredTime(trackingDeadline); err != nil {
+			return ListingDetail{}, fmt.Errorf("parse tracking deadline: %w", err)
+		}
+		if tracking.InterviewAt, err = parseStoredTime(interviewAt); err != nil {
+			return ListingDetail{}, fmt.Errorf("parse interview time: %w", err)
+		}
+		detail.Application = tracking
+		detail.ApplicationStatus = tracking.Status
+		detail.TrackingDeadline = tracking.Deadline
+		detail.InterviewAt = tracking.InterviewAt
+	}
+	return detail, nil
+}
+
+func (r *SQLiteRepository) SaveApplication(ctx context.Context, listingID string, tracking ApplicationTracking) error {
+	listingID = strings.TrimSpace(listingID)
+	if listingID == "" {
+		return errors.New("listing ID is required")
+	}
+	switch tracking.Status {
+	case domain.ApplicationToReview, domain.ApplicationSubmitted, domain.ApplicationInterview,
+		domain.ApplicationPositive, domain.ApplicationNegative:
+	default:
+		return fmt.Errorf("invalid application status %q", tracking.Status)
+	}
+	tracking.Notes = strings.TrimSpace(tracking.Notes)
+	if len(tracking.Notes) > 2000 {
+		return errors.New("application notes cannot exceed 2000 characters")
+	}
+	var exists int
+	if err := r.db.QueryRowContext(ctx, "SELECT 1 FROM listings WHERE id = ?", listingID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+		return ErrListingNotFound
+	} else if err != nil {
+		return fmt.Errorf("find tracked listing: %w", err)
+	}
+
+	result, err := r.db.ExecContext(ctx, `
+		INSERT INTO application_tracking(listing_id, status, deadline, interview_at, notes)
+		VALUES (?, ?, ?, ?, NULLIF(?, ''))
+		ON CONFLICT(listing_id) DO UPDATE SET
+			status = excluded.status, deadline = excluded.deadline,
+			interview_at = excluded.interview_at, notes = excluded.notes,
+			updated_at = CURRENT_TIMESTAMP
+	`, listingID, tracking.Status, nullableTime(tracking.Deadline), nullableTime(tracking.InterviewAt), tracking.Notes)
+	if err != nil {
+		return fmt.Errorf("save application tracking: %w", err)
+	}
+	if updated, err := result.RowsAffected(); err != nil || updated != 1 {
+		return fmt.Errorf("save application tracking affected %d rows: %w", updated, err)
+	}
+	return nil
+}
+
+func requiredStoredTime(value sql.NullString) (time.Time, error) {
+	parsed, err := parseStoredTime(value)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if parsed == nil {
+		return time.Time{}, errors.New("required time is missing")
+	}
+	return *parsed, nil
 }
 
 func CanonicalURL(rawURL string) (string, error) {

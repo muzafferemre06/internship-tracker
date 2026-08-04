@@ -8,12 +8,50 @@ import (
 )
 
 type DashboardListing struct {
-	ID          string                   `json:"id"`
-	Company     string                   `json:"company"`
-	Title       string                   `json:"title"`
-	URL         string                   `json:"url"`
-	Priority    string                   `json:"priority"`
-	Eligibility domain.EligibilityStatus `json:"eligibility,omitempty"`
+	ID                string                   `json:"id"`
+	Company           string                   `json:"company"`
+	Title             string                   `json:"title"`
+	URL               string                   `json:"url"`
+	Priority          string                   `json:"priority"`
+	Eligibility       domain.EligibilityStatus `json:"eligibility,omitempty"`
+	Summary           string                   `json:"summary,omitempty"`
+	ApplicationDueAt  *time.Time               `json:"application_deadline,omitempty"`
+	ApplicationStatus domain.ApplicationStatus `json:"application_status,omitempty"`
+	TrackingDeadline  *time.Time               `json:"tracking_deadline,omitempty"`
+	InterviewAt       *time.Time               `json:"interview_at,omitempty"`
+}
+
+type ApplicationTracking struct {
+	Status      domain.ApplicationStatus `json:"status"`
+	Deadline    *time.Time               `json:"deadline,omitempty"`
+	InterviewAt *time.Time               `json:"interview_at,omitempty"`
+	Notes       string                   `json:"notes,omitempty"`
+}
+
+type ListingDetail struct {
+	DashboardListing
+	OpportunityType   string               `json:"opportunity_type,omitempty"`
+	ApplicationOpen   bool                 `json:"application_open"`
+	Relevant          bool                 `json:"relevant"`
+	MatchingAreas     []string             `json:"matching_areas"`
+	ClassRequirement  *int                 `json:"class_year_requirement,omitempty"`
+	GPARequirement    *float64             `json:"gpa_requirement,omitempty"`
+	Location          string               `json:"location,omitempty"`
+	WorkModel         string               `json:"work_model,omitempty"`
+	Confidence        float64              `json:"confidence"`
+	NeedsUserDecision bool                 `json:"needs_user_decision"`
+	DecisionQuestion  string               `json:"decision_question,omitempty"`
+	FirstSeenAt       time.Time            `json:"first_seen_at"`
+	LastSeenAt        time.Time            `json:"last_seen_at"`
+	Application       *ApplicationTracking `json:"application,omitempty"`
+}
+
+type ManualCheck struct {
+	SourceID      string     `json:"source_id"`
+	Company       string     `json:"company"`
+	URL           string     `json:"url"`
+	Reason        string     `json:"reason"`
+	LastSuccessAt *time.Time `json:"last_success_at,omitempty"`
 }
 
 type ScanSummary struct {
@@ -30,6 +68,7 @@ type DashboardSnapshot struct {
 	NewListings        []DashboardListing `json:"new_listings"`
 	NeedsDecision      []DashboardListing `json:"needs_decision"`
 	ActiveApplications []DashboardListing `json:"active_applications"`
+	ManualChecks       []ManualCheck      `json:"manual_checks"`
 	LastScan           *ScanSummary       `json:"last_scan"`
 }
 
@@ -103,4 +142,9 @@ type Repository interface {
 
 type DashboardRepository interface {
 	Dashboard(ctx context.Context) (DashboardSnapshot, error)
+}
+
+type TrackingRepository interface {
+	ListingDetail(ctx context.Context, listingID string) (ListingDetail, error)
+	SaveApplication(ctx context.Context, listingID string, tracking ApplicationTracking) error
 }

@@ -2,7 +2,7 @@
 
 ## Aktif faz
 
-Faz 3.5 tamamlandı; Faz 4 henüz başlamadı. Resmî Commencis Lever ilanı zaman
+Faz 3.5 tamamlandı; Faz 4 devam ediyor. Resmî Commencis Lever ilanı zaman
 damgalı aktiflik kanıtıyla standart ingestion, canlı Google Gemini analizi,
 SQLite kullanım kalıcılığı, dashboard karar kuyruğu ve ikinci tarama dedup
 kapılarından geçti.
@@ -27,6 +27,9 @@ kapılarından geçti.
 - Minimize aday profili, strict JSON Schema ve backend çıktı doğrulaması
 - Sınırlı model retry'sı ile pending analizlerin kaynak bağımsız yeniden işlenmesi
 - Provider/model, token kullanımı ve ayarlanabilir oranlarla tahmini maliyet kalıcılığı
+- İlan detayını ve başvuru takibini sunan HTTP/repository sözleşmesi
+- Durum, manuel tarih, mülakat zamanı ve notlar için doğrulanan SQLite upsert akışı
+- Kaynak hatalarından üretilen manuel kontrol listesi
 
 ## Doğrulanan çıkış kriterleri
 
@@ -54,5 +57,5 @@ kapılarından geçti.
 
 ## Sıradaki iş
 
-Faz 4 sade PWA ve başvuru takibidir. Faz 3.5 kapısı tamamlanmış olsa da Faz 4'e
-bu teslimat içinde başlanmadı.
+Faz 4 sade PWA ve başvuru takibidir. Backend sözleşmesi tamamlandı; responsive
+dashboard ve telefon kabul akışı doğrulanacaktır.
