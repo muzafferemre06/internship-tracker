@@ -23,6 +23,7 @@ CLOUDFLARE_TUNNEL_TOKEN_FILE=$TEMPORARY_DIRECTORY/tunnel-token
 DEPLOY_UID=1000
 DEPLOY_GID=1000
 LLM_PROVIDER=google
+OPENROUTER_API_KEY_FILE=/run/secrets/openrouter_api_key
 GEMINI_API_KEY_FILE=/run/secrets/gemini_api_key
 WEB_PUSH_PUBLIC_KEY=test-public-key
 WEB_PUSH_SUBJECT=mailto:operator@example.test
@@ -41,6 +42,8 @@ docker compose \
     config >"$TEMPORARY_DIRECTORY/rendered.yml"
 
 grep -F 'GEMINI_API_KEY_FILE: /run/secrets/gemini_api_key' \
+    "$TEMPORARY_DIRECTORY/rendered.yml" >/dev/null
+grep -F 'OPENROUTER_API_KEY_FILE: /run/secrets/openrouter_api_key' \
     "$TEMPORARY_DIRECTORY/rendered.yml" >/dev/null
 grep -F -- 'run --rm --no-deps --entrypoint /app/backup api' \
     "$REPOSITORY_ROOT/deploy/scripts/deploy.sh" >/dev/null
