@@ -53,7 +53,7 @@ func NewReadinessChecker(db *sql.DB, migrations fs.FS) (*ReadinessChecker, error
 	if db == nil {
 		return nil, errors.New("database is required")
 	}
-	names, err := migrationNames(migrations)
+	names, err := MigrationNames(migrations)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func runMigrations(ctx context.Context, db *sql.DB, migrations fs.FS) error {
 		return fmt.Errorf("create migration registry: %w", err)
 	}
 
-	names, err := migrationNames(migrations)
+	names, err := MigrationNames(migrations)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,10 @@ func runMigrations(ctx context.Context, db *sql.DB, migrations fs.FS) error {
 	return nil
 }
 
-func migrationNames(migrations fs.FS) ([]string, error) {
+// MigrationNames returns the sorted names of every migration bundled with a
+// release. Read-only tools use it to verify a snapshot without opening the
+// production database through Open (which would apply migrations).
+func MigrationNames(migrations fs.FS) ([]string, error) {
 	if migrations == nil {
 		return nil, errors.New("migration filesystem is required")
 	}

@@ -5,13 +5,17 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY cmd ./cmd
 COPY internal ./internal
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/backup ./cmd/backup \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/restorecheck ./cmd/restorecheck
 
 FROM alpine:3.24.1
 
 RUN apk add --no-cache tzdata wget && addgroup -S app && adduser -S -G app app
 WORKDIR /app
 COPY --from=builder /out/api /app/api
+COPY --from=builder /out/backup /app/backup
+COPY --from=builder /out/restorecheck /app/restorecheck
 COPY migrations /app/migrations
 RUN mkdir -p /app/data /app/backups && chown -R app:app /app
 

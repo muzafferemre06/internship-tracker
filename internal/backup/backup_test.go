@@ -5,8 +5,11 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/muzaffer/internship-tracker/internal/database"
 
 	_ "modernc.org/sqlite"
 )
@@ -135,5 +138,75 @@ func TestNextUsesConfiguredTimezone(t *testing.T) {
 	want := time.Date(2026, 8, 7, 2, 30, 0, 0, service.location)
 	if !next.Equal(want) || next.Location() != service.location {
 		t.Fatalf("next backup = %s (%s), want %s (%s)", next, next.Location(), want, service.location)
+	}
+}
+
+func TestVerifyChecksIntegrityAndBundledMigrationsWithoutWriting(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	sourcePath := filepath.Join(root, "source.db")
+	source, err := database.Open(ctx, sourcePath, os.DirFS("../../migrations"))
+	if err != nil {
+		t.Fatalf("open migrated source: %v", err)
+	}
+	t.Cleanup(func() { _ = source.Close() })
+	service, err := New(source, enabledConfig(filepath.Join(root, "backups")), nil)
+	if err != nil {
+		t.Fatalf("new service: %v", err)
+	}
+	result, err := service.Run(ctx)
+	if err != nil {
+		t.Fatalf("create snapshot: %v", err)
+	}
+
+	if err := Verify(ctx, result.Path, os.DirFS("../../migrations")); err != nil {
+		t.Fatalf("verify snapshot: %v", err)
+	}
+	for _, sidecar := range []string{result.Path + "-journal", result.Path + "-wal", result.Path + "-shm"} {
+		if _, err := os.Stat(sidecar); !os.IsNotExist(err) {
+			t.Fatalf("read-only verification created sidecar %q: %v", sidecar, err)
+		}
+	}
+}
+
+func TestVerifyRejectsSnapshotMissingExpectedMigration(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	source, err := database.Open(ctx, filepath.Join(root, "source.db"), os.DirFS("../../migrations"))
+	if err != nil {
+		t.Fatalf("open migrated source: %v", err)
+	}
+	t.Cleanup(func() { _ = source.Close() })
+	if _, err := source.Exec("DELETE FROM schema_migrations WHERE name = ?", "005_web_push.sql"); err != nil {
+		t.Fatalf("remove migration record: %v", err)
+	}
+	service, err := New(source, enabledConfig(filepath.Join(root, "backups")), nil)
+	if err != nil {
+		t.Fatalf("new service: %v", err)
+	}
+	result, err := service.Run(ctx)
+	if err != nil {
+		t.Fatalf("create snapshot: %v", err)
+	}
+	err = Verify(ctx, result.Path, os.DirFS("../../migrations"))
+	if err == nil || !strings.Contains(err.Error(), "005_web_push.sql") {
+		t.Fatalf("verify missing migration error = %v", err)
+	}
+}
+
+func TestCreateRejectsSymlinkBackupDirectory(t *testing.T) {
+	root := t.TempDir()
+	directory := filepath.Join(root, "backups")
+	target := t.TempDir()
+	if err := os.Symlink(target, directory); err != nil {
+		t.Skipf("symlinks are unavailable: %v", err)
+	}
+	source, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = source.Close() })
+	if _, err := Create(context.Background(), source, directory, time.Now()); err == nil {
+		t.Fatal("expected symlink backup directory to be rejected")
 	}
 }
