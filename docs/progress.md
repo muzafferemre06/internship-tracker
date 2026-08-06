@@ -56,6 +56,14 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
   güvenlik başlıkları ve local HTTP'yi bozmayan HSTS sınırı
 - API readiness'e bağlı Compose healthcheck'leri ve healthcheck aracı kurulu
   backend/frontend runtime image'ları
+- Production secret dosyaları, fail-fast config ve mutation isteklerinde exact
+  Origin/CSRF koruması
+- Tek seferlik pre-deploy snapshot ve production verisine yazmayan restore ön
+  kontrol binary'leri
+- Digest sabitli, host portu açmayan Cloudflare Tunnel Compose paketi ile
+  preflight, smoke ve image rollback scriptleri
+- `amd64`/`arm64` GHCR image yayını, SBOM/provenance/attestation ve korumalı
+  production environment deployment workflow'u
 
 ## Doğrulanan çıkış kriterleri
 
@@ -97,9 +105,10 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 
 ## Sıradaki iş
 
-Faz 5'in runtime/CI temeli, güvenli process-içi zamanlanmış taraması, günlük
-SQLite snapshot/retention'ı ve uçtan uca Web Push abonelik/dedup akışı tamamlandı.
-Readiness, temel HTTP güvenliği ve Compose servis sağlığı da tamamlandı. Sıradaki
-dilim barındırma ve güvenli erişim kararını kaydetmek; image publish,
-deployment/smoke/rollback, offsite backup otomasyonu ve production secret
-yönetimini CI/deployment akışına eklemektir.
+Faz 5'in repository içinde tamamlanabilen runtime, scheduler, Web Push, health,
+secret, local backup/restore ve digest deployment otomasyonu hazırdır. Faz henüz
+kapanmadı: GitHub/OCI/Cloudflare hesapları, production hostname, kalıcı VAPID
+anahtarı ve off-host backup hedefi kullanıcı tarafında hazırlanmalı; ardından gerçek
+HTTPS ortamında scheduled scan, cihaz push deep-link'i, Access reddi, deploy
+rollback ve restore provası kanıtlanmalıdır. Kısa yönlendirme
+`docs/production-inputs.md` içindedir.

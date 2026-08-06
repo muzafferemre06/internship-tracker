@@ -89,6 +89,33 @@ Gerçek model fiyatları değişebildiği için milyon input ve output token ba�
 oranlar seçilen modelin güncel fiyatıyla kullanıcı tarafından ayarlanır. Anahtar
 ve yerel `.env` repoya eklenmez.
 
+## Production yapılandırması ve secret'lar
+
+`APP_ENV=production` başlangıçta güvenlik kapılarını zorunlu kılar:
+`ALLOWED_ORIGIN` path içermeyen, localhost olmayan bir `https://` origin'i
+olmalı; SQLite, migration, aday profili ve kaynak yolları ile backup dizini
+mutlak yol olmalıdır. SQLite bellek/URI veritabanı kabul edilmez.
+`BACKUP_ENABLED=true`, `WEB_PUSH_ENABLED=true` ve Web Push private key zorunlu
+olur. Varsayılan `LLM_PROVIDER=deterministic` production'da bilinçli ve geçerli
+bir seçimdir; OpenRouter/Gemini yalnız seçildiklerinde ilgili anahtarı ister.
+
+`OPENROUTER_API_KEY`, `GEMINI_API_KEY` ve `WEB_PUSH_PRIVATE_KEY` doğrudan ortam
+değeri yerine karşılık gelen `_FILE` değişkeniyle secret dosyasından okunabilir.
+Bir secret için yalnızca biri ayarlanır; dosya yolu boş, okunamaz veya dosya
+boşsa uygulama dinlemeye başlamaz. Production'da secret dosya yolu da mutlak
+olmalıdır. Hata ve yapılandırılmış loglar secret değerini içermez.
+
+Production'daki `POST`, `PUT` ve `DELETE` API istekleri, tarayıcının `Origin`
+header'ını `ALLOWED_ORIGIN` ile tam eşleştirmelidir. Eksik veya farklı origin
+`403` döner. `GET /health`, `GET /ready` ve okuma uçları etkilenmez; CORS
+preflight yalnız yapılandırılmış origin için izin alır.
+
+Production kurulumu için [deployment runbook'u](./docs/deployment.md), secret ve
+origin ilkeleri için [güvenlik rehberi](./docs/security.md), yedek/restore için
+[operasyon rehberi](./docs/operations.md) kullanılır. Hesap veya sunucu secret'ı
+paylaşmadan tamamlanacak kısa hazırlık listesi
+[production girdileri belgesindedir](./docs/production-inputs.md).
+
 Modele adayın adı, iletişim bilgileri, üniversite adı veya deneyim kurumları
 gönderilmez. Yalnızca bölüm/alan, sınıf, GPA, odak alanları, deneyim konu başlıkları
 ve konum tercihleri; ilan başlığı ve metniyle birlikte gönderilir.
@@ -284,6 +311,8 @@ iptal eder.
 ile kurar. Bu, host kaybına karşı tek başına yeterli değildir: volume snapshot'ı
 veya şifreli dışa aktarım ayrı bir retention politikasıyla tutulmalı; her deploy
 öncesinde bir snapshot alınmalı ve en az bir restore provası yapılmalıdır.
+Tek seferlik snapshot, salt-okunur restore ön kontrolü ve off-host retention
+politikası için [production operasyon rehberine](./docs/operations.md) bakın.
 
 Model cevabı JSON Schema ile istenir ve backend'de bilinmeyen alanları da reddeden
 aynı katı sözleşmeyle doğrulanır. Bozuk JSON, şema hatası, timeout, 429 ve geçici
