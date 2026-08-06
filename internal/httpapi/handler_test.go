@@ -173,6 +173,71 @@ func TestMiddlewareAddsSecurityHeadersAndLogsResponseStatus(t *testing.T) {
 	}
 }
 
+func TestProductionOriginProtectionRejectsUnsafeRequestsAndKeepsReadEndpointsAvailable(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := NewHandler("https://tracker.example.test", logger, fakeScanRunner{
+		result: orchestrator.ScanResult{RunID: 1, Status: "completed"},
+	}, fakeDashboardRepository{}, nil, Options{RequireExactOrigin: true})
+
+	for _, test := range []struct {
+		name, method, path, origin string
+	}{
+		{"missing POST origin", http.MethodPost, "/api/v1/scan", ""},
+		{"wrong PUT origin", http.MethodPut, "/api/v1/listings/listing-1/application", "https://attacker.example.test"},
+		{"wrong DELETE origin", http.MethodDelete, "/api/v1/push/subscriptions", "https://attacker.example.test"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(test.method, test.path, nil)
+			if test.origin != "" {
+				request.Header.Set("Origin", test.origin)
+			}
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+			if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), "origin is not allowed") {
+				t.Fatalf("unsafe request was not blocked: status=%d body=%s", response.Code, response.Body.String())
+			}
+		})
+	}
+
+	accepted := httptest.NewRequest(http.MethodPost, "/api/v1/scan", nil)
+	accepted.Header.Set("Origin", "https://tracker.example.test")
+	acceptedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(acceptedResponse, accepted)
+	if acceptedResponse.Code != http.StatusOK {
+		t.Fatalf("expected matching origin to be accepted, got %d", acceptedResponse.Code)
+	}
+
+	read := httptest.NewRequest(http.MethodGet, "/health", nil)
+	read.Header.Set("Origin", "https://attacker.example.test")
+	readResponse := httptest.NewRecorder()
+	handler.ServeHTTP(readResponse, read)
+	if readResponse.Code != http.StatusOK {
+		t.Fatalf("read endpoint must remain available, got %d", readResponse.Code)
+	}
+}
+
+func TestCORSPreflightOnlyAllowsConfiguredOrigin(t *testing.T) {
+	handler := NewHandler("https://tracker.example.test", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil, Options{RequireExactOrigin: true})
+
+	allowed := httptest.NewRequest(http.MethodOptions, "/api/v1/scan", nil)
+	allowed.Header.Set("Origin", "https://tracker.example.test")
+	allowed.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	allowedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(allowedResponse, allowed)
+	if allowedResponse.Code != http.StatusNoContent || allowedResponse.Header().Get("Access-Control-Allow-Origin") != "https://tracker.example.test" ||
+		allowedResponse.Header().Get("Vary") != "Origin" {
+		t.Fatalf("allowed preflight is invalid: status=%d headers=%#v", allowedResponse.Code, allowedResponse.Header())
+	}
+
+	denied := httptest.NewRequest(http.MethodOptions, "/api/v1/scan", nil)
+	denied.Header.Set("Origin", "https://attacker.example.test")
+	deniedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(deniedResponse, denied)
+	if deniedResponse.Code != http.StatusForbidden || deniedResponse.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("untrusted preflight was not rejected: status=%d headers=%#v", deniedResponse.Code, deniedResponse.Header())
+	}
+}
+
 func TestScanReturnsAggregatedResult(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewHandler("http://localhost:5173", logger, fakeScanRunner{
@@ -308,9 +373,9 @@ func TestApplicationUpdateRejectsInvalidTimestamp(t *testing.T) {
 func TestPushSubscriptionAPIValidatesAndPersistsBrowserSubscription(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	repository := &fakePushRepository{created: true}
-	handler := NewHandler("http://localhost:5173", logger, nil, repository, nil, PushOptions{
+	handler := NewHandler("http://localhost:5173", logger, nil, repository, nil, Options{Push: PushOptions{
 		Enabled: true, PublicKey: "public-vapid-key", Store: repository,
-	})
+	}})
 	keyRequest := httptest.NewRequest(http.MethodGet, "/api/v1/push/public-key", nil)
 	keyResponse := httptest.NewRecorder()
 	handler.ServeHTTP(keyResponse, keyRequest)
@@ -345,9 +410,9 @@ func TestPushSubscriptionAPIValidatesAndPersistsBrowserSubscription(t *testing.T
 func TestPushSubscriptionAPIRejectsUnsafeAndNonStrictRequests(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	repository := &fakePushRepository{}
-	handler := NewHandler("http://localhost:5173", logger, nil, repository, nil, PushOptions{
+	handler := NewHandler("http://localhost:5173", logger, nil, repository, nil, Options{Push: PushOptions{
 		Enabled: true, PublicKey: "public", Store: repository,
-	})
+	}})
 	tests := []struct {
 		name        string
 		contentType string

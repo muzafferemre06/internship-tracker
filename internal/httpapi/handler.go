@@ -42,6 +42,7 @@ type Handler struct {
 	pushEnabled     bool
 	pushPublicKey   string
 	pushStore       store.PushSubscriptionRepository
+	requireOrigin   bool
 }
 
 type PushOptions struct {
@@ -50,13 +51,20 @@ type PushOptions struct {
 	Store     store.PushSubscriptionRepository
 }
 
+type Options struct {
+	// RequireExactOrigin rejects browser-unsafe methods unless their Origin
+	// header exactly matches AllowedOrigin. It is intended for production.
+	RequireExactOrigin bool
+	Push               PushOptions
+}
+
 func NewHandler(
 	allowedOrigin string,
 	logger *slog.Logger,
 	scanner ScanRunner,
 	dashboardStore store.DashboardRepository,
 	readiness ReadinessChecker,
-	pushOptions ...PushOptions,
+	options ...Options,
 ) http.Handler {
 	handler := Handler{
 		allowedOrigin:   allowedOrigin,
@@ -68,10 +76,11 @@ func NewHandler(
 		trackingStore:   trackingRepository(dashboardStore),
 		readiness:       readiness,
 	}
-	if len(pushOptions) > 0 {
-		handler.pushEnabled = pushOptions[0].Enabled
-		handler.pushPublicKey = pushOptions[0].PublicKey
-		handler.pushStore = pushOptions[0].Store
+	if len(options) > 0 {
+		handler.requireOrigin = options[0].RequireExactOrigin
+		handler.pushEnabled = options[0].Push.Enabled
+		handler.pushPublicKey = options[0].Push.PublicKey
+		handler.pushStore = options[0].Push.Store
 	}
 
 	mux := http.NewServeMux()
@@ -450,14 +459,25 @@ func (h Handler) withMiddleware(next http.Handler) http.Handler {
 		writer.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		writer.Header().Set("X-Content-Type-Options", "nosniff")
 		writer.Header().Set("X-Frame-Options", "DENY")
-		writer.Header().Set("Access-Control-Allow-Origin", h.allowedOrigin)
-		writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		origin := request.Header.Get("Origin")
+		originAllowed := origin != "" && origin == h.allowedOrigin
+		if originAllowed {
+			writer.Header().Set("Access-Control-Allow-Origin", h.allowedOrigin)
+			writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			writer.Header().Set("Vary", "Origin")
+		}
 
 		started := time.Now()
 		response := &statusResponseWriter{ResponseWriter: writer, status: http.StatusOK}
 		if request.Method == http.MethodOptions {
-			response.WriteHeader(http.StatusNoContent)
+			if origin != "" && !originAllowed {
+				writeJSON(response, http.StatusForbidden, map[string]string{"error": "origin is not allowed"})
+			} else {
+				response.WriteHeader(http.StatusNoContent)
+			}
+		} else if h.requireOrigin && isUnsafeMethod(request.Method) && !originAllowed {
+			writeJSON(response, http.StatusForbidden, map[string]string{"error": "origin is not allowed"})
 		} else {
 			next.ServeHTTP(response, request)
 		}
@@ -468,6 +488,10 @@ func (h Handler) withMiddleware(next http.Handler) http.Handler {
 			"duration_ms", time.Since(started).Milliseconds(),
 		)
 	})
+}
+
+func isUnsafeMethod(method string) bool {
+	return method == http.MethodPost || method == http.MethodPut || method == http.MethodDelete
 }
 
 type statusResponseWriter struct {

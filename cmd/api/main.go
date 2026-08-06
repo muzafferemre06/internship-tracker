@@ -28,7 +28,11 @@ import (
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Error("configuration initialization failed", "error", err)
+		os.Exit(1)
+	}
 
 	db, err := database.Open(context.Background(), cfg.DatabasePath, os.DirFS(cfg.MigrationsPath))
 	if err != nil {
@@ -109,8 +113,11 @@ func main() {
 
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,
-		Handler: httpapi.NewHandler(cfg.AllowedOrigin, logger, scanRunner, repository, readinessChecker, httpapi.PushOptions{
-			Enabled: webPushConfig.Enabled, PublicKey: webPushConfig.PublicKey, Store: repository,
+		Handler: httpapi.NewHandler(cfg.AllowedOrigin, logger, scanRunner, repository, readinessChecker, httpapi.Options{
+			RequireExactOrigin: strings.EqualFold(strings.TrimSpace(cfg.AppEnv), "production"),
+			Push: httpapi.PushOptions{
+				Enabled: webPushConfig.Enabled, PublicKey: webPushConfig.PublicKey, Store: repository,
+			},
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
