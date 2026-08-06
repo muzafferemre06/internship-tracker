@@ -18,6 +18,7 @@ type Config struct {
 	OpenRouterAPIKey     string
 	GeminiAPIKey         string
 	ScanSchedule         string
+	ScanTimezone         string
 }
 
 func Load() Config {
@@ -40,6 +41,7 @@ func Load() Config {
 		OpenRouterAPIKey: os.Getenv("OPENROUTER_API_KEY"),
 		GeminiAPIKey:     os.Getenv("GEMINI_API_KEY"),
 		ScanSchedule:     envOrDefault("SCAN_SCHEDULE", "0 9 * * 1"),
+		ScanTimezone:     envOrDefault("SCAN_TIMEZONE", "Europe/Istanbul"),
 	}
 }
 

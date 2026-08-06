@@ -8,6 +8,8 @@
 - `internal/analyzer`: deterministik ve LLM tabanlı ilan analizi sözleşmesi.
 - `internal/store`: kalıcı veri erişimi sözleşmeleri.
 - `internal/orchestrator`: kaynakları izole ederek uçtan uca taramayı yürütür.
+- `internal/scheduler`: doğrulanmış cron/zaman dilimi ile orchestrator'ı process
+  içinde zamanlanmış olarak tetikler.
 - `internal/httpapi`: PWA'nın kullandığı HTTP uçları.
 - `internal/database`: SQLite bağlantısı ve sıralı migration uygulaması.
 - `web`: backend secret'larına erişmeyen PWA istemcisi.
@@ -39,8 +41,24 @@ HTTP / scheduler
 orchestrator ---> scraper adapters
       |--------> listing analyzer ---> OpenRouter
       |--------> repository --------> SQLite
-      `--------> notifications -----> Web Push
+`--------> notifications -----> Web Push
 ```
+
+## Zamanlanmış tarama ve eşzamanlılık
+
+`cmd/api`, HTTP sunucusunu dinlemeye almadan önce `SCAN_SCHEDULE` için beş alanlı
+cron sözleşmesini ve `SCAN_TIMEZONE` IANA değerini doğrular. Varsayılan zaman
+dilimi `Europe/Istanbul`, varsayılan ifade `0 9 * * 1`'dir. Scheduler bir sonraki
+yerel takvim dakikasını hesaplar ve `Run(ctx, "scheduled")` çağrısını yapar.
+Uygulama yeniden başladığında geçmiş tetiklemeler yeniden oynatılmaz.
+
+HTTP'nin manuel çağrısı ile scheduler, aynı `CoordinatedRunner` etrafında
+toplanır. Bu process-içi kilit yalnızca bir `Run` akışına izin verir; ikinci
+manuel çağrı `ErrScanInProgress` üzerinden HTTP `409` alır, eşzamanlı scheduled
+çağrı ise hata olarak yapılandırılmış loga yazılır. `SIGINT` veya `SIGTERM` ana
+context'i iptal eder; scheduler timer'ı ve aktif scheduled run bu context'i
+görür, API shutdown'ı scheduler'ın durmasını en fazla aynı 10 saniyelik bütçe
+içinde bekler.
 
 ## Secret ilkeleri
 

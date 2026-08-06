@@ -38,6 +38,10 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
   container image'ları
 - CI'da `go vet`, yüksek önem seviyesinde npm bağımlılık denetimi ve yayınlamayan
   backend/frontend image build kapıları
+- `SCAN_SCHEDULE` ve `SCAN_TIMEZONE` ile startup'ta doğrulanan, graceful shutdown
+  context'ine bağlı process-içi zamanlanmış tarama
+- Manuel ve zamanlanmış taramaların ortak kilidi; çakışan manuel tarama için
+  HTTP `409` davranışı
 
 ## Doğrulanan çıkış kriterleri
 
@@ -67,7 +71,7 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 
 ## Sıradaki iş
 
-Faz 5 otomatik çalışma ve PWA push'tır. Runtime ve CI temelinin ardından sıradaki
-dilim, barındırma/erişim kararını kaydetmek ve zamanlanmış taramanın güvenli
-çalışma modelini uygulamaktır; image publish, deployment ve secret yönetimi henüz
-CI'a eklenmedi.
+Faz 5 otomatik çalışma ve PWA push'tır. Runtime/CI temeli ile güvenli process-içi
+zamanlanmış tarama tamamlandı. Sıradaki dilim barındırma/erişim kararını kaydetmek
+ve Web Push abonelik/dedup akışını uygulamaktır; image publish, deployment ve
+secret yönetimi henüz CI'a eklenmedi.

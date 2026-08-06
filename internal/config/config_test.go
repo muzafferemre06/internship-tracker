@@ -6,6 +6,8 @@ func TestLoadUsesDefaults(t *testing.T) {
 	t.Setenv("APP_ENV", "")
 	t.Setenv("HTTP_ADDR", "")
 	t.Setenv("DATABASE_PATH", "")
+	t.Setenv("SCAN_SCHEDULE", "")
+	t.Setenv("SCAN_TIMEZONE", "")
 
 	cfg := Load()
 
@@ -30,6 +32,9 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if cfg.LLMThinkingLevel != "minimal" {
 		t.Fatalf("unexpected default thinking level %q", cfg.LLMThinkingLevel)
 	}
+	if cfg.ScanSchedule != "0 9 * * 1" || cfg.ScanTimezone != "Europe/Istanbul" {
+		t.Fatalf("unexpected default scan schedule settings: %#v", cfg)
+	}
 }
 
 func TestLoadReadsEnvironment(t *testing.T) {
@@ -37,10 +42,15 @@ func TestLoadReadsEnvironment(t *testing.T) {
 	t.Setenv("LLM_PROVIDER", "openrouter")
 	t.Setenv("LLM_MODEL", "example/model")
 	t.Setenv("GEMINI_API_KEY", "test-key")
+	t.Setenv("SCAN_SCHEDULE", "30 8 * * 1-5")
+	t.Setenv("SCAN_TIMEZONE", "UTC")
 
 	cfg := Load()
 
 	if cfg.HTTPAddr != ":9090" || cfg.LLMModel != "example/model" || cfg.GeminiAPIKey != "test-key" {
 		t.Fatalf("environment was not loaded: %#v", cfg)
+	}
+	if cfg.ScanSchedule != "30 8 * * 1-5" || cfg.ScanTimezone != "UTC" {
+		t.Fatalf("scan schedule environment was not loaded: %#v", cfg)
 	}
 }

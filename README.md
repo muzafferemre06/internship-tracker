@@ -152,7 +152,8 @@ sonraki Faz 5 dilimidir.
 - `GET /api/v1/dashboard`: uygun yeni ilanlar, takip özetleri ve kalıcı son
   tarama raporu
 - `POST /api/v1/scan`: etkin kaynakları hemen tarar; toplam bulunan/yeni ilan
-  sayılarını, kalıcı tarama kimliğini/durumunu ve kaynak bazlı hataları döndürür
+  sayılarını, kalıcı tarama kimliğini/durumunu ve kaynak bazlı hataları döndürür;
+  başka bir tarama çalışıyorsa `409` döner
 - `POST /api/v1/analyses/retry`: en fazla 25 `pending` analizi, kaynak siteye
   yeniden bağlanmadan saklanan ham ilan metni üzerinden işler; işlenen ve tekrar
   başarısız olan kayıt sayılarını döndürür
@@ -183,6 +184,22 @@ başlatılmış iki Kariyer.net taraması arasında en az 24 saat bırakılır. 
 403/429/challenge yanıtı kalan Kariyer.net profillerini çağırmadan durdurur;
 cooldown ve en erken tekrar zamanı SQLite'ta kalır ve manuel tarama düğmesiyle
 aşılamaz. API/PWA atlanan kaynakları ve tekrar zamanını gösterir.
+
+## Zamanlanmış tarama
+
+API, uygulama açılırken `SCAN_SCHEDULE` içindeki beş alanlı cron ifadesini
+(`dakika saat ayın-günü ay haftanın-günü`) ve `SCAN_TIMEZONE` IANA zaman dilimini
+doğrular; geçersiz ayar servis başlamadan hata verir. Varsayılan
+`0 9 * * 1` ve `Europe/Istanbul`, her pazartesi İstanbul saatine göre 09:00
+tarama yapar. Alanlar `*`, sayı, liste, aralık ve adım (`*/15`, `1-5`, `1,3,5`)
+biçimlerini kabul eder.
+
+Zamanlanmış ve `POST /api/v1/scan` tetiklemeleri aynı process içi tarama
+kilidini paylaşır. Çakışan manuel istek `409` döner; zamanlanmış tetikleme de
+çalışan taramayı beklemeden loglanır. `SIGINT`/`SIGTERM`, sonraki tetiklemeyi
+durdurur ve aktif zamanlanmış taramanın context'ini iptal ederek kapanma akışına
+katılır. Scheduler yalnızca uygulama process'i çalışırken görev çalıştırır;
+kesinti sonrası kaçan çalışmayı telafi etmez.
 
 Model cevabı JSON Schema ile istenir ve backend'de bilinmeyen alanları da reddeden
 aynı katı sözleşmeyle doğrulanır. Bozuk JSON, şema hatası, timeout, 429 ve geçici

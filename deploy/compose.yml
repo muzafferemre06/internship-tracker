@@ -19,6 +19,7 @@ services:
       LLM_INPUT_COST_PER_MILLION_USD: ${LLM_INPUT_COST_PER_MILLION_USD:-0}
       LLM_OUTPUT_COST_PER_MILLION_USD: ${LLM_OUTPUT_COST_PER_MILLION_USD:-0}
       SCAN_SCHEDULE: ${SCAN_SCHEDULE:-0 9 * * 1}
+      SCAN_TIMEZONE: ${SCAN_TIMEZONE:-Europe/Istanbul}
     volumes:
       - tracker_data:/app/data
       - ../configs/candidate-profile.json:/app/configs/candidate-profile.json:ro

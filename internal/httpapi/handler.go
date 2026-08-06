@@ -244,6 +244,10 @@ func (h Handler) scan(writer http.ResponseWriter, request *http.Request) {
 
 	result, err := h.scanner.Run(request.Context(), "manual")
 	if err != nil {
+		if errors.Is(err, orchestrator.ErrScanInProgress) {
+			writeJSON(writer, http.StatusConflict, map[string]string{"error": "a scan is already in progress"})
+			return
+		}
 		h.logger.Error("scan failed", "error", err)
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "scan could not be completed"})
 		return

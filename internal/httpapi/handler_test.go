@@ -18,10 +18,11 @@ import (
 type fakeScanRunner struct {
 	result    orchestrator.ScanResult
 	reprocess orchestrator.ReprocessResult
+	err       error
 }
 
 func (f fakeScanRunner) Run(context.Context, string) (orchestrator.ScanResult, error) {
-	return f.result, nil
+	return f.result, f.err
 }
 
 func (f fakeScanRunner) ReprocessPending(context.Context, int) (orchestrator.ReprocessResult, error) {
@@ -117,6 +118,21 @@ func TestScanReturnsSkippedSourceRetryTime(t *testing.T) {
 	if response.Code != http.StatusMultiStatus || !strings.Contains(response.Body.String(), `"skipped":true`) ||
 		!strings.Contains(response.Body.String(), `"retry_at":"2026-08-04T09:00:00Z"`) {
 		t.Fatalf("unexpected guarded scan response: status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestScanReturnsConflictWhenAnotherScanIsRunning(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := NewHandler("http://localhost:5173", logger, fakeScanRunner{
+		err: orchestrator.ErrScanInProgress,
+	}, fakeDashboardRepository{})
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/scan", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), "already in progress") {
+		t.Fatalf("unexpected concurrent scan response: status=%d body=%s", response.Code, response.Body.String())
 	}
 }
 

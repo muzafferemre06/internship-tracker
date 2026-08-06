@@ -19,6 +19,7 @@ import (
 	"github.com/muzaffer/internship-tracker/internal/domain"
 	"github.com/muzaffer/internship-tracker/internal/httpapi"
 	"github.com/muzaffer/internship-tracker/internal/orchestrator"
+	"github.com/muzaffer/internship-tracker/internal/scheduler"
 	"github.com/muzaffer/internship-tracker/internal/scraper"
 	"github.com/muzaffer/internship-tracker/internal/store"
 )
@@ -66,33 +67,45 @@ func main() {
 		Store:    repository,
 		Profile:  analyzerProfile(candidateConfig),
 	}
+	scanRunner := orchestrator.NewCoordinatedRunner(scanService)
+	scanScheduler, err := scheduler.New(cfg.ScanSchedule, cfg.ScanTimezone, scanRunner, logger)
+	if err != nil {
+		logger.Error("scan scheduler initialization failed", "error", err)
+		os.Exit(1)
+	}
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpapi.NewHandler(cfg.AllowedOrigin, logger, scanService, repository),
+		Handler:           httpapi.NewHandler(cfg.AllowedOrigin, logger, scanRunner, repository),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      90 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 
-	shutdownSignals := make(chan os.Signal, 1)
-	signal.Notify(shutdownSignals, syscall.SIGINT, syscall.SIGTERM)
+	appContext, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	scanScheduler.Start(appContext)
 
 	go func() {
-		logger.Info("api starting", "address", cfg.HTTPAddr, "environment", cfg.AppEnv)
+		logger.Info("api starting", "address", cfg.HTTPAddr, "environment", cfg.AppEnv,
+			"scan_schedule", cfg.ScanSchedule, "scan_timezone", cfg.ScanTimezone)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("api stopped unexpectedly", "error", err)
 			os.Exit(1)
 		}
 	}()
 
-	<-shutdownSignals
+	<-appContext.Done()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Error("graceful shutdown failed", "error", err)
+		os.Exit(1)
+	}
+	if err := scanScheduler.Wait(ctx); err != nil {
+		logger.Error("scheduled scan shutdown failed", "error", err)
 		os.Exit(1)
 	}
 

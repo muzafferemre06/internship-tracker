@@ -271,7 +271,10 @@ Başlangıç varsayımı:
 
 Takvim kod değişikliği gerektirmeden yapılandırılabilir olmalıdır. İlan
 dönemleri hakkında yeni veri edinildiğinde başlangıç tarihi ve sıklık
-güncellenebilir.
+güncellenebilir. MVP scheduler'ı beş alanlı cron ifadesi ve IANA zaman dilimiyle
+başlangıçta doğrulanır; varsayılan `0 9 * * 1` / `Europe/Istanbul`'dur. Manuel ve
+zamanlanmış taramalar tek çalışma yuvasını paylaşır; çakışan manuel istek açık
+bir `409` yanıtı alır.
 
 ## 10. Dashboard
 

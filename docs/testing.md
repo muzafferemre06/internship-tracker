@@ -86,6 +86,14 @@ yeniden analiz edilip yeni ilan sayılmadığını ve ayrı retry API akışın�
 fetch'i yapmadan saklanan ham metni işlediğini doğrular. HTTP testi kısmi yeniden
 işleme sonucunu `207` olarak döndürür.
 
+Scheduler testleri ağ veya gerçek saat beklemesi kullanmaz. Beş alanlı cron
+ifadesinin ve IANA timezone'un startup'ta reddedilmesini, `Europe/Istanbul`
+takviminde bir sonraki haftalık zamanın hesaplanmasını, tetiklemenin
+`Run(ctx, "scheduled")` çağrısını ve context iptalinde scheduler'ın durmasını
+fake runner ile doğrular. Orchestrator eşzamanlılık testi bloklayan fake runner
+ile ikinci taramanın `ErrScanInProgress` döndürdüğünü; HTTP testi bunun kullanıcıya
+`409` olarak yansıdığını kapsar.
+
 ## Faz 3.5 canlı kabul testi
 
 Gerçek ilan kabul testi normal `go test ./...` akışından ayrılır. Test yalnızca
