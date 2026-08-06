@@ -204,8 +204,13 @@ sorgusunda görünmelidir.
 GitHub Actions her push ve pull request'te Go format kontrolü, `go vet`,
 `govulncheck`, backend test/build, frontend test/build, yüksek önem seviyesindeki `npm audit` bulguları
 ve iki production Docker image'ının yayınlamayan build adımlarını çalıştırır.
-Production deployment sözleşmesi ayrıca backup binary entrypoint'ini ve seçilen
-LLM secret dosyası yolunun render edilmiş Compose config'ine taşınmasını denetler.
+Production deployment sözleşmesi ayrıca seçilen LLM secret dosyası yolunun
+render edilmiş Compose config'ine taşınmasını ve `DEPLOY_REVISION` ile eşleşen
+exact-commit deployment paketinin yalnız izin verilen dosyaları içermesini
+denetler. Ardından ağ veya Docker daemon kullanmayan sahte `docker`/`curl`
+fixture'larıyla mevcut sürümden alınan backup binary entrypoint'ini, public
+origin eşleşmesini ve secret taşımadan `current.env`/`previous.env` manifest
+geçişini çalıştırır.
 Gerçek API anahtarı ve ücretli entegrasyon çağrısı CI testlerine dahil edilmez.
 Compose healthcheck komutları runtime Dockerfile'larında açıkça kurulu `wget`
 kullanır; `/ready`, DB/migration readiness'ini kontrol ederken `/health` yalnız

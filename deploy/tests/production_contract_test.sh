@@ -35,17 +35,21 @@ WEB_IMAGE=example.invalid/web@$digest
 CLOUDFLARED_IMAGE=example.invalid/cloudflared@$digest
 EOF
 
-docker compose \
-    --env-file "$TEMPORARY_DIRECTORY/runtime.env" \
-    --env-file "$TEMPORARY_DIRECTORY/release.env" \
-    --file "$REPOSITORY_ROOT/deploy/compose.production.yml" \
-    config >"$TEMPORARY_DIRECTORY/rendered.yml"
+if [ "${SKIP_COMPOSE_RENDER:-0}" = 1 ]; then
+    printf '%s\n' 'skipping Compose render by explicit local request'
+else
+    docker compose \
+        --env-file "$TEMPORARY_DIRECTORY/runtime.env" \
+        --env-file "$TEMPORARY_DIRECTORY/release.env" \
+        --file "$REPOSITORY_ROOT/deploy/compose.production.yml" \
+        config >"$TEMPORARY_DIRECTORY/rendered.yml"
 
-grep -F 'GEMINI_API_KEY_FILE: /run/secrets/gemini_api_key' \
-    "$TEMPORARY_DIRECTORY/rendered.yml" >/dev/null
-grep -F 'OPENROUTER_API_KEY_FILE: /run/secrets/openrouter_api_key' \
-    "$TEMPORARY_DIRECTORY/rendered.yml" >/dev/null
-grep -F -- 'run --rm --no-deps --entrypoint /app/backup api' \
-    "$REPOSITORY_ROOT/deploy/scripts/deploy.sh" >/dev/null
+    grep -F 'GEMINI_API_KEY_FILE: /run/secrets/gemini_api_key' \
+        "$TEMPORARY_DIRECTORY/rendered.yml" >/dev/null
+    grep -F 'OPENROUTER_API_KEY_FILE: /run/secrets/openrouter_api_key' \
+        "$TEMPORARY_DIRECTORY/rendered.yml" >/dev/null
+fi
+"$REPOSITORY_ROOT/deploy/tests/deploy_workflow_test.sh"
+"$REPOSITORY_ROOT/deploy/tests/deploy_runtime_test.sh"
 
 printf '%s\n' "production deployment contract passed"
