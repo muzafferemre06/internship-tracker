@@ -38,6 +38,29 @@ func TestOpenRejectsMissingMigrations(t *testing.T) {
 	}
 }
 
+func TestReadinessCheckerVerifiesDatabaseAndAppliedMigrations(t *testing.T) {
+	ctx := context.Background()
+	db, err := Open(ctx, filepath.Join(t.TempDir(), "tracker.db"), os.DirFS("../../migrations"))
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	checker, err := NewReadinessChecker(db, os.DirFS("../../migrations"))
+	if err != nil {
+		t.Fatalf("create readiness checker: %v", err)
+	}
+	if err := checker.Check(ctx); err != nil {
+		t.Fatalf("expected migrated database to be ready: %v", err)
+	}
+	if _, err := db.Exec("DELETE FROM schema_migrations WHERE name = ?", "005_web_push.sql"); err != nil {
+		t.Fatalf("remove migration record: %v", err)
+	}
+	if err := checker.Check(ctx); err == nil {
+		t.Fatal("expected readiness to fail when a bundled migration is missing")
+	}
+}
+
 func assertTableExists(t *testing.T, db queryRower, name string) {
 	t.Helper()
 	var found string

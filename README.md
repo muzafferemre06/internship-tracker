@@ -167,6 +167,9 @@ docker compose -f deploy/compose.yml up --build
 PWA bu kurulumda `http://localhost:8081` adresinden açılır. Compose dosyası
 yerel `configs/candidate-profile.json` ve `configs/sources.json` dosyalarını
 salt okunur bağlar; SQLite verisini adlandırılmış bir volume içinde korur.
+API, SQLite bağlantısını ve bu image ile gelen tüm migration kayıtlarını doğrulayan
+`/ready` yanıtı sağlıklı olmadan web container'ı başlatılmaz. Her iki image, kendi
+yerel healthcheck'i için image içinde açıkça kurulu `wget` kullanır.
 Production compose ayrıca günlük SQLite snapshot'larını `tracker_backups`
 volume'unda tutar; bu volume'u ana veritabanı volume'undan ayrı bir host/offsite
 backup hedefine düzenli olarak dışa aktarmak işletim sorumluluğudur.
@@ -177,7 +180,9 @@ sonraki Faz 5 dilimidir.
 
 ## API
 
-- `GET /health`: süreç sağlık bilgisi
+- `GET /health`: bağımlılıklardan bağımsız süreç liveness bilgisi
+- `GET /ready`: SQLite `Ping` ve bu sürümün migration kayıtlarını doğrulayan
+  readiness bilgisi; hazır değilse ayrıntı sızdırmadan `503` döner
 - `GET /api/v1/dashboard`: uygun yeni ilanlar, takip özetleri ve kalıcı son
   tarama raporu
 - `POST /api/v1/scan`: etkin kaynakları hemen tarar; toplam bulunan/yeni ilan
@@ -222,6 +227,19 @@ kurulumu gerektirir (localhost geliştirme istisnasıdır). Bildirime dokunmak
 varsa yeni pencere çoğaltmak yerine o pencere yönlendirilip öne getirilir.
 Service worker yalnız aynı-origin hedefleri kabul eder ve event `tag` değeriyle
 aynı bildirimin görünür tekrarını bastırır.
+
+## HTTP health ve güvenlik başlıkları
+
+API middleware'i her yanıta `X-Content-Type-Options: nosniff`,
+`Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY` ve
+same-origin PWA için sınırlı bir Content Security Policy ekler. Yapılandırılmış
+HTTP logu method, query string içermeyen path, HTTP durum kodu ve süreyi taşır.
+
+`/health` yalnız process'in dinleyebildiğini ölçer; container/deployment
+healthcheck'leri `/ready` kullanır. Nginx yerel Compose'ta bilerek HTTP
+dinlediği için HSTS eklemez. HSTS, ancak gerçek HTTPS'i sonlandıran production
+reverse proxy katmanında eklenmelidir; HTTP ortamında göndermek ilk ziyaret ve
+yerel geliştirmeyi bozabilir.
 
 Kariyer.net kaynakları aynı domain erişim bütçesini paylaşır. Başarılı veya
 başlatılmış iki Kariyer.net taraması arasında en az 24 saat bırakılır. İlk

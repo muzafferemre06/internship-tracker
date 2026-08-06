@@ -1,9 +1,11 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdh"
 	"encoding/base64"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -33,6 +35,16 @@ func (f fakeScanRunner) ReprocessPending(context.Context, int) (orchestrator.Rep
 
 type fakeDashboardRepository struct {
 	snapshot store.DashboardSnapshot
+}
+
+type fakeReadinessChecker struct {
+	err   error
+	calls int
+}
+
+func (f *fakeReadinessChecker) Check(context.Context) error {
+	f.calls++
+	return f.err
 }
 
 type fakeTrackingRepository struct {
@@ -87,7 +99,7 @@ func (f fakeDashboardRepository) Dashboard(context.Context) (store.DashboardSnap
 
 func TestHealth(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	handler := NewHandler("http://localhost:5173", logger, nil, nil)
+	handler := NewHandler("http://localhost:5173", logger, nil, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/health", nil)
 	response := httptest.NewRecorder()
 
@@ -101,13 +113,73 @@ func TestHealth(t *testing.T) {
 	}
 }
 
+func TestReadyUsesHealthCheckerWithoutChangingLiveness(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	checker := &fakeReadinessChecker{}
+	handler := NewHandler("http://localhost:5173", logger, nil, nil, checker)
+
+	ready := httptest.NewRecorder()
+	handler.ServeHTTP(ready, httptest.NewRequest(http.MethodGet, "/ready", nil))
+	if ready.Code != http.StatusOK || !strings.Contains(ready.Body.String(), `"status":"ready"`) || checker.calls != 1 {
+		t.Fatalf("unexpected ready response: status=%d calls=%d body=%s", ready.Code, checker.calls, ready.Body.String())
+	}
+
+	live := httptest.NewRecorder()
+	handler.ServeHTTP(live, httptest.NewRequest(http.MethodGet, "/health", nil))
+	if live.Code != http.StatusOK || checker.calls != 1 {
+		t.Fatalf("health must remain a dependency-free liveness check: status=%d calls=%d", live.Code, checker.calls)
+	}
+}
+
+func TestReadyReturnsGenericServiceUnavailableWhenDatabaseIsNotReady(t *testing.T) {
+	checker := &fakeReadinessChecker{err: errors.New("schema_migrations is unavailable")}
+	handler := NewHandler("http://localhost:5173", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, checker)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/ready", nil))
+
+	if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body.String(), `"status":"not_ready"`) ||
+		strings.Contains(response.Body.String(), "schema_migrations") {
+		t.Fatalf("unexpected failed readiness response: status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestMiddlewareAddsSecurityHeadersAndLogsResponseStatus(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logs, nil))
+	handler := NewHandler("http://localhost:5173", logger, nil, nil, nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/health", nil))
+
+	for header, want := range map[string]string{
+		"X-Content-Type-Options": "nosniff",
+		"Referrer-Policy":        "strict-origin-when-cross-origin",
+		"X-Frame-Options":        "DENY",
+	} {
+		if got := response.Header().Get(header); got != want {
+			t.Fatalf("expected %s=%q, got %q", header, want, got)
+		}
+	}
+	if csp := response.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "default-src 'self'") ||
+		!strings.Contains(csp, "frame-ancestors 'none'") {
+		t.Fatalf("unexpected CSP: %q", csp)
+	}
+	preflight := httptest.NewRecorder()
+	handler.ServeHTTP(preflight, httptest.NewRequest(http.MethodOptions, "/api/v1/dashboard", nil))
+	if preflight.Code != http.StatusNoContent {
+		t.Fatalf("unexpected preflight response: %d", preflight.Code)
+	}
+	if !strings.Contains(logs.String(), "status=200") || !strings.Contains(logs.String(), "status=204") {
+		t.Fatalf("response status was not logged: %s", logs.String())
+	}
+}
+
 func TestScanReturnsAggregatedResult(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewHandler("http://localhost:5173", logger, fakeScanRunner{
 		result: orchestrator.ScanResult{RunID: 7, Status: "completed", Sources: []orchestrator.SourceResult{{
 			Source: "meteksan-kariyer-net", Found: 2, New: 1,
 		}}},
-	}, fakeDashboardRepository{})
+	}, fakeDashboardRepository{}, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/scan", nil)
 	response := httptest.NewRecorder()
 
@@ -128,7 +200,7 @@ func TestScanReturnsSkippedSourceRetryTime(t *testing.T) {
 		result: orchestrator.ScanResult{RunID: 8, Status: "failed", Sources: []orchestrator.SourceResult{{
 			Source: "aselsan-kariyer-net", Skipped: true, RetryAt: &retryAt,
 		}}},
-	}, fakeDashboardRepository{})
+	}, fakeDashboardRepository{}, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/scan", nil)
 	response := httptest.NewRecorder()
 
@@ -144,7 +216,7 @@ func TestScanReturnsConflictWhenAnotherScanIsRunning(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewHandler("http://localhost:5173", logger, fakeScanRunner{
 		err: orchestrator.ErrScanInProgress,
-	}, fakeDashboardRepository{})
+	}, fakeDashboardRepository{}, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/scan", nil)
 	response := httptest.NewRecorder()
 
@@ -161,7 +233,7 @@ func TestDashboardUsesRepository(t *testing.T) {
 		snapshot: store.DashboardSnapshot{NewListings: []store.DashboardListing{{
 			ID: "1", Company: "Meteksan", Title: "Staj", URL: "https://example.test/1", Priority: "primary",
 		}}},
-	})
+	}, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard", nil)
 	response := httptest.NewRecorder()
 
@@ -176,7 +248,7 @@ func TestRetryAnalysesReturnsReprocessResult(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewHandler("http://localhost:5173", logger, fakeScanRunner{
 		reprocess: orchestrator.ReprocessResult{Found: 3, Processed: 2, Failed: 1},
-	}, fakeDashboardRepository{})
+	}, fakeDashboardRepository{}, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/analyses/retry", nil)
 	response := httptest.NewRecorder()
 
@@ -197,7 +269,7 @@ func TestListingDetailAndApplicationUpdate(t *testing.T) {
 		},
 		MatchingAreas: []string{"backend"},
 	}}
-	handler := NewHandler("http://localhost:5173", logger, nil, repository)
+	handler := NewHandler("http://localhost:5173", logger, nil, repository, nil)
 
 	detailRequest := httptest.NewRequest(http.MethodGet, "/api/v1/listings/listing-1", nil)
 	detailResponse := httptest.NewRecorder()
@@ -221,7 +293,7 @@ func TestApplicationUpdateRejectsInvalidTimestamp(t *testing.T) {
 	repository := &fakeTrackingRepository{detail: store.ListingDetail{
 		DashboardListing: store.DashboardListing{ID: "listing-1"},
 	}}
-	handler := NewHandler("http://localhost:5173", logger, nil, repository)
+	handler := NewHandler("http://localhost:5173", logger, nil, repository, nil)
 	request := httptest.NewRequest(http.MethodPut, "/api/v1/listings/listing-1/application",
 		strings.NewReader(`{"status":"basvuruldu","deadline":"tomorrow"}`))
 	response := httptest.NewRecorder()
@@ -236,7 +308,7 @@ func TestApplicationUpdateRejectsInvalidTimestamp(t *testing.T) {
 func TestPushSubscriptionAPIValidatesAndPersistsBrowserSubscription(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	repository := &fakePushRepository{created: true}
-	handler := NewHandler("http://localhost:5173", logger, nil, repository, PushOptions{
+	handler := NewHandler("http://localhost:5173", logger, nil, repository, nil, PushOptions{
 		Enabled: true, PublicKey: "public-vapid-key", Store: repository,
 	})
 	keyRequest := httptest.NewRequest(http.MethodGet, "/api/v1/push/public-key", nil)
@@ -273,7 +345,7 @@ func TestPushSubscriptionAPIValidatesAndPersistsBrowserSubscription(t *testing.T
 func TestPushSubscriptionAPIRejectsUnsafeAndNonStrictRequests(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	repository := &fakePushRepository{}
-	handler := NewHandler("http://localhost:5173", logger, nil, repository, PushOptions{
+	handler := NewHandler("http://localhost:5173", logger, nil, repository, nil, PushOptions{
 		Enabled: true, PublicKey: "public", Store: repository,
 	})
 	tests := []struct {
@@ -301,7 +373,7 @@ func TestPushSubscriptionAPIRejectsUnsafeAndNonStrictRequests(t *testing.T) {
 }
 
 func TestPushAPIIsUnavailableWhenDisabled(t *testing.T) {
-	handler := NewHandler("*", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, fakeDashboardRepository{})
+	handler := NewHandler("*", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, fakeDashboardRepository{}, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/push/public-key", nil)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)

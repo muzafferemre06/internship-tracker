@@ -666,6 +666,13 @@ açan aynı-origin deep-link fixture/fake testlerle tamamlandı. Faz 5'in bütü
 kapanması için production barındırma/güvenli erişim, image publish/deploy-smoke-
 rollback, offsite backup ve secret yönetimi kanıtları ayrıca tamamlanmalıdır.
 
+Health doğrulaması iki ayrı endpoint kullanır: `/health` bağımlılıksız liveness,
+`/ready` ise SQLite ping'i ile bu image sürümünün migration kayıtlarını doğrulayan
+readiness yanıtıdır. Compose API'yi `/ready` ile izler ve web container'ını
+`service_healthy` sonrasına bırakır. API/PWA `nosniff`, referrer, frame ve
+same-origin CSP başlıklarıyla korunur; HSTS yalnız gerçek HTTPS'i sonlandıran
+production proxy katmanında eklenmelidir, yerel HTTP Compose listener'ında değil.
+
 SQLite yedekleme, production'da açıkça etkinleştirilen günlük bir süreç olmalı;
 çalışan SQLite dosyasının ham kopyası yerine SQLite'ın tutarlı snapshot yöntemi
 kullanılmalıdır. Yedekler private dosya izinleriyle saklanmalı, sınırlı retention

@@ -103,6 +103,13 @@ bağlantısı olarak açarak ilk durumun restore edilebildiğini kanıtlar. Ayn�
 `integrity_check`, `0700` dizin/`0600` dosya izinleri ve iki kayıtlık retention
 sınırını ağ erişimi olmadan kapsar.
 
+Health testleri `GET /health` liveness yanıtının SQLite bağımlılığı olmadan
+korunduğunu; `GET /ready` endpoint'inin fake başarılı/başarısız checker ile
+`200`/ayrıntısız `503` döndürdüğünü doğrular. Database paketi ayrıca geçici,
+gerçek SQLite üzerinde ping ve tüm migration kayıtlarını doğrular; bir migration
+kaydı silindiğinde readiness başarısız olur. HTTP middleware testi güvenlik
+başlıklarını ve logdaki HTTP durum kodunu kapsar. Bu testler ağ çağrısı yapmaz.
+
 ## Faz 3.5 canlı kabul testi
 
 Gerçek ilan kabul testi normal `go test ./...` akışından ayrılır. Test yalnızca
@@ -198,3 +205,6 @@ GitHub Actions her push ve pull request'te Go format kontrolü, `go vet`, backen
 test/build, frontend test/build, yüksek önem seviyesindeki `npm audit` bulguları
 ve iki production Docker image'ının yayınlamayan build adımlarını çalıştırır.
 Gerçek API anahtarı ve ücretli entegrasyon çağrısı CI testlerine dahil edilmez.
+Compose healthcheck komutları runtime Dockerfile'larında açıkça kurulu `wget`
+kullanır; `/ready`, DB/migration readiness'ini kontrol ederken `/health` yalnız
+liveness için korunur.

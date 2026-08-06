@@ -9,7 +9,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/api ./c
 
 FROM alpine:3.24.1
 
-RUN apk add --no-cache tzdata && addgroup -S app && adduser -S -G app app
+RUN apk add --no-cache tzdata wget && addgroup -S app && adduser -S -G app app
 WORKDIR /app
 COPY --from=builder /out/api /app/api
 COPY migrations /app/migrations

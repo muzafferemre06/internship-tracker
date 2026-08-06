@@ -15,7 +15,8 @@
 - `internal/push`: RFC 8291 payload şifreleme, RFC 8292 VAPID kimliği ve kalıcı
   delivery kuyruğunu işleyen sınırlı retry worker'ı.
 - `internal/httpapi`: PWA'nın kullandığı HTTP uçları.
-- `internal/database`: SQLite bağlantısı ve sıralı migration uygulaması.
+- `internal/database`: SQLite bağlantısı, sıralı migration uygulaması ve
+  migration kayıtlarını doğrulayan readiness denetimi.
 - `web`: backend secret'larına erişmeyen PWA istemcisi.
 
 ## Production runtime ve CI tabanı
@@ -31,6 +32,26 @@ ayrı, sonraki Faz 5 tesliminde eklenir.
 Kaynak ve aday profili ayarları `internal/config` tarafından katı biçimde
 doğrulanır. Bilinmeyen JSON alanları kabul edilmez; böylece yazım hataları
 sessizce varsayılan davranışa dönüşmez.
+
+## Liveness, readiness ve HTTP sınırı
+
+`GET /health` bağımlılık çağrısı yapmayan liveness endpoint'idir; process ayakta
+olduğu sürece `200` döner. `GET /ready` ise iki saniyelik request context'i
+içinde SQLite `Ping` yapar, `schema_migrations` tablosunu sorgular ve image ile
+paketlenmiş bütün migration'ların kayıtlı olduğunu doğrular. Hata HTTP yanıtına
+aktarılmaz; yalnız `503 {"status":"not_ready"}` döner ve ayrıntı
+yapılandırılmış sunucu logunda kalır.
+
+HTTP middleware API doğrudan erişildiğinde de `nosniff`, referrer, frame ve CSP
+başlıklarını uygular; log kaydı method, path, durum ve süreyi içerir. Compose
+nginx'i API başlıklarını tekrar etmeden aynı politikayı statik PWA'ya da uygular.
+Bu nginx dosyası yerel plain-HTTP listener'dır; HSTS burada kasıtlı olarak yoktur.
+HSTS yalnız HTTPS sonlandıran production proxy'de yapılandırılmalıdır.
+
+Compose API healthcheck'i `/ready` çağırır. Web container'ı
+`service_healthy` koşuluyla API sağlıklı olana kadar bekler ve kendi `/ready`
+proxy healthcheck'ini çalıştırır. Her iki runtime image'ına healthcheck komutu
+olarak kullanılan `wget` açıkça eklenmiştir.
 
 ## Bağımlılık yönü
 

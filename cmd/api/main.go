@@ -36,6 +36,11 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+	readinessChecker, err := database.NewReadinessChecker(db, os.DirFS(cfg.MigrationsPath))
+	if err != nil {
+		logger.Error("database readiness initialization failed", "error", err)
+		os.Exit(1)
+	}
 
 	candidateConfig, err := config.LoadCandidateProfile(cfg.CandidateProfilePath)
 	if err != nil {
@@ -104,7 +109,7 @@ func main() {
 
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,
-		Handler: httpapi.NewHandler(cfg.AllowedOrigin, logger, scanRunner, repository, httpapi.PushOptions{
+		Handler: httpapi.NewHandler(cfg.AllowedOrigin, logger, scanRunner, repository, readinessChecker, httpapi.PushOptions{
 			Enabled: webPushConfig.Enabled, PublicKey: webPushConfig.PublicKey, Store: repository,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,

@@ -41,7 +41,7 @@ func TestPhase4UserCanInspectAndTrackApplication(t *testing.T) {
 		t.Fatalf("record manual check: %v", err)
 	}
 
-	handler := httpapi.NewHandler("*", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, repository)
+	handler := httpapi.NewHandler("*", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, repository, nil)
 	detailResponse := serveRequest(handler, http.MethodGet, "/api/v1/listings/"+listingID, "")
 	if detailResponse.Code != http.StatusOK ||
 		!strings.Contains(detailResponse.Body.String(), `"summary":"Backend odaklı gelişim programı."`) {

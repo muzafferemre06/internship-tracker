@@ -10,6 +10,7 @@ RUN npm run build
 
 FROM nginx:1.30.4-alpine
 
+RUN apk add --no-cache wget
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /src/dist /usr/share/nginx/html
 EXPOSE 80

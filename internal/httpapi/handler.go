@@ -26,6 +26,10 @@ type AnalysisRetrier interface {
 	ReprocessPending(ctx context.Context, limit int) (orchestrator.ReprocessResult, error)
 }
 
+type ReadinessChecker interface {
+	Check(ctx context.Context) error
+}
+
 type Handler struct {
 	allowedOrigin   string
 	logger          *slog.Logger
@@ -34,6 +38,7 @@ type Handler struct {
 	analysisRetrier AnalysisRetrier
 	dashboardStore  store.DashboardRepository
 	trackingStore   store.TrackingRepository
+	readiness       ReadinessChecker
 	pushEnabled     bool
 	pushPublicKey   string
 	pushStore       store.PushSubscriptionRepository
@@ -50,6 +55,7 @@ func NewHandler(
 	logger *slog.Logger,
 	scanner ScanRunner,
 	dashboardStore store.DashboardRepository,
+	readiness ReadinessChecker,
 	pushOptions ...PushOptions,
 ) http.Handler {
 	handler := Handler{
@@ -60,6 +66,7 @@ func NewHandler(
 		analysisRetrier: analysisRetrier(scanner),
 		dashboardStore:  dashboardStore,
 		trackingStore:   trackingRepository(dashboardStore),
+		readiness:       readiness,
 	}
 	if len(pushOptions) > 0 {
 		handler.pushEnabled = pushOptions[0].Enabled
@@ -69,6 +76,7 @@ func NewHandler(
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", handler.health)
+	mux.HandleFunc("/ready", handler.ready)
 	mux.HandleFunc("/api/v1/dashboard", handler.dashboard)
 	mux.HandleFunc("/api/v1/scan", handler.scan)
 	mux.HandleFunc("/api/v1/analyses/retry", handler.retryAnalyses)
@@ -330,6 +338,26 @@ func (h Handler) health(writer http.ResponseWriter, request *http.Request) {
 	})
 }
 
+func (h Handler) ready(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		methodNotAllowed(writer)
+		return
+	}
+	if h.readiness == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"status": "not_ready"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(request.Context(), 2*time.Second)
+	defer cancel()
+	if err := h.readiness.Check(ctx); err != nil {
+		h.logger.Error("readiness check failed", "error", err)
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"status": "not_ready"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, map[string]string{"status": "ready"})
+}
+
 func (h Handler) dashboard(writer http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
 		methodNotAllowed(writer)
@@ -418,23 +446,54 @@ type sourceScanResponse struct {
 
 func (h Handler) withMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Security-Policy", "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'")
+		writer.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		writer.Header().Set("X-Content-Type-Options", "nosniff")
+		writer.Header().Set("X-Frame-Options", "DENY")
 		writer.Header().Set("Access-Control-Allow-Origin", h.allowedOrigin)
 		writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 
-		if request.Method == http.MethodOptions {
-			writer.WriteHeader(http.StatusNoContent)
-			return
-		}
-
 		started := time.Now()
-		next.ServeHTTP(writer, request)
+		response := &statusResponseWriter{ResponseWriter: writer, status: http.StatusOK}
+		if request.Method == http.MethodOptions {
+			response.WriteHeader(http.StatusNoContent)
+		} else {
+			next.ServeHTTP(response, request)
+		}
 		h.logger.Info("http request",
 			"method", request.Method,
 			"path", request.URL.Path,
+			"status", response.status,
 			"duration_ms", time.Since(started).Milliseconds(),
 		)
 	})
+}
+
+type statusResponseWriter struct {
+	http.ResponseWriter
+	status      int
+	wroteHeader bool
+}
+
+func (w *statusResponseWriter) WriteHeader(status int) {
+	if w.wroteHeader {
+		return
+	}
+	w.status = status
+	w.wroteHeader = true
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *statusResponseWriter) Write(body []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(body)
+}
+
+func (w *statusResponseWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
 }
 
 func writeJSON(writer http.ResponseWriter, status int, payload any) {

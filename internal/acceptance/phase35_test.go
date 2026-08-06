@@ -204,7 +204,7 @@ func assertDashboardAPI(
 	expectedEligibility domain.EligibilityStatus,
 ) {
 	t.Helper()
-	handler := httpapi.NewHandler("*", slog.New(slog.NewTextHandler(io.Discard, nil)), service, repository)
+	handler := httpapi.NewHandler("*", slog.New(slog.NewTextHandler(io.Discard, nil)), service, repository, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard", nil)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)

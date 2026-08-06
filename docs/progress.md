@@ -50,6 +50,12 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
   retry ve 404/410 cihaz temizliği
 - Kullanıcı hareketiyle açılıp kapanan PWA bildirim aboneliği, güvenli service
   worker payload'ı ve doğru ilan detayını açan `?listing=<id>` deep-link'i
+- SQLite ping'i ve paketlenmiş migration kayıtlarını doğrulayan ayrı `/ready`
+  endpoint'i; bağımsız `/health` liveness yanıtı
+- HTTP durum kodunu içeren yapılandırılmış request logları, API/PWA temel
+  güvenlik başlıkları ve local HTTP'yi bozmayan HSTS sınırı
+- API readiness'e bağlı Compose healthcheck'leri ve healthcheck aracı kurulu
+  backend/frontend runtime image'ları
 
 ## Doğrulanan çıkış kriterleri
 
@@ -85,11 +91,15 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
   olayı ve tek deep-linked fake push olarak teslim eder.
 - PWA push/navigation helper testleri, TypeScript typecheck ve production build
   geçer; service worker yalnız aynı-origin hedefi açar.
+- Gerçek geçici SQLite ve fake checker testleri `/ready` DB/migration
+  doğrulamasını, `/health` bağımsız liveness'ini, hata ayrıntısı sızdırmayan
+  `503` davranışını ve HTTP güvenlik/loglama middleware'ini kapsar.
 
 ## Sıradaki iş
 
 Faz 5'in runtime/CI temeli, güvenli process-içi zamanlanmış taraması, günlük
 SQLite snapshot/retention'ı ve uçtan uca Web Push abonelik/dedup akışı tamamlandı.
-Sıradaki dilim barındırma ve güvenli erişim kararını kaydetmek; image publish,
+Readiness, temel HTTP güvenliği ve Compose servis sağlığı da tamamlandı. Sıradaki
+dilim barındırma ve güvenli erişim kararını kaydetmek; image publish,
 deployment/smoke/rollback, offsite backup otomasyonu ve production secret
 yönetimini CI/deployment akışına eklemektir.
