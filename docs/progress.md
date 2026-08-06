@@ -107,7 +107,7 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 
 Faz 5'in repository içinde tamamlanabilen runtime, scheduler, Web Push, health,
 secret, local backup/restore ve digest deployment otomasyonu hazırdır. Faz henüz
-kapanmadı: GitHub/OCI/Cloudflare hesapları, production hostname, kalıcı VAPID
+kapanmadı: GitHub/hosting/Cloudflare hesapları, production hostname, kalıcı VAPID
 anahtarı ve off-host backup hedefi kullanıcı tarafında hazırlanmalı; ardından gerçek
 HTTPS ortamında scheduled scan, cihaz push deep-link'i, Access reddi, deploy
 rollback ve restore provası kanıtlanmalıdır. Kısa yönlendirme

@@ -26,8 +26,11 @@ Production image'ları desteklenen Go 1.26, Alpine 3.24, Node 24 LTS ve nginx
 yalnızca statik API ikilisini ve migration'ları non-root Alpine runtime'a taşır;
 frontend image'ı Vite çıktısını nginx ile sunar. GitHub Actions bu iki image'ı
 test, typecheck ve bağımlılık denetiminden sonra `push: false` ile build eder.
-Image registry, deployment hedefi ve runtime secret'ları bu güvenlik kapısından
-ayrı, sonraki Faz 5 tesliminde eklenir.
+`main` publish akışı aynı kapılardan sonra image'ları `amd64`/`arm64` GHCR
+digest'leriyle, SBOM/provenance ve attestation ile yayımlar. Manuel production
+adımı digest manifestini korumalı environment üzerinden, Cloudflare Tunnel
+arkasındaki host portsuz Compose runtime'ına deploy eder; runtime secret'ları
+repository dışında salt-okunur dosyalardan bağlanır.
 
 Kaynak ve aday profili ayarları `internal/config` tarafından katı biçimde
 doğrulanır. Bilinmeyen JSON alanları kabul edilmez; böylece yazım hataları

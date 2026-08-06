@@ -10,8 +10,10 @@ GitHub secret veya sunucu dosyasına doğrudan siz yerleştirin.
 1. Oluşturacağınız GitHub repository URL'si ve GHCR paketlerinin `public` veya
    `private` olacağı.
 2. Kullanılacak production hostname; örneğin `staj.example.com`.
-3. OCI home region ve Always Free VM'in hazır olup olmadığı. Secret veya SSH
-   private key yerine yalnız region ve hazırlık durumunu iletin.
+3. Production host seçimi ve hazır olup olmadığı. OCI düşünülüyorsa home region,
+   VM mimarisi ve hesapta uygun kapasitenin doğrulanıp doğrulanmadığını iletin;
+   paket OCI'ye bağımlı değildir ve desteklenen başka bir 64-bit Linux hostta da
+   çalışır. Secret veya SSH private key paylaşmayın.
 4. Analiz seçimi: `deterministic`, doğrudan Google Gemini veya OpenRouter.
    Dış sağlayıcı seçilecekse kesin model kimliğini ve maliyet hesabı isteniyorsa
    güncel milyon input/output token ücretlerini de belirtin.
@@ -28,8 +30,8 @@ GitHub secret veya sunucu dosyasına doğrudan siz yerleştirin.
 - GitHub repository'yi oluşturun, Actions/Packages'i açın ve `production`
   environment'ına required reviewer ekleyin. GHCR private olacaksa sunucuda
   yalnız package pull yetkili registry kimliğini ayrıca hazırlayın.
-- OCI VM, root olmayan deploy kullanıcısı ve doğrulanmış SSH host key kaydını
-  hazırlayın. Uygulama için inbound web/API portu açmayın.
+- Seçilen Linux VM'de root olmayan deploy kullanıcısı ve doğrulanmış SSH host
+  key kaydını hazırlayın. Uygulama için inbound web/API portu açmayın.
 - Domain'i Cloudflare'a ekleyin; remotely-managed Tunnel ve yalnız kendi
   hesabınıza izin veren Access uygulaması oluşturun. Otomatik deploy smoke'u
   için Service Auth politikasıyla yetkilendirilmiş dar kapsamlı bir service
