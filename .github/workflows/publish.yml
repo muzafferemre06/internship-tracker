@@ -206,7 +206,6 @@ jobs:
       contents: read
     steps:
       - name: Check production deployment configuration
-        id: gate
         env:
           DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
           DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
@@ -219,25 +218,23 @@ jobs:
           CLOUDFLARED_IMAGE: ${{ vars.PRODUCTION_CLOUDFLARED_IMAGE }}
         run: |
           set -euo pipefail
-          if [[ -n "$DEPLOY_HOST" && -n "$DEPLOY_USER" && -n "$DEPLOY_KEY" &&
-                -n "$DEPLOY_KNOWN_HOSTS" && -n "$DEPLOY_DIRECTORY" &&
-                -n "$RUNTIME_ENV" && -n "$STATE_DIRECTORY" &&
-                -n "$PUBLIC_ORIGIN" && -n "$CLOUDFLARED_IMAGE" ]]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Production deployment skipped because its protected secrets or variables are incomplete."
-          fi
+          test -n "$DEPLOY_HOST" || { echo "PRODUCTION_HOST is required" >&2; exit 1; }
+          test -n "$DEPLOY_USER" || { echo "PRODUCTION_USER is required" >&2; exit 1; }
+          test -n "$DEPLOY_KEY" || { echo "PRODUCTION_SSH_PRIVATE_KEY is required" >&2; exit 1; }
+          test -n "$DEPLOY_KNOWN_HOSTS" || { echo "PRODUCTION_KNOWN_HOSTS is required" >&2; exit 1; }
+          test -n "$DEPLOY_DIRECTORY" || { echo "PRODUCTION_DEPLOY_DIRECTORY is required" >&2; exit 1; }
+          test -n "$RUNTIME_ENV" || { echo "PRODUCTION_RUNTIME_ENV_PATH is required" >&2; exit 1; }
+          test -n "$STATE_DIRECTORY" || { echo "PRODUCTION_STATE_DIRECTORY is required" >&2; exit 1; }
+          test -n "$PUBLIC_ORIGIN" || { echo "PRODUCTION_PUBLIC_ORIGIN is required" >&2; exit 1; }
+          test -n "$CLOUDFLARED_IMAGE" || { echo "PRODUCTION_CLOUDFLARED_IMAGE is required" >&2; exit 1; }
 
       - name: Download published image manifest
-        if: steps.gate.outputs.enabled == 'true'
         uses: actions/download-artifact@v4
         with:
           name: production-images-${{ github.sha }}
           path: ${{ runner.temp }}/release
 
       - name: Complete and validate release manifest
-        if: steps.gate.outputs.enabled == 'true'
         env:
           CLOUDFLARED_IMAGE: ${{ vars.PRODUCTION_CLOUDFLARED_IMAGE }}
         run: |
@@ -248,7 +245,6 @@ jobs:
           test "$(wc -l < "$RUNNER_TEMP/release/published-images.env")" -eq 3
 
       - name: Configure strict SSH client
-        if: steps.gate.outputs.enabled == 'true'
         env:
           DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
           DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
@@ -287,7 +283,6 @@ jobs:
           chmod 600 "$ssh_directory/config"
 
       - name: Deploy digest manifest
-        if: steps.gate.outputs.enabled == 'true'
         env:
           DEPLOY_DIRECTORY: ${{ vars.PRODUCTION_DEPLOY_DIRECTORY }}
           RUNTIME_ENV: ${{ vars.PRODUCTION_RUNTIME_ENV_PATH }}

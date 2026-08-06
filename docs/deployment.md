@@ -174,11 +174,15 @@ satırını ekleyip `release.env` oluşturun. Sonra root olmayan deploy hesabıy
   https://tracker.example.com
 ```
 
-Deploy sırası preflight, digest pull, `docker compose up --wait`, container içi
-`/ready` smoke ve isteğe bağlı dış HTTPS smoke'tur. Başarısız candidate varsa
+Deploy sırası preflight, mevcut SQLite volume'undan zorunlu ve tutarlı
+`/app/backup` snapshot'ı, digest pull, `docker compose up --wait`, container içi
+`/ready` smoke ve isteğe bağlı dış HTTPS smoke'tur. Snapshot başarısızsa
+image veya container değiştirilmez. Başarısız candidate varsa
 `state/current.env` image'ları otomatik geri açılır. İlk deploy başarısızsa
 yarım kalan container'lar volume silmeden durdurulur. Başarılı deploy mevcut
 manifesti `previous.env` yapıp candidate'ı `current.env` olarak atomik kaydeder.
+Henüz `current.env` bulunmayan ilk deployment'ta korunacak mevcut release olmadığı
+için pre-deploy snapshot adımı atlanır.
 
 Access arkasındaki dış smoke için komuttan önce credential dosya yollarını
 verin; değerler argüman veya process listesine konmaz:
@@ -207,8 +211,9 @@ uyumluluğu ayrıca her sürüm değişikliğinde incelenmelidir; bu akış veri
 
 Workflow yalnız `main` push ve elle `workflow_dispatch` ile image yayınlar; pull
 request secret'larına erişmez ve image push etmez. Gerçek deploy yalnız dispatch
-ekranında `deploy=true` seçilirse ve aşağıdaki protected production environment
-değerlerinin tamamı varsa çalışır.
+ekranında `deploy=true` seçilirse çalışır. Aşağıdaki protected production
+environment değerlerinden biri eksikse deploy sessizce atlanmaz; workflow hata
+vererek durur.
 
 Secrets:
 

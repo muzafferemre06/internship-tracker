@@ -27,6 +27,20 @@ deploy_candidate() {
         "$SCRIPT_DIRECTORY/smoke.sh" "$RELEASE_MANIFEST" "$RUNTIME_ENV" "$COMPOSE_FILE" "$PUBLIC_ORIGIN"
 }
 
+snapshot_current_database() {
+    if [ ! -f "$CURRENT_MANIFEST" ]; then
+        printf '%s\n' "no current release manifest; skipping snapshot on first deployment"
+        return
+    fi
+    validate_release_manifest "$CURRENT_MANIFEST"
+
+    printf '%s\n' "creating a consistent pre-deployment SQLite snapshot"
+    compose_cmd "$RUNTIME_ENV" "$CURRENT_MANIFEST" "$COMPOSE_FILE" \
+        run --rm --no-deps api /app/backup \
+        -database /app/data/internship-tracker.db \
+        -directory /app/backups
+}
+
 restore_current() {
     if [ ! -f "$CURRENT_MANIFEST" ]; then
         printf '%s\n' "first deployment failed; stopping the incomplete release" >&2
@@ -41,6 +55,8 @@ restore_current() {
             up --detach --remove-orphans --wait --wait-timeout 180 &&
         "$SCRIPT_DIRECTORY/smoke.sh" "$CURRENT_MANIFEST" "$RUNTIME_ENV" "$COMPOSE_FILE" "$PUBLIC_ORIGIN"
 }
+
+snapshot_current_database
 
 if ! deploy_candidate; then
     if restore_current; then
