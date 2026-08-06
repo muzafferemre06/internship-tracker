@@ -141,9 +141,13 @@ Deterministic sağlayıcıda `LLM_PROVIDER=deterministic` kullanın ve iki API k
 file değişkenini de kaldırın. OpenRouter için yalnız
 `OPENROUTER_API_KEY_FILE=/run/secrets/openrouter_api_key` eklenir. Production'da
 HTTPS ve path içermeyen `ALLOWED_ORIGIN`, backup ve Web Push zorunludur.
-`runtime.env` için `0600`, profile/source dosyaları için en fazla `0640` önerilir.
-Nginx config yolu runtime ayarı değildir; Compose her revision'ın doğrulanmış
-bundle'ındaki `nginx.production.conf` dosyasını salt-okunur bağlar.
+`runtime.env` için `0600` kullanılır. Preflight, API container'ına bağlanan
+profile/source dosyaları ile gerekli Web Push ve seçilmiş provider secret'larının
+UID `100`, mode `0640`; API secret dizininin UID `100`, mode `0750` olmasını
+zorunlu doğrular. Cloudflare Tunnel token'ı ise deploy kullanıcısına ait ve
+`0600` olmalıdır. Nginx config yolu runtime ayarı değildir; Compose her
+revision'ın doğrulanmış bundle'ındaki `nginx.production.conf` dosyasını
+salt-okunur bağlar.
 
 ## Cloudflare hazırlığı
 
