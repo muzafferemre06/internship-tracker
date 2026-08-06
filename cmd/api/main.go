@@ -20,6 +20,7 @@ import (
 	"github.com/muzaffer/internship-tracker/internal/domain"
 	"github.com/muzaffer/internship-tracker/internal/httpapi"
 	"github.com/muzaffer/internship-tracker/internal/orchestrator"
+	"github.com/muzaffer/internship-tracker/internal/push"
 	"github.com/muzaffer/internship-tracker/internal/scheduler"
 	"github.com/muzaffer/internship-tracker/internal/scraper"
 	"github.com/muzaffer/internship-tracker/internal/store"
@@ -82,10 +83,30 @@ func main() {
 		logger.Error("SQLite backup initialization failed", "error", err)
 		os.Exit(1)
 	}
+	webPushConfig, err := configureWebPush(cfg)
+	if err != nil {
+		logger.Error("Web Push configuration failed", "error", err)
+		os.Exit(1)
+	}
+	var pushDispatcher *push.Dispatcher
+	if webPushConfig.Enabled {
+		pushSender, err := push.NewHTTPSender(webPushConfig, nil)
+		if err != nil {
+			logger.Error("Web Push sender initialization failed", "error", err)
+			os.Exit(1)
+		}
+		pushDispatcher, err = push.NewDispatcher(repository, pushSender, logger)
+		if err != nil {
+			logger.Error("Web Push dispatcher initialization failed", "error", err)
+			os.Exit(1)
+		}
+	}
 
 	server := &http.Server{
-		Addr:              cfg.HTTPAddr,
-		Handler:           httpapi.NewHandler(cfg.AllowedOrigin, logger, scanRunner, repository),
+		Addr: cfg.HTTPAddr,
+		Handler: httpapi.NewHandler(cfg.AllowedOrigin, logger, scanRunner, repository, httpapi.PushOptions{
+			Enabled: webPushConfig.Enabled, PublicKey: webPushConfig.PublicKey, Store: repository,
+		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      90 * time.Second,
@@ -96,12 +117,16 @@ func main() {
 	defer stop()
 	scanScheduler.Start(appContext)
 	backupService.Start(appContext)
+	if pushDispatcher != nil {
+		pushDispatcher.Start(appContext)
+	}
 
 	go func() {
 		logger.Info("api starting", "address", cfg.HTTPAddr, "environment", cfg.AppEnv,
 			"scan_schedule", cfg.ScanSchedule, "scan_timezone", cfg.ScanTimezone,
 			"backup_enabled", cfg.BackupEnabled, "backup_time", cfg.BackupTime,
-			"backup_timezone", cfg.BackupTimezone, "backup_retention", cfg.BackupRetention)
+			"backup_timezone", cfg.BackupTimezone, "backup_retention", cfg.BackupRetention,
+			"web_push_enabled", webPushConfig.Enabled)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("api stopped unexpectedly", "error", err)
 			os.Exit(1)
@@ -124,8 +149,25 @@ func main() {
 		logger.Error("SQLite backup shutdown failed", "error", err)
 		os.Exit(1)
 	}
+	if pushDispatcher != nil {
+		if err := pushDispatcher.Wait(ctx); err != nil {
+			logger.Error("Web Push dispatcher shutdown failed", "error", err)
+			os.Exit(1)
+		}
+	}
 
 	logger.Info("api stopped")
+}
+
+func configureWebPush(cfg config.Config) (push.Config, error) {
+	enabled, err := strconv.ParseBool(strings.TrimSpace(cfg.WebPushEnabled))
+	if err != nil {
+		return push.Config{}, fmt.Errorf("WEB_PUSH_ENABLED must be true or false")
+	}
+	return push.ValidateConfig(push.Config{
+		Enabled: enabled, PublicKey: cfg.WebPushPublicKey,
+		PrivateKey: cfg.WebPushPrivateKey, Subject: cfg.WebPushSubject,
+	})
 }
 
 func configureSources(

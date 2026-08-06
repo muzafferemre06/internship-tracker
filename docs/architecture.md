@@ -12,6 +12,8 @@
   içinde zamanlanmış olarak tetikler.
 - `internal/backup`: SQLite destekli snapshot, günlük tetikleme ve sınırlı
   retention uygular.
+- `internal/push`: RFC 8291 payload şifreleme, RFC 8292 VAPID kimliği ve kalıcı
+  delivery kuyruğunu işleyen sınırlı retry worker'ı.
 - `internal/httpapi`: PWA'nın kullandığı HTTP uçları.
 - `internal/database`: SQLite bağlantısı ve sıralı migration uygulaması.
 - `web`: backend secret'larına erişmeyen PWA istemcisi.
@@ -44,6 +46,37 @@ backup timer ----------------'                              |
                                                            `--> consistent snapshot volume
 notifications ---------------------------------------------> Web Push
 ```
+
+## Web Push outbox ve teslimat semantiği
+
+`notifications`, ilan olayı başına tek ve versionlanmış dedup kaydıdır.
+`notification_payloads` kilit ekranına gidecek minimum başlık/gövde, aynı-origin
+PWA deep-link'i ve Web Push `Topic` değerini snapshot olarak tutar.
+`push_subscriptions` endpoint ile tarayıcının `p256dh`/`auth` sırlarını cihaz
+bazında saklar; `notification_deliveries` ise olayın her cihaz için bağımsız
+pending/sending/sent/failed/cancelled durumunu, lease'i ve deneme sayısını taşır.
+
+`SQLiteRepository.SaveAnalysis`, ilk başarılı analiz bilgisini
+`first_processed_at` ile kalıcılaştırır. Birincil şirket + açık başvuru + ilgili +
+`uygun` koşulu sağlanırsa analiz upsert'i, kararlı
+`listing:<id>:new-primary-suitable:v1` olayı, güvenli payload ve mevcut cihazlara
+fan-out tek transaction'da commit edilir. Hiç abonelik yoksa olay `cancelled`
+kapanır ve sonradan abone olan cihaza geçmiş bildirim gönderilmez. Böylece analiz
+commit edilip outbox'ın kaybolduğu bir ara durum oluşmaz; unique event ve
+event/device anahtarları tekrar taramada çoğalmayı önler.
+
+Dispatcher ağ çağrısı boyunca SQLite transaction'ı tutmaz. Süresi dolmuş lease'i
+yeniden alır; 2xx'i cihaz başarısı olarak kaydeder, 404/410 veya süresi dolmuş
+aboneliği kaldırır, geçici ağ/408/425/429/5xx sonucunu sınırlı exponential backoff
+ile erteler ve diğer 4xx sonuçlarını kalıcı hata sayar. Push servisinin isteği
+kabul etmesiyle SQLite başarı kaydı arasındaki process çökmesinde taşıma en az bir
+kez olabilir; Web Push `Topic`, service-worker notification `tag` ve outbox dedup
+aynı olayın kullanıcıya tekrar görünme riskini sınırlar.
+
+Push endpoint'i bir capability URL olduğu için API bunu yanıtta/logda göstermez;
+yalnızca HTTPS, credential/fragment içermeyen ve localhost/private IP olmayan
+adresler kabul edilir. Payload; şirket/ilan başlığı ve iç listing deep-link'iyle
+sınırlıdır, aday profili, notlar, ham ilan metni ve resmî dış URL'yi taşımaz.
 
 ## Zamanlanmış tarama ve eşzamanlılık
 

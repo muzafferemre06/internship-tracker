@@ -93,6 +93,32 @@ Modele adayın adı, iletişim bilgileri, üniversite adı veya deneyim kurumlar
 gönderilmez. Yalnızca bölüm/alan, sınıf, GPA, odak alanları, deneyim konu başlıkları
 ve konum tercihleri; ilan başlığı ve metniyle birlikte gönderilir.
 
+## Web Push backend
+
+Web Push geliştirmede varsayılan olarak kapalıdır. Etkinleştirmek için aynı
+P-256 VAPID anahtar çiftinin URL-safe base64 biçimi ve geçerli bir iletişim URI'si
+yalnızca backend ortamına verilir:
+
+```dotenv
+WEB_PUSH_ENABLED=true
+WEB_PUSH_PUBLIC_KEY=base64url-public-key
+WEB_PUSH_PRIVATE_KEY=base64url-private-key
+WEB_PUSH_SUBJECT=mailto:operator@example.com
+```
+
+Etkin ayarda public/private anahtarların P-256 biçimi ve birbiriyle eşleşmesi ile
+`mailto:`/`https:` subject değeri uygulama dinlemeye başlamadan doğrulanır. Private
+key PWA bundle'ına veya API yanıtına girmez; production'da `.env` yerine deployment
+secret sistemi kullanılmalıdır.
+
+İlk başarılı analizde yalnızca birincil şirkete ait, başvurusu açık, ilgili ve
+`uygun` ilan için versionlanmış tek bildirim olayı oluşur. Analiz ile olay/outbox
+aynı SQLite transaction'ındadır. Olay mevcut cihaz aboneliklerine ayrı delivery
+kayıtlarıyla dağıtılır; ikinci analiz/tarama aynı `dedup_key` nedeniyle yeni olay
+oluşturmaz. Gönderici geçici ağ/408/425/429/5xx hatalarını en fazla beş toplam
+denemeyle erteler, `Retry-After` değerini en fazla 24 saatle sınırlar ve 404/410
+dönen aboneliği diğer cihazlara dokunmadan kaldırır.
+
 ## Test
 
 ```bash
@@ -164,6 +190,12 @@ sonraki Faz 5 dilimidir.
   mevcut başvuru takibini döndürür
 - `PUT /api/v1/listings/{id}/application`: başvuru durumunu, manuel takip/son
   tarihi, sınav-mülakat zamanını ve kullanıcı notunu kaydeder
+- `GET /api/v1/push/public-key`: Web Push etkinse PWA aboneliği için yalnızca
+  VAPID public key'i döndürür
+- `PUT /api/v1/push/subscriptions`: tarayıcının HTTPS endpoint ve `p256dh`/`auth`
+  anahtarlarını katı ve boyut sınırlı JSON gövdesiyle idempotent kaydeder
+- `DELETE /api/v1/push/subscriptions`: endpoint gövdesiyle ilgili cihaz
+  aboneliğini idempotent kaldırır
 
 Manuel tarama tamamlandıktan sonra PWA dashboard'u yeniden yükler. Bir kaynak
 hatası diğer kaynakların çalışmasını durdurmaz; kısmi sonuç HTTP `207` ile

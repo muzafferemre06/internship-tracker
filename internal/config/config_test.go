@@ -6,6 +6,10 @@ func TestLoadUsesDefaults(t *testing.T) {
 	t.Setenv("APP_ENV", "")
 	t.Setenv("HTTP_ADDR", "")
 	t.Setenv("DATABASE_PATH", "")
+	t.Setenv("WEB_PUSH_ENABLED", "")
+	t.Setenv("WEB_PUSH_PUBLIC_KEY", "")
+	t.Setenv("WEB_PUSH_PRIVATE_KEY", "")
+	t.Setenv("WEB_PUSH_SUBJECT", "")
 	t.Setenv("SCAN_SCHEDULE", "")
 	t.Setenv("SCAN_TIMEZONE", "")
 	t.Setenv("BACKUP_ENABLED", "")
@@ -40,6 +44,9 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if cfg.ScanSchedule != "0 9 * * 1" || cfg.ScanTimezone != "Europe/Istanbul" {
 		t.Fatalf("unexpected default scan schedule settings: %#v", cfg)
 	}
+	if cfg.WebPushEnabled != "false" || cfg.WebPushPublicKey != "" || cfg.WebPushPrivateKey != "" || cfg.WebPushSubject != "" {
+		t.Fatalf("unexpected default Web Push settings: %#v", cfg)
+	}
 	if cfg.BackupEnabled != "false" || cfg.BackupDirectory != "" || cfg.BackupTime != "02:00" ||
 		cfg.BackupTimezone != "Europe/Istanbul" || cfg.BackupRetention != "7" {
 		t.Fatalf("unexpected default backup settings: %#v", cfg)
@@ -53,6 +60,10 @@ func TestLoadReadsEnvironment(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
 	t.Setenv("SCAN_SCHEDULE", "30 8 * * 1-5")
 	t.Setenv("SCAN_TIMEZONE", "UTC")
+	t.Setenv("WEB_PUSH_ENABLED", "true")
+	t.Setenv("WEB_PUSH_PUBLIC_KEY", "public")
+	t.Setenv("WEB_PUSH_PRIVATE_KEY", "private")
+	t.Setenv("WEB_PUSH_SUBJECT", "mailto:push@example.test")
 	t.Setenv("BACKUP_ENABLED", "true")
 	t.Setenv("BACKUP_DIRECTORY", "/var/lib/tracker-backups")
 	t.Setenv("BACKUP_TIME", "03:15")
@@ -70,5 +81,8 @@ func TestLoadReadsEnvironment(t *testing.T) {
 	if cfg.BackupEnabled != "true" || cfg.BackupDirectory != "/var/lib/tracker-backups" ||
 		cfg.BackupTime != "03:15" || cfg.BackupTimezone != "Europe/Athens" || cfg.BackupRetention != "14" {
 		t.Fatalf("backup environment was not loaded: %#v", cfg)
+	}
+	if cfg.WebPushEnabled != "true" || cfg.WebPushPublicKey != "public" || cfg.WebPushPrivateKey != "private" || cfg.WebPushSubject != "mailto:push@example.test" {
+		t.Fatalf("Web Push environment was not loaded: %#v", cfg)
 	}
 }

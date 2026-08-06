@@ -166,15 +166,31 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 		return errors.New("analysis usage values cannot be negative")
 	}
 
-	_, err = r.db.ExecContext(ctx, `
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin listing analysis save: %w", err)
+	}
+	defer tx.Rollback()
+
+	var firstProcessedAt sql.NullString
+	err = tx.QueryRowContext(ctx, `
+		SELECT first_processed_at FROM listing_analyses WHERE listing_id = ?
+	`, listingID).Scan(&firstProcessedAt)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("read first analysis state: %w", err)
+	}
+	firstSuccessfulAnalysis := errors.Is(err, sql.ErrNoRows) || !firstProcessedAt.Valid
+	analyzedAt := r.now().UTC()
+
+	_, err = tx.ExecContext(ctx, `
 		INSERT INTO listing_analyses(
 			listing_id, opportunity_type, is_application_open, is_relevant,
 			matching_areas_json, class_year_requirement, gpa_requirement,
 			location, work_model, eligibility_status, application_deadline,
 			summary, confidence, needs_user_decision, decision_question,
-			provider, model, analyzed_at, processing_status,
+			provider, model, analyzed_at, first_processed_at, processing_status,
 			prompt_tokens, completion_tokens, total_tokens, estimated_cost_usd
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?, 'processed', ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?, ?, 'processed', ?, ?, ?, ?)
 		ON CONFLICT(listing_id) DO UPDATE SET
 			opportunity_type = excluded.opportunity_type,
 			is_application_open = excluded.is_application_open,
@@ -193,6 +209,7 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 			provider = excluded.provider,
 			model = excluded.model,
 			analyzed_at = excluded.analyzed_at,
+			first_processed_at = COALESCE(listing_analyses.first_processed_at, excluded.first_processed_at),
 			processing_status = excluded.processing_status,
 			prompt_tokens = excluded.prompt_tokens,
 			completion_tokens = excluded.completion_tokens,
@@ -203,10 +220,89 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 		string(matchingAreas), analysis.ClassRequirement, analysis.GPARequirement, analysis.Location,
 		analysis.WorkModel, analysis.Eligibility, nullableTime(analysis.ApplicationDueAt),
 		analysis.Summary, analysis.Confidence, boolInt(analysis.NeedsUserDecision),
-		analysis.DecisionQuestion, provider, analysis.Model, r.now().UTC().Format(time.RFC3339Nano),
+		analysis.DecisionQuestion, provider, analysis.Model, analyzedAt.Format(time.RFC3339Nano), analyzedAt.Format(time.RFC3339Nano),
 		analysis.PromptTokens, analysis.CompletionTokens, analysis.TotalTokens, analysis.EstimatedCostUSD)
 	if err != nil {
 		return fmt.Errorf("save listing analysis: %w", err)
+	}
+	if err := r.enqueueListingNotification(ctx, tx, listingID, analysis, firstSuccessfulAnalysis); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit listing analysis and notification: %w", err)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) enqueueListingNotification(
+	ctx context.Context,
+	tx *sql.Tx,
+	listingID string,
+	analysis domain.ListingAnalysis,
+	firstSuccessfulAnalysis bool,
+) error {
+	var company, title, priorityGroup string
+	if err := tx.QueryRowContext(ctx, `
+		SELECT companies.name, listings.title, companies.priority_group
+		FROM listings
+		JOIN companies ON companies.id = listings.company_id
+		WHERE listings.id = ?
+	`, listingID).Scan(&company, &title, &priorityGroup); err != nil {
+		return fmt.Errorf("load notification listing: %w", err)
+	}
+	notification, eligible := domain.NewListingNotification(
+		listingID, company, title, priorityGroup, analysis, firstSuccessfulAnalysis,
+	)
+	if !eligible {
+		return nil
+	}
+
+	result, err := tx.ExecContext(ctx, `
+		INSERT INTO notifications(listing_id, event_type, channel, status, dedup_key)
+		VALUES (?, ?, 'web_push', 'pending', ?)
+		ON CONFLICT(dedup_key) DO NOTHING
+	`, listingID, notification.EventType, notification.DedupKey)
+	if err != nil {
+		return fmt.Errorf("enqueue notification event: %w", err)
+	}
+	inserted, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read notification enqueue result: %w", err)
+	}
+	if inserted == 0 {
+		return nil
+	}
+	notificationID, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("read notification ID: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO notification_payloads(notification_id, title, body, target_url, topic)
+		VALUES (?, ?, ?, ?, ?)
+	`, notificationID, notification.Title, notification.Body, notification.TargetURL, notification.Topic); err != nil {
+		return fmt.Errorf("save notification payload: %w", err)
+	}
+	deliveries, err := tx.ExecContext(ctx, `
+		INSERT INTO notification_deliveries(
+			notification_id, subscription_id, subscription_endpoint_hash, status
+		)
+		SELECT ?, id, endpoint_hash, 'pending'
+		FROM push_subscriptions
+		WHERE expiration_at IS NULL OR expiration_at > ?
+	`, notificationID, r.now().UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return fmt.Errorf("fan out notification deliveries: %w", err)
+	}
+	deliveryCount, err := deliveries.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read notification delivery count: %w", err)
+	}
+	if deliveryCount == 0 {
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE notifications SET status = 'cancelled' WHERE id = ?
+		`, notificationID); err != nil {
+			return fmt.Errorf("cancel notification without subscriptions: %w", err)
+		}
 	}
 	return nil
 }
@@ -893,6 +989,396 @@ func (r *SQLiteRepository) SaveApplication(ctx context.Context, listingID string
 		return fmt.Errorf("save application tracking affected %d rows: %w", updated, err)
 	}
 	return nil
+}
+
+func (r *SQLiteRepository) UpsertPushSubscription(
+	ctx context.Context,
+	subscription PushSubscriptionInput,
+) (bool, error) {
+	subscription.Endpoint = strings.TrimSpace(subscription.Endpoint)
+	subscription.P256DH = strings.TrimSpace(subscription.P256DH)
+	subscription.Auth = strings.TrimSpace(subscription.Auth)
+	if subscription.Endpoint == "" || subscription.P256DH == "" || subscription.Auth == "" {
+		return false, errors.New("push endpoint and keys are required")
+	}
+	hash := endpointHash(subscription.Endpoint)
+	var exists bool
+	if err := r.db.QueryRowContext(ctx, `
+		SELECT EXISTS(SELECT 1 FROM push_subscriptions WHERE endpoint_hash = ?)
+	`, hash).Scan(&exists); err != nil {
+		return false, fmt.Errorf("find push subscription: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, `
+		INSERT INTO push_subscriptions(endpoint, endpoint_hash, p256dh, auth, expiration_at)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(endpoint_hash) DO UPDATE SET
+			endpoint = excluded.endpoint,
+			p256dh = excluded.p256dh,
+			auth = excluded.auth,
+			expiration_at = excluded.expiration_at,
+			failure_count = 0,
+			last_failure_at = NULL,
+			last_status_code = NULL,
+			updated_at = CURRENT_TIMESTAMP
+	`, subscription.Endpoint, hash, subscription.P256DH, subscription.Auth, nullableTime(subscription.ExpirationAt)); err != nil {
+		return false, fmt.Errorf("save push subscription: %w", err)
+	}
+	return !exists, nil
+}
+
+func (r *SQLiteRepository) DeletePushSubscription(ctx context.Context, endpoint string) error {
+	endpoint = strings.TrimSpace(endpoint)
+	if endpoint == "" {
+		return errors.New("push endpoint is required")
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin push subscription deletion: %w", err)
+	}
+	defer tx.Rollback()
+	var subscriptionID int64
+	err = tx.QueryRowContext(ctx, `
+		SELECT id FROM push_subscriptions WHERE endpoint_hash = ?
+	`, endpointHash(endpoint)).Scan(&subscriptionID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return tx.Commit()
+	}
+	if err != nil {
+		return fmt.Errorf("find deleted push subscription: %w", err)
+	}
+	if err := r.disablePushSubscriptionTx(ctx, tx, subscriptionID, r.now().UTC(), 0); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit push subscription deletion: %w", err)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) ClaimPushDeliveries(
+	ctx context.Context,
+	limit int,
+	now time.Time,
+	lease time.Duration,
+) ([]PushDelivery, error) {
+	if limit < 1 || limit > 100 {
+		return nil, errors.New("push delivery limit must be between 1 and 100")
+	}
+	if lease <= 0 {
+		return nil, errors.New("push delivery lease must be positive")
+	}
+	now = now.UTC()
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin push delivery claim: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE notification_deliveries
+		SET status = 'pending', lease_until = NULL, updated_at = CURRENT_TIMESTAMP
+		WHERE status = 'sending' AND lease_until <= ?
+	`, now.Format(time.RFC3339Nano)); err != nil {
+		return nil, fmt.Errorf("release expired push delivery leases: %w", err)
+	}
+	rows, err := tx.QueryContext(ctx, `
+		SELECT notification_deliveries.id, notification_deliveries.notification_id,
+			notification_deliveries.attempt_count,
+			push_subscriptions.id, push_subscriptions.endpoint,
+			push_subscriptions.endpoint_hash, push_subscriptions.p256dh,
+			push_subscriptions.auth, push_subscriptions.expiration_at,
+			notification_payloads.title, notification_payloads.body,
+			notification_payloads.target_url, notification_payloads.topic
+		FROM notification_deliveries
+		JOIN notifications ON notifications.id = notification_deliveries.notification_id
+		JOIN notification_payloads ON notification_payloads.notification_id = notifications.id
+		JOIN push_subscriptions ON push_subscriptions.id = notification_deliveries.subscription_id
+		WHERE notification_deliveries.status = 'pending'
+			AND (notification_deliveries.next_attempt_at IS NULL OR notification_deliveries.next_attempt_at <= ?)
+		ORDER BY notification_deliveries.id
+		LIMIT ?
+	`, now.Format(time.RFC3339Nano), limit)
+	if err != nil {
+		return nil, fmt.Errorf("query due push deliveries: %w", err)
+	}
+	deliveries := make([]PushDelivery, 0)
+	for rows.Next() {
+		var delivery PushDelivery
+		var expiration sql.NullString
+		if err := rows.Scan(
+			&delivery.ID, &delivery.NotificationID, &delivery.AttemptCount,
+			&delivery.Subscription.ID, &delivery.Subscription.Endpoint,
+			&delivery.Subscription.EndpointHash, &delivery.Subscription.P256DH,
+			&delivery.Subscription.Auth, &expiration,
+			&delivery.Title, &delivery.Body, &delivery.TargetURL, &delivery.Topic,
+		); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("scan due push delivery: %w", err)
+		}
+		delivery.Subscription.ExpirationAt, err = parseStoredTime(expiration)
+		if err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("parse push subscription expiration: %w", err)
+		}
+		deliveries = append(deliveries, delivery)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close push delivery rows: %w", err)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read due push deliveries: %w", err)
+	}
+
+	claimed := deliveries[:0]
+	leaseUntil := now.Add(lease).Format(time.RFC3339Nano)
+	for _, delivery := range deliveries {
+		result, err := tx.ExecContext(ctx, `
+			UPDATE notification_deliveries
+			SET status = 'sending', attempt_count = attempt_count + 1,
+				lease_until = ?, updated_at = CURRENT_TIMESTAMP
+			WHERE id = ? AND status = 'pending'
+		`, leaseUntil, delivery.ID)
+		if err != nil {
+			return nil, fmt.Errorf("claim push delivery: %w", err)
+		}
+		count, err := result.RowsAffected()
+		if err != nil {
+			return nil, fmt.Errorf("read push delivery claim result: %w", err)
+		}
+		if count == 1 {
+			delivery.AttemptCount++
+			claimed = append(claimed, delivery)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit push delivery claims: %w", err)
+	}
+	return claimed, nil
+}
+
+func (r *SQLiteRepository) MarkPushDeliverySent(
+	ctx context.Context,
+	deliveryID int64,
+	sentAt time.Time,
+	statusCode int,
+) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin push delivery completion: %w", err)
+	}
+	defer tx.Rollback()
+	var subscriptionID int64
+	if err := tx.QueryRowContext(ctx, `
+		SELECT subscription_id FROM notification_deliveries WHERE id = ?
+	`, deliveryID).Scan(&subscriptionID); err != nil {
+		return fmt.Errorf("find completed push delivery: %w", err)
+	}
+	timestamp := sentAt.UTC().Format(time.RFC3339Nano)
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE notification_deliveries
+		SET status = 'sent', sent_at = ?, lease_until = NULL,
+			last_status_code = ?, last_error = NULL, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ? AND status = 'sending'
+	`, timestamp, statusCode, deliveryID); err != nil {
+		return fmt.Errorf("complete push delivery: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE push_subscriptions
+		SET failure_count = 0, last_success_at = ?, last_failure_at = NULL,
+			last_status_code = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+	`, timestamp, statusCode, subscriptionID); err != nil {
+		return fmt.Errorf("record push subscription success: %w", err)
+	}
+	if err := r.updateNotificationStatusTx(ctx, tx, deliveryID, sentAt); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit push delivery completion: %w", err)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) RetryPushDelivery(
+	ctx context.Context,
+	deliveryID int64,
+	nextAttemptAt time.Time,
+	statusCode int,
+	reason string,
+) error {
+	reason = shortStoreError(reason)
+	result, err := r.db.ExecContext(ctx, `
+		UPDATE notification_deliveries
+		SET status = 'pending', next_attempt_at = ?, lease_until = NULL,
+			last_status_code = NULLIF(?, 0), last_error = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ? AND status = 'sending'
+	`, nextAttemptAt.UTC().Format(time.RFC3339Nano), statusCode, reason, deliveryID)
+	if err != nil {
+		return fmt.Errorf("schedule push delivery retry: %w", err)
+	}
+	if count, _ := result.RowsAffected(); count != 1 {
+		return fmt.Errorf("push delivery %d is not sending", deliveryID)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) FailPushDelivery(
+	ctx context.Context,
+	deliveryID int64,
+	failedAt time.Time,
+	statusCode int,
+	reason string,
+) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin push delivery failure: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE notification_deliveries
+		SET status = 'failed', lease_until = NULL, last_status_code = NULLIF(?, 0),
+			last_error = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ? AND status = 'sending'
+	`, statusCode, shortStoreError(reason), deliveryID); err != nil {
+		return fmt.Errorf("fail push delivery: %w", err)
+	}
+	if err := r.updateNotificationStatusTx(ctx, tx, deliveryID, failedAt); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit push delivery failure: %w", err)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) DisablePushSubscription(
+	ctx context.Context,
+	deliveryID int64,
+	disabledAt time.Time,
+	statusCode int,
+) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin invalid push subscription cleanup: %w", err)
+	}
+	defer tx.Rollback()
+	var subscriptionID int64
+	if err := tx.QueryRowContext(ctx, `
+		SELECT subscription_id FROM notification_deliveries WHERE id = ?
+	`, deliveryID).Scan(&subscriptionID); err != nil {
+		return fmt.Errorf("find invalid push subscription: %w", err)
+	}
+	if err := r.disablePushSubscriptionTx(ctx, tx, subscriptionID, disabledAt, statusCode); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit invalid push subscription cleanup: %w", err)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) disablePushSubscriptionTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	subscriptionID int64,
+	disabledAt time.Time,
+	statusCode int,
+) error {
+	rows, err := tx.QueryContext(ctx, `
+		SELECT DISTINCT notification_id FROM notification_deliveries
+		WHERE subscription_id = ? AND status IN ('pending', 'sending')
+	`, subscriptionID)
+	if err != nil {
+		return fmt.Errorf("query invalid subscription deliveries: %w", err)
+	}
+	notificationIDs := make([]int64, 0)
+	for rows.Next() {
+		var notificationID int64
+		if err := rows.Scan(&notificationID); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan invalid subscription delivery: %w", err)
+		}
+		notificationIDs = append(notificationIDs, notificationID)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("close invalid subscription deliveries: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE notification_deliveries
+		SET status = 'cancelled', lease_until = NULL, last_status_code = NULLIF(?, 0),
+			last_error = 'push subscription is no longer valid', updated_at = CURRENT_TIMESTAMP
+		WHERE subscription_id = ? AND status IN ('pending', 'sending')
+	`, statusCode, subscriptionID); err != nil {
+		return fmt.Errorf("cancel invalid subscription deliveries: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM push_subscriptions WHERE id = ?", subscriptionID); err != nil {
+		return fmt.Errorf("delete invalid push subscription: %w", err)
+	}
+	for _, notificationID := range notificationIDs {
+		if err := r.updateNotificationByIDTx(ctx, tx, notificationID, disabledAt); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) updateNotificationStatusTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	deliveryID int64,
+	completedAt time.Time,
+) error {
+	var notificationID int64
+	if err := tx.QueryRowContext(ctx, `
+		SELECT notification_id FROM notification_deliveries WHERE id = ?
+	`, deliveryID).Scan(&notificationID); err != nil {
+		return fmt.Errorf("find push delivery notification: %w", err)
+	}
+	return r.updateNotificationByIDTx(ctx, tx, notificationID, completedAt)
+}
+
+func (r *SQLiteRepository) updateNotificationByIDTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	notificationID int64,
+	completedAt time.Time,
+) error {
+	var active, sent int
+	if err := tx.QueryRowContext(ctx, `
+		SELECT
+			SUM(CASE WHEN status IN ('pending', 'sending') THEN 1 ELSE 0 END),
+			SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END)
+		FROM notification_deliveries WHERE notification_id = ?
+	`, notificationID).Scan(&active, &sent); err != nil {
+		return fmt.Errorf("summarize push notification: %w", err)
+	}
+	if active > 0 {
+		return nil
+	}
+	status := "failed"
+	if sent > 0 {
+		status = "sent"
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE notifications
+		SET status = ?, sent_at = CASE WHEN ? = 'sent' THEN COALESCE(sent_at, ?) ELSE sent_at END
+		WHERE id = ?
+	`, status, status, completedAt.UTC().Format(time.RFC3339Nano), notificationID); err != nil {
+		return fmt.Errorf("complete push notification: %w", err)
+	}
+	return nil
+}
+
+func endpointHash(endpoint string) string {
+	sum := sha256.Sum256([]byte(strings.TrimSpace(endpoint)))
+	return hex.EncodeToString(sum[:])
+}
+
+func shortStoreError(reason string) string {
+	reason = strings.TrimSpace(reason)
+	if len(reason) > 500 {
+		return reason[:500]
+	}
+	return reason
 }
 
 func requiredStoredTime(value sql.NullString) (time.Time, error) {

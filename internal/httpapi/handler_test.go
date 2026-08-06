@@ -2,6 +2,8 @@ package httpapi
 
 import (
 	"context"
+	"crypto/ecdh"
+	"encoding/base64"
 	"io"
 	"log/slog"
 	"net/http"
@@ -36,6 +38,23 @@ type fakeDashboardRepository struct {
 type fakeTrackingRepository struct {
 	detail store.ListingDetail
 	saved  store.ApplicationTracking
+}
+
+type fakePushRepository struct {
+	fakeDashboardRepository
+	saved   store.PushSubscriptionInput
+	deleted string
+	created bool
+}
+
+func (f *fakePushRepository) UpsertPushSubscription(_ context.Context, subscription store.PushSubscriptionInput) (bool, error) {
+	f.saved = subscription
+	return f.created, nil
+}
+
+func (f *fakePushRepository) DeletePushSubscription(_ context.Context, endpoint string) error {
+	f.deleted = endpoint
+	return nil
 }
 
 func (f *fakeTrackingRepository) Dashboard(context.Context) (store.DashboardSnapshot, error) {
@@ -211,5 +230,82 @@ func TestApplicationUpdateRejectsInvalidTimestamp(t *testing.T) {
 
 	if response.Code != http.StatusBadRequest || repository.saved.Status != "" {
 		t.Fatalf("unexpected invalid timestamp response: status=%d saved=%#v", response.Code, repository.saved)
+	}
+}
+
+func TestPushSubscriptionAPIValidatesAndPersistsBrowserSubscription(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repository := &fakePushRepository{created: true}
+	handler := NewHandler("http://localhost:5173", logger, nil, repository, PushOptions{
+		Enabled: true, PublicKey: "public-vapid-key", Store: repository,
+	})
+	keyRequest := httptest.NewRequest(http.MethodGet, "/api/v1/push/public-key", nil)
+	keyResponse := httptest.NewRecorder()
+	handler.ServeHTTP(keyResponse, keyRequest)
+	if keyResponse.Code != http.StatusOK || !strings.Contains(keyResponse.Body.String(), `"public_key":"public-vapid-key"`) {
+		t.Fatalf("unexpected public key response: status=%d body=%s", keyResponse.Code, keyResponse.Body.String())
+	}
+
+	privateKey, err := ecdh.P256().GenerateKey(strings.NewReader(strings.Repeat("k", 256)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p256dh := base64.RawURLEncoding.EncodeToString(privateKey.PublicKey().Bytes())
+	auth := base64.RawURLEncoding.EncodeToString([]byte("0123456789abcdef"))
+	body := `{"endpoint":"https://push.example.test/device","expirationTime":null,"keys":{"p256dh":"` + p256dh + `","auth":"` + auth + `"}}`
+	subscribeRequest := httptest.NewRequest(http.MethodPut, "/api/v1/push/subscriptions", strings.NewReader(body))
+	subscribeRequest.Header.Set("Content-Type", "application/json")
+	subscribeResponse := httptest.NewRecorder()
+	handler.ServeHTTP(subscribeResponse, subscribeRequest)
+	if subscribeResponse.Code != http.StatusCreated || repository.saved.Endpoint != "https://push.example.test/device" {
+		t.Fatalf("subscription was not saved: status=%d saved=%#v body=%s", subscribeResponse.Code, repository.saved, subscribeResponse.Body.String())
+	}
+
+	deleteRequest := httptest.NewRequest(http.MethodDelete, "/api/v1/push/subscriptions", strings.NewReader(`{"endpoint":"https://push.example.test/device"}`))
+	deleteRequest.Header.Set("Content-Type", "application/json")
+	deleteResponse := httptest.NewRecorder()
+	handler.ServeHTTP(deleteResponse, deleteRequest)
+	if deleteResponse.Code != http.StatusNoContent || repository.deleted != "https://push.example.test/device" {
+		t.Fatalf("subscription was not deleted: status=%d endpoint=%q", deleteResponse.Code, repository.deleted)
+	}
+}
+
+func TestPushSubscriptionAPIRejectsUnsafeAndNonStrictRequests(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repository := &fakePushRepository{}
+	handler := NewHandler("http://localhost:5173", logger, nil, repository, PushOptions{
+		Enabled: true, PublicKey: "public", Store: repository,
+	})
+	tests := []struct {
+		name        string
+		contentType string
+		body        string
+		wantStatus  int
+	}{
+		{name: "content type", contentType: "text/plain", body: `{}`, wantStatus: http.StatusUnsupportedMediaType},
+		{name: "unknown field", contentType: "application/json", body: `{"endpoint":"https://push.example.test/x","unknown":true}`, wantStatus: http.StatusBadRequest},
+		{name: "unsafe endpoint", contentType: "application/json", body: `{"endpoint":"http://127.0.0.1/x","keys":{"p256dh":"x","auth":"x"}}`, wantStatus: http.StatusBadRequest},
+		{name: "trailing JSON", contentType: "application/json", body: `{} {}`, wantStatus: http.StatusBadRequest},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPut, "/api/v1/push/subscriptions", strings.NewReader(test.body))
+			request.Header.Set("Content-Type", test.contentType)
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+			if response.Code != test.wantStatus {
+				t.Fatalf("expected %d, got %d: %s", test.wantStatus, response.Code, response.Body.String())
+			}
+		})
+	}
+}
+
+func TestPushAPIIsUnavailableWhenDisabled(t *testing.T) {
+	handler := NewHandler("*", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, fakeDashboardRepository{})
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/push/public-key", nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected disabled push API to return 503, got %d", response.Code)
 	}
 }

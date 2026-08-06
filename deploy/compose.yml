@@ -25,6 +25,10 @@ services:
       BACKUP_TIME: ${BACKUP_TIME:-02:00}
       BACKUP_TIMEZONE: ${BACKUP_TIMEZONE:-Europe/Istanbul}
       BACKUP_RETENTION: ${BACKUP_RETENTION:-7}
+      WEB_PUSH_ENABLED: ${WEB_PUSH_ENABLED:-false}
+      WEB_PUSH_PUBLIC_KEY: ${WEB_PUSH_PUBLIC_KEY:-}
+      WEB_PUSH_PRIVATE_KEY: ${WEB_PUSH_PRIVATE_KEY:-}
+      WEB_PUSH_SUBJECT: ${WEB_PUSH_SUBJECT:-}
     volumes:
       - tracker_data:/app/data
       - tracker_backups:/app/backups

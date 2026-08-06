@@ -165,6 +165,20 @@ oluşturur; üretim HTTP handler'ından detayı okur, RFC3339 tarihli başvuru k
 günceller ve son dashboard yanıtında aktif başvuruyu, yaklaşan tarihi ve manuel
 kontrol kaynağını birlikte doğrular. Test ağ veya ücretli sağlayıcı kullanmaz.
 
+Web Push store testleri analiz + outbox atomikliğini hata veren SQLite trigger ile,
+versionlanmış olay dedup'ını, yalnız `primary`/açık/ilgili/`uygun` koşulunu,
+başarısız analiz sonrası ilk başarıyı ve 410 temizliğinin yalnız ilgili cihazı
+etkilemesini doğrular. Dispatcher testleri fake sender ile çoklu cihaz, 2xx,
+429 retry, toplam deneme sınırı ve 410 yollarını ağsız çalıştırır. Şifreleme testi
+RFC 8291 Appendix A'nın yayımlanmış vektörüyle ciphertext'i byte düzeyinde;
+VAPID testi RFC 8292 JWT audience/expiry/subject alanlarını ve ham ES256 imzasını
+bağımsız doğrular. Normal testler gerçek push endpoint'ine istek göndermez.
+
+`internal/acceptance/phase5_test.go`, Lever HTML fixture'ını primary şirket,
+fake uygun analizci, gerçek migration/SQLite outbox ve fake push sender üzerinden
+iki kez tarar. İlk tarama tek güvenli/deep-linked payload teslim eder; ikinci
+tarama yeni event veya delivery üretmez.
+
 Faz 1 backend kabul testi aynı Meteksan fixture'ını scraper, deterministik
 analizci ve gerçek SQLite repository üzerinden iki kez çalıştırır. İlk tarama
 iki yeni kayıt, ikinci tarama sıfır yeni kayıt üretmeli; uygun staj dashboard

@@ -148,3 +148,43 @@ type TrackingRepository interface {
 	ListingDetail(ctx context.Context, listingID string) (ListingDetail, error)
 	SaveApplication(ctx context.Context, listingID string, tracking ApplicationTracking) error
 }
+
+type PushSubscription struct {
+	ID           int64
+	Endpoint     string
+	EndpointHash string
+	P256DH       string
+	Auth         string
+	ExpirationAt *time.Time
+}
+
+type PushSubscriptionInput struct {
+	Endpoint     string
+	P256DH       string
+	Auth         string
+	ExpirationAt *time.Time
+}
+
+type PushDelivery struct {
+	ID             int64
+	NotificationID int64
+	Subscription   PushSubscription
+	Title          string
+	Body           string
+	TargetURL      string
+	Topic          string
+	AttemptCount   int
+}
+
+type PushSubscriptionRepository interface {
+	UpsertPushSubscription(ctx context.Context, subscription PushSubscriptionInput) (created bool, err error)
+	DeletePushSubscription(ctx context.Context, endpoint string) error
+}
+
+type PushDeliveryRepository interface {
+	ClaimPushDeliveries(ctx context.Context, limit int, now time.Time, lease time.Duration) ([]PushDelivery, error)
+	MarkPushDeliverySent(ctx context.Context, deliveryID int64, sentAt time.Time, statusCode int) error
+	RetryPushDelivery(ctx context.Context, deliveryID int64, nextAttemptAt time.Time, statusCode int, reason string) error
+	FailPushDelivery(ctx context.Context, deliveryID int64, failedAt time.Time, statusCode int, reason string) error
+	DisablePushSubscription(ctx context.Context, deliveryID int64, disabledAt time.Time, statusCode int) error
+}

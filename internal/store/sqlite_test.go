@@ -165,6 +165,170 @@ func TestSQLiteRepositoryPersistsAnalysisUsageAndRecoversPendingFailure(t *testi
 	}
 }
 
+func TestSQLiteRepositorySavesAnalysisAndNotificationOutboxAtomically(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksan(t, repository)
+	if _, err := repository.UpsertPushSubscription(context.Background(), PushSubscriptionInput{
+		Endpoint: "https://push.example.test/device-one", P256DH: "test-public", Auth: "test-auth",
+	}); err != nil {
+		t.Fatalf("save subscription: %v", err)
+	}
+	listingID, _, err := repository.UpsertRawListing(context.Background(), domain.RawListing{
+		Company: "Meteksan Savunma", SourceID: "meteksan-kariyer-net", Title: "Backend Stajyeri",
+		URL: "https://example.test/push/one", RawText: "Backend stajı",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	analysis := domain.ListingAnalysis{
+		OpportunityType: "staj", ApplicationOpen: true, Relevant: true,
+		Eligibility: domain.EligibilitySuitable, Summary: "Uygun staj",
+	}
+	if err := repository.SaveAnalysis(context.Background(), listingID, analysis); err != nil {
+		t.Fatalf("save analysis and outbox: %v", err)
+	}
+	if err := repository.SaveAnalysis(context.Background(), listingID, analysis); err != nil {
+		t.Fatalf("repeat analysis save: %v", err)
+	}
+	var notifications, deliveries int
+	if err := db.QueryRow("SELECT COUNT(*) FROM notifications WHERE listing_id = ?", listingID).Scan(&notifications); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(`
+		SELECT COUNT(*) FROM notification_deliveries
+		JOIN notifications ON notifications.id = notification_deliveries.notification_id
+		WHERE notifications.listing_id = ?
+	`, listingID).Scan(&deliveries); err != nil {
+		t.Fatal(err)
+	}
+	if notifications != 1 || deliveries != 1 {
+		t.Fatalf("expected one deduplicated event and delivery, got events=%d deliveries=%d", notifications, deliveries)
+	}
+
+	if _, err := db.Exec(`
+		CREATE TRIGGER reject_push_event BEFORE INSERT ON notifications
+		BEGIN SELECT RAISE(ABORT, 'outbox unavailable'); END
+	`); err != nil {
+		t.Fatal(err)
+	}
+	rollbackID, _, err := repository.UpsertRawListing(context.Background(), domain.RawListing{
+		Company: "Meteksan Savunma", SourceID: "meteksan-kariyer-net", Title: "Rollback Stajı",
+		URL: "https://example.test/push/rollback", RawText: "Backend stajı",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.SaveAnalysis(context.Background(), rollbackID, analysis); err == nil {
+		t.Fatal("expected notification failure to roll back analysis")
+	}
+	var analyses int
+	if err := db.QueryRow("SELECT COUNT(*) FROM listing_analyses WHERE listing_id = ?", rollbackID).Scan(&analyses); err != nil {
+		t.Fatal(err)
+	}
+	if analyses != 0 {
+		t.Fatalf("analysis escaped failed outbox transaction: count=%d", analyses)
+	}
+}
+
+func TestSQLiteRepositoryNotificationEligibilityAndFailedAnalysisRecovery(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksan(t, repository)
+	if err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
+		Key: "secondary-source", Company: "Secondary", PriorityGroup: "secondary",
+		Type: "career_page", URL: "https://example.test/secondary", Adapter: "lever", Enabled: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.UpsertPushSubscription(context.Background(), PushSubscriptionInput{
+		Endpoint: "https://push.example.test/device", P256DH: "test-public", Auth: "test-auth",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	insert := func(company, source, suffix string) string {
+		t.Helper()
+		id, _, err := repository.UpsertRawListing(context.Background(), domain.RawListing{
+			Company: company, SourceID: source, Title: "Staj", URL: "https://example.test/" + suffix, RawText: "Staj",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	partialID := insert("Meteksan Savunma", "meteksan-kariyer-net", "partial")
+	secondaryID := insert("Secondary", "secondary-source", "secondary")
+	recoveredID := insert("Meteksan Savunma", "meteksan-kariyer-net", "recovered")
+	if err := repository.SaveAnalysis(context.Background(), partialID, domain.ListingAnalysis{
+		ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilityPartlySuitable,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.SaveAnalysis(context.Background(), secondaryID, domain.ListingAnalysis{
+		ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.SaveAnalysisFailure(context.Background(), recoveredID, "test", "", "temporary"); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.SaveAnalysis(context.Background(), recoveredID, domain.ListingAnalysis{
+		ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM notifications").Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("only recovered primary suitable listing should notify, got %d events", count)
+	}
+}
+
+func TestSQLiteRepositoryDisablesOnlyGoneDeliverySubscription(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksan(t, repository)
+	for _, endpoint := range []string{"https://push.example.test/one", "https://push.example.test/two"} {
+		if _, err := repository.UpsertPushSubscription(context.Background(), PushSubscriptionInput{
+			Endpoint: endpoint, P256DH: "test-public", Auth: "test-auth",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	listingID, _, err := repository.UpsertRawListing(context.Background(), domain.RawListing{
+		Company: "Meteksan Savunma", SourceID: "meteksan-kariyer-net", Title: "Staj",
+		URL: "https://example.test/gone", RawText: "Staj",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.SaveAnalysis(context.Background(), listingID, domain.ListingAnalysis{
+		ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	deliveries, err := repository.ClaimPushDeliveries(context.Background(), 10, time.Now().UTC(), time.Minute)
+	if err != nil || len(deliveries) != 2 {
+		t.Fatalf("claim two devices: deliveries=%d err=%v", len(deliveries), err)
+	}
+	disabled := deliveries[0]
+	if err := repository.DisablePushSubscription(context.Background(), disabled.ID, time.Now().UTC(), 410); err != nil {
+		t.Fatalf("disable gone subscription: %v", err)
+	}
+	var subscriptions, cancelled, sending int
+	if err := db.QueryRow("SELECT COUNT(*) FROM push_subscriptions").Scan(&subscriptions); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT COUNT(*) FROM notification_deliveries WHERE status = 'cancelled'").Scan(&cancelled); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT COUNT(*) FROM notification_deliveries WHERE status = 'sending'").Scan(&sending); err != nil {
+		t.Fatal(err)
+	}
+	if subscriptions != 1 || cancelled != 1 || sending != 1 {
+		t.Fatalf("wrong device was disabled: subscriptions=%d cancelled=%d sending=%d", subscriptions, cancelled, sending)
+	}
+}
+
 func TestSQLiteRepositoryPersistsScanReportAndSourceState(t *testing.T) {
 	repository, db := newTestRepository(t)
 	registerMeteksan(t, repository)
@@ -401,4 +565,5 @@ func registerMeteksan(t *testing.T, repository *SQLiteRepository) {
 
 type queryDB interface {
 	QueryRow(query string, args ...any) *sql.Row
+	Exec(query string, args ...any) (sql.Result, error)
 }

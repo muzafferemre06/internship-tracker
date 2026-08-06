@@ -24,6 +24,10 @@ type Config struct {
 	BackupTime           string
 	BackupTimezone       string
 	BackupRetention      string
+	WebPushEnabled       string
+	WebPushPublicKey     string
+	WebPushPrivateKey    string
+	WebPushSubject       string
 }
 
 func Load() Config {
@@ -37,21 +41,25 @@ func Load() Config {
 			"CANDIDATE_PROFILE_PATH",
 			"configs/candidate-profile.json",
 		),
-		SourcesPath:      envOrDefault("SOURCES_PATH", "configs/sources.json"),
-		LLMProvider:      envOrDefault("LLM_PROVIDER", "deterministic"),
-		LLMModel:         os.Getenv("LLM_MODEL"),
-		LLMInputCost:     envOrDefault("LLM_INPUT_COST_PER_MILLION_USD", "0"),
-		LLMOutputCost:    envOrDefault("LLM_OUTPUT_COST_PER_MILLION_USD", "0"),
-		LLMThinkingLevel: envOrDefault("LLM_THINKING_LEVEL", "minimal"),
-		OpenRouterAPIKey: os.Getenv("OPENROUTER_API_KEY"),
-		GeminiAPIKey:     os.Getenv("GEMINI_API_KEY"),
-		ScanSchedule:     envOrDefault("SCAN_SCHEDULE", "0 9 * * 1"),
-		ScanTimezone:     envOrDefault("SCAN_TIMEZONE", "Europe/Istanbul"),
-		BackupEnabled:    envOrDefault("BACKUP_ENABLED", "false"),
-		BackupDirectory:  os.Getenv("BACKUP_DIRECTORY"),
-		BackupTime:       envOrDefault("BACKUP_TIME", "02:00"),
-		BackupTimezone:   envOrDefault("BACKUP_TIMEZONE", "Europe/Istanbul"),
-		BackupRetention:  envOrDefault("BACKUP_RETENTION", "7"),
+		SourcesPath:       envOrDefault("SOURCES_PATH", "configs/sources.json"),
+		LLMProvider:       envOrDefault("LLM_PROVIDER", "deterministic"),
+		LLMModel:          os.Getenv("LLM_MODEL"),
+		LLMInputCost:      envOrDefault("LLM_INPUT_COST_PER_MILLION_USD", "0"),
+		LLMOutputCost:     envOrDefault("LLM_OUTPUT_COST_PER_MILLION_USD", "0"),
+		LLMThinkingLevel:  envOrDefault("LLM_THINKING_LEVEL", "minimal"),
+		OpenRouterAPIKey:  os.Getenv("OPENROUTER_API_KEY"),
+		GeminiAPIKey:      os.Getenv("GEMINI_API_KEY"),
+		ScanSchedule:      envOrDefault("SCAN_SCHEDULE", "0 9 * * 1"),
+		ScanTimezone:      envOrDefault("SCAN_TIMEZONE", "Europe/Istanbul"),
+		BackupEnabled:     envOrDefault("BACKUP_ENABLED", "false"),
+		BackupDirectory:   os.Getenv("BACKUP_DIRECTORY"),
+		BackupTime:        envOrDefault("BACKUP_TIME", "02:00"),
+		BackupTimezone:    envOrDefault("BACKUP_TIMEZONE", "Europe/Istanbul"),
+		BackupRetention:   envOrDefault("BACKUP_RETENTION", "7"),
+		WebPushEnabled:    envOrDefault("WEB_PUSH_ENABLED", "false"),
+		WebPushPublicKey:  os.Getenv("WEB_PUSH_PUBLIC_KEY"),
+		WebPushPrivateKey: os.Getenv("WEB_PUSH_PRIVATE_KEY"),
+		WebPushSubject:    os.Getenv("WEB_PUSH_SUBJECT"),
 	}
 }
 
