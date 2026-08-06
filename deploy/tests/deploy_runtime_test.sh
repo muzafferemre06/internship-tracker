@@ -69,7 +69,9 @@ EOF
 cp "$STATE_DIRECTORY/current.env" "$TEMPORARY_DIRECTORY/expected-previous.env"
 
 FAKE_DOCKER_LOG=$TEMPORARY_DIRECTORY/fake-docker.log
-export FAKE_DOCKER_LOG
+FAKE_METADATA_ROOT=$TEMPORARY_DIRECTORY
+FAKE_DEPLOY_UID=$(id -u)
+export FAKE_DOCKER_LOG FAKE_METADATA_ROOT FAKE_DEPLOY_UID
 cat >"$FAKE_BINARY_DIRECTORY/docker" <<'EOF'
 #!/bin/sh
 
@@ -141,7 +143,34 @@ cat >"$FAKE_BINARY_DIRECTORY/curl" <<'EOF'
 set -eu
 printf '%s' 200
 EOF
-chmod 0755 "$FAKE_BINARY_DIRECTORY/docker" "$FAKE_BINARY_DIRECTORY/curl"
+
+cat >"$FAKE_BINARY_DIRECTORY/stat" <<'EOF'
+#!/bin/sh
+
+set -eu
+
+if [ "$#" -eq 4 ] && [ "$1" = -c ] && [ "$2" = '%u:%a' ] && [ "$3" = -- ]; then
+    case "$4" in
+        "$FAKE_METADATA_ROOT/candidate.json"|"$FAKE_METADATA_ROOT/sources.json"|\
+        "$FAKE_METADATA_ROOT/api-secrets/web_push_private_key"|\
+        "$FAKE_METADATA_ROOT/api-secrets/gemini_api_key")
+            printf '%s\n' '100:640'
+            ;;
+        "$FAKE_METADATA_ROOT/api-secrets")
+            printf '%s\n' '100:750'
+            ;;
+        "$FAKE_METADATA_ROOT/tunnel-token")
+            printf '%s:%s\n' "$FAKE_DEPLOY_UID" 600
+            ;;
+        *) exit 96 ;;
+    esac
+    exit 0
+fi
+
+exec /usr/bin/stat "$@"
+EOF
+chmod 0755 "$FAKE_BINARY_DIRECTORY/docker" "$FAKE_BINARY_DIRECTORY/curl" \
+    "$FAKE_BINARY_DIRECTORY/stat"
 
 candidate_deploy=$RELEASES_DIRECTORY/$candidate_revision/scripts/deploy.sh
 if PATH="$FAKE_BINARY_DIRECTORY:$PATH" \
@@ -154,8 +183,11 @@ if PATH="$FAKE_BINARY_DIRECTORY:$PATH" \
     printf '%s\n' 'origin mismatch unexpectedly passed' >&2
     exit 1
 fi
-grep -F 'public smoke origin must match ALLOWED_ORIGIN' \
-    "$TEMPORARY_DIRECTORY/origin-mismatch.log" >/dev/null
+if ! grep -F 'public smoke origin must match ALLOWED_ORIGIN' \
+    "$TEMPORARY_DIRECTORY/origin-mismatch.log" >/dev/null; then
+    cat "$TEMPORARY_DIRECTORY/origin-mismatch.log" >&2
+    exit 1
+fi
 cmp "$TEMPORARY_DIRECTORY/expected-previous.env" "$STATE_DIRECTORY/current.env"
 [ ! -e "$STATE_DIRECTORY/previous.env" ]
 
