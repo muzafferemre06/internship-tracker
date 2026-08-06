@@ -201,8 +201,8 @@ sorgusunda görünmelidir.
 
 ## CI
 
-GitHub Actions her push ve pull request'te Go format kontrolü, `go vet`, backend
-test/build, frontend test/build, yüksek önem seviyesindeki `npm audit` bulguları
+GitHub Actions her push ve pull request'te Go format kontrolü, `go vet`,
+`govulncheck`, backend test/build, frontend test/build, yüksek önem seviyesindeki `npm audit` bulguları
 ve iki production Docker image'ının yayınlamayan build adımlarını çalıştırır.
 Gerçek API anahtarı ve ücretli entegrasyon çağrısı CI testlerine dahil edilmez.
 Compose healthcheck komutları runtime Dockerfile'larında açıkça kurulu `wget`
