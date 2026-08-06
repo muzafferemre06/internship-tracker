@@ -103,9 +103,13 @@ validate_deploy_bundle() {
                 [ -x "$bundle_file" ] && [ "$(stat -c '%a' "$bundle_file")" = 750 ] ||
                     die "deploy bundle script mode must be 0750: $bundle_file"
                 ;;
-            *)
+            compose.production.yml)
                 [ "$(stat -c '%a' "$bundle_file")" = 640 ] ||
                     die "deploy bundle config mode must be 0640: $bundle_file"
+                ;;
+            nginx.production.conf)
+                [ "$(stat -c '%a' "$bundle_file")" = 644 ] ||
+                    die "nginx config mode must be 0644 for the UID 101 container: $bundle_file"
                 ;;
         esac
     done

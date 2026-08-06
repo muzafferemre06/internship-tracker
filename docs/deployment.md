@@ -81,8 +81,11 @@ kullanıcıları okuyamaz.
 
 ```bash
 sudo install -d -m 0750 -o <deploy-uid> -g <deploy-gid> /srv/internship-tracker
-sudo install -d -m 0750 -o <deploy-uid> -g <deploy-gid> /srv/internship-tracker/{deploy,config,state,secrets}
+sudo install -d -m 0750 -o <deploy-uid> -g <deploy-gid> /srv/internship-tracker/{deploy,state,secrets}
 sudo install -d -m 0750 -o <deploy-uid> -g <deploy-gid> /srv/internship-tracker/deploy/releases
+sudo install -d -m 0750 -o 100 -g <deploy-gid> /srv/internship-tracker/config
+sudo install -m 0640 -o 100 -g <deploy-gid> candidate-profile.json /srv/internship-tracker/config/candidate-profile.json
+sudo install -m 0640 -o 100 -g <deploy-gid> sources.json /srv/internship-tracker/config/sources.json
 sudo install -d -m 0750 -o 100 -g <deploy-gid> /srv/internship-tracker/secrets/api
 sudo install -m 0640 -o 100 -g <deploy-gid> web_push_private_key /srv/internship-tracker/secrets/api/web_push_private_key
 sudo install -m 0600 -o <deploy-uid> -g <deploy-gid> cloudflare_tunnel_token /srv/internship-tracker/secrets/cloudflare_tunnel_token
@@ -101,7 +104,8 @@ file/no-symlink sözleşmesi ve manifest revision eşleşmesini doğruladıktan 
 bundle'ı `deploy/releases/<commit-sha>` altına atomik taşır. Aynı revision yeniden
 çalıştırıldığında byte farkı varsa immutable release ezilmez ve deploy durur.
 Kurulum `config`, `secrets`, `runtime.env` veya `state` içeriğini kopyalamaz ya da
-ezmez.
+ezmez. Compose `0640`, scriptler `0750` kurulur; secretsız nginx config ise
+container UID `101` tarafından okunabilmesi için `0644` olur.
 
 ## Runtime yapılandırması
 

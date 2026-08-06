@@ -372,6 +372,16 @@ jobs:
           [[ "$incoming_directory" == "$DEPLOY_DIRECTORY"/.incoming.* ]]
           incoming_manifest=$incoming_directory/release.env
           incoming_bundle=$incoming_directory/deploy.tar.gz
+          cleanup_remote_incoming() {
+            ssh -F "$ssh_config" production sh -s -- "$incoming_directory" <<'REMOTE_CLEANUP' || true
+          set -eu
+          incoming_directory=$1
+          [ -d "$incoming_directory" ] && [ ! -L "$incoming_directory" ] || exit 0
+          rm -f "$incoming_directory/release.env" "$incoming_directory/deploy.tar.gz"
+          rmdir "$incoming_directory" 2>/dev/null || true
+          REMOTE_CLEANUP
+          }
+          trap cleanup_remote_incoming EXIT
           scp -F "$ssh_config" "$RUNNER_TEMP/release/published-images.env" \
             "production:$incoming_manifest"
           scp -F "$ssh_config" "$BUNDLE_ARCHIVE" "production:$incoming_bundle"
@@ -484,8 +494,8 @@ jobs:
               printf '%s\n' "bundle contains an unexpected file: $unexpected_file" >&2
               exit 1
           }
-          chmod 0640 "$staging_directory/deploy/compose.production.yml" \
-              "$staging_directory/deploy/nginx.production.conf"
+          chmod 0640 "$staging_directory/deploy/compose.production.yml"
+          chmod 0644 "$staging_directory/deploy/nginx.production.conf"
           chmod 0750 "$staging_directory/deploy/scripts/"*.sh
 
           release_directory=$releases_directory/$revision
@@ -496,7 +506,7 @@ jobs:
                   exit 1
               }
               [ "$(stat -c '%a' "$release_directory/compose.production.yml")" = 640 ] || exit 1
-              [ "$(stat -c '%a' "$release_directory/nginx.production.conf")" = 640 ] || exit 1
+              [ "$(stat -c '%a' "$release_directory/nginx.production.conf")" = 644 ] || exit 1
               for installed_script in "$release_directory/scripts/"*.sh; do
                   [ -f "$installed_script" ] && [ ! -L "$installed_script" ] &&
                       [ "$(stat -c '%a' "$installed_script")" = 750 ] || exit 1

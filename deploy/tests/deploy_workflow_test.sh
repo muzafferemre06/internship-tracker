@@ -13,7 +13,8 @@ cp "$REPOSITORY_ROOT/deploy/compose.production.yml" \
     "$REPOSITORY_ROOT/deploy/nginx.production.conf" \
     "$release_directory/"
 cp "$REPOSITORY_ROOT"/deploy/scripts/*.sh "$release_directory/scripts/"
-chmod 0640 "$release_directory/compose.production.yml" "$release_directory/nginx.production.conf"
+chmod 0640 "$release_directory/compose.production.yml"
+chmod 0644 "$release_directory/nginx.production.conf"
 chmod 0750 "$release_directory/scripts/"*.sh
 
 digest=sha256:$(printf '%064d' 0)
