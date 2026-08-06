@@ -1,6 +1,6 @@
 module github.com/muzaffer/internship-tracker
 
-go 1.22
+go 1.26
 
 require (
 	golang.org/x/net v0.33.0

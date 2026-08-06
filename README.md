@@ -8,8 +8,8 @@ istemci ise React/Vite tabanlı bir PWA olarak yapılandırılmıştır.
 
 ## Gereksinimler
 
-- Go 1.22+
-- Node.js 20.19+
+- Go 1.26+
+- Node.js 24.18+ LTS
 - npm 10+
 - Docker ve Docker Compose (isteğe bağlı)
 
@@ -97,7 +97,9 @@ ve konum tercihleri; ilan başlığı ve metniyle birlikte gönderilir.
 
 ```bash
 go test ./...
+go vet ./...
 npm --prefix web test
+npm --prefix web audit --audit-level=high
 ```
 
 Gerçek OpenRouter ve Google çağrıları normal test akışına dahil değildir. API
@@ -139,6 +141,10 @@ docker compose -f deploy/compose.yml up --build
 PWA bu kurulumda `http://localhost:8081` adresinden açılır. Compose dosyası
 yerel `configs/candidate-profile.json` ve `configs/sources.json` dosyalarını
 salt okunur bağlar; SQLite verisini adlandırılmış bir volume içinde korur.
+Container image'ları Go 1.26, Alpine 3.24, Node 24 LTS ve nginx 1.30 kararlı
+sürüm hattını kullanır. Image'lar her pull request ve `main` push'ında
+yayınlanmadan yalnızca build edilerek doğrulanır; yayınlama ve deployment daha
+sonraki Faz 5 dilimidir.
 
 ## API
 

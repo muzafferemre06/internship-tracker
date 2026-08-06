@@ -2,7 +2,7 @@
 
 ## Aktif faz
 
-Faz 4 tamamlandı. Responsive PWA; ilan inceleme, başvuru durumu, manuel tarihler,
+Faz 5 başladı. Responsive PWA; ilan inceleme, başvuru durumu, manuel tarihler,
 yaklaşan tarihler ve manuel kaynak kontrolünü kalıcı API akışıyla sunuyor. Faz
 3.5'in resmî Commencis Lever ilanı da zaman damgalı aktiflik kanıtıyla standart
 ingestion, canlı Google Gemini analizi, SQLite kullanım kalıcılığı, dashboard
@@ -34,6 +34,10 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 - Telefonda tek kolona inen dashboard ve tam genişlik ilan detay paneli
 - İlan uygunluk özeti, eşleşen alanlar ve resmî ilan bağlantısı
 - Dashboard'da aktif başvuru, yaklaşan tarih ve manuel kontrol bölümleri
+- Production runtime temeli: Go 1.26, Alpine 3.24, Node 24 LTS ve nginx 1.30
+  container image'ları
+- CI'da `go vet`, yüksek önem seviyesinde npm bağımlılık denetimi ve yayınlamayan
+  backend/frontend image build kapıları
 
 ## Doğrulanan çıkış kriterleri
 
@@ -63,6 +67,7 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 
 ## Sıradaki iş
 
-Faz 5 otomatik çalışma ve PWA push'tır. Faz 4 çıkış kriterleri tamamlanmadan bu
-faza başlanmadı; sıradaki dilim barındırma kararı ve mevcut CI/Docker temelinin
-Faz 5 kriterlerine göre denetlenmesidir.
+Faz 5 otomatik çalışma ve PWA push'tır. Runtime ve CI temelinin ardından sıradaki
+dilim, barındırma/erişim kararını kaydetmek ve zamanlanmış taramanın güvenli
+çalışma modelini uygulamaktır; image publish, deployment ve secret yönetimi henüz
+CI'a eklenmedi.

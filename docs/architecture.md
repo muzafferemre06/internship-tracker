@@ -12,6 +12,16 @@
 - `internal/database`: SQLite bağlantısı ve sıralı migration uygulaması.
 - `web`: backend secret'larına erişmeyen PWA istemcisi.
 
+## Production runtime ve CI tabanı
+
+Production image'ları desteklenen Go 1.26, Alpine 3.24, Node 24 LTS ve nginx
+1.30 kararlı sürüm hatlarıyla oluşturulur. Backend image'ı derleme aşamasından
+yalnızca statik API ikilisini ve migration'ları non-root Alpine runtime'a taşır;
+frontend image'ı Vite çıktısını nginx ile sunar. GitHub Actions bu iki image'ı
+test, typecheck ve bağımlılık denetiminden sonra `push: false` ile build eder.
+Image registry, deployment hedefi ve runtime secret'ları bu güvenlik kapısından
+ayrı, sonraki Faz 5 tesliminde eklenir.
+
 Kaynak ve aday profili ayarları `internal/config` tarafından katı biçimde
 doğrulanır. Bilinmeyen JSON alanları kabul edilmez; böylece yazım hataları
 sessizce varsayılan davranışa dönüşmez.

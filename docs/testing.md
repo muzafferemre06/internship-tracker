@@ -4,6 +4,7 @@
 
 ```bash
 go test ./...
+go vet ./...
 ```
 
 Scraper testleri canlı web sitelerine bağlanmamalıdır. Her adapter için
@@ -125,11 +126,12 @@ cooldown'un yanlışlıkla temizlenmediğini doğrular. HTTP testi atlanan kayna
 ```bash
 npm --prefix web test
 npm --prefix web run build
+npm --prefix web audit --audit-level=high
 ```
 
 Saf sınıflandırma ve görünüm yardımcıları Vitest ile test edilir. Dashboard
 akışları geliştikçe component ve tarayıcı tabanlı uçtan uca testler eklenir.
-Frontend araçları Node 20.19 veya daha yeni bir Node 20 sürümü gerektirir;
+Frontend araçları Node 24.18 veya daha yeni bir Node 24 LTS sürümü gerektirir;
 Vite 7 ve Vitest 4 güvenlik yamaları alınmış sabit sürümlere kilitlenir.
 Vite yapılandırması TypeScript tarafından yalnızca tip kontrolünden geçirilir;
 `npm run typecheck` uygulama ve Vite yapılandırmasını ayrı ayrı `noEmit` ile
@@ -153,6 +155,7 @@ sorgusunda görünmelidir.
 
 ## CI
 
-GitHub Actions her push ve pull request'te Go format kontrolü, backend
-test/build ve frontend test/build adımlarını çalıştırır. Gerçek API anahtarı
-ve ücretli entegrasyon çağrısı CI testlerine dahil edilmez.
+GitHub Actions her push ve pull request'te Go format kontrolü, `go vet`, backend
+test/build, frontend test/build, yüksek önem seviyesindeki `npm audit` bulguları
+ve iki production Docker image'ının yayınlamayan build adımlarını çalıştırır.
+Gerçek API anahtarı ve ücretli entegrasyon çağrısı CI testlerine dahil edilmez.
