@@ -206,6 +206,17 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Checkout exact deployment bundle revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          sparse-checkout: |
+            deploy/compose.production.yml
+            deploy/nginx.production.conf
+            deploy/scripts
+          sparse-checkout-cone-mode: false
+
       - name: Check production deployment configuration
         env:
           DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
@@ -243,7 +254,47 @@ jobs:
           [[ "$CLOUDFLARED_IMAGE" =~ ^[^[:space:]@]+@sha256:[0-9a-f]{64}$ ]]
           printf 'CLOUDFLARED_IMAGE=%s\n' "$CLOUDFLARED_IMAGE" \
             >> "$RUNNER_TEMP/release/published-images.env"
-          test "$(wc -l < "$RUNNER_TEMP/release/published-images.env")" -eq 3
+          printf 'DEPLOY_REVISION=%s\n' "$GITHUB_SHA" \
+            >> "$RUNNER_TEMP/release/published-images.env"
+          test "$(wc -l < "$RUNNER_TEMP/release/published-images.env")" -eq 4
+
+      - name: Package exact-commit deployment bundle
+        id: bundle
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+          mapfile -t bundle_files < <(
+            {
+              printf '%s\n' deploy/compose.production.yml deploy/nginx.production.conf
+              git ls-files 'deploy/scripts/*.sh'
+            } | LC_ALL=C sort -u
+          )
+          test "${#bundle_files[@]}" -eq 7
+          for required_file in \
+            deploy/compose.production.yml \
+            deploy/nginx.production.conf \
+            deploy/scripts/common.sh \
+            deploy/scripts/deploy.sh \
+            deploy/scripts/preflight.sh \
+            deploy/scripts/rollback.sh \
+            deploy/scripts/smoke.sh; do
+            printf '%s\n' "${bundle_files[@]}" | grep -Fx "$required_file" >/dev/null
+          done
+          for bundle_file in "${bundle_files[@]}"; do
+            [[ "$bundle_file" =~ ^deploy/(compose\.production\.yml|nginx\.production\.conf|scripts/[A-Za-z0-9._-]+\.sh)$ ]]
+            test -f "$bundle_file"
+            test ! -L "$bundle_file"
+            test "$(git ls-files --stage -- "$bundle_file" | awk '{print $1}')" != 120000
+          done
+
+          bundle_archive="$RUNNER_TEMP/deploy-${GITHUB_SHA}.tar.gz"
+          tar -czf "$bundle_archive" -- "${bundle_files[@]}"
+          bundle_sha256=$(sha256sum "$bundle_archive" | awk '{print $1}')
+          [[ "$bundle_sha256" =~ ^[0-9a-f]{64}$ ]]
+          echo "archive=$bundle_archive" >> "$GITHUB_OUTPUT"
+          echo "sha256=$bundle_sha256" >> "$GITHUB_OUTPUT"
 
       - name: Configure strict SSH client
         env:
@@ -291,6 +342,8 @@ jobs:
           PUBLIC_ORIGIN: ${{ vars.PRODUCTION_PUBLIC_ORIGIN }}
           ACCESS_ID_FILE: ${{ vars.PRODUCTION_CF_ACCESS_CLIENT_ID_FILE }}
           ACCESS_SECRET_FILE: ${{ vars.PRODUCTION_CF_ACCESS_CLIENT_SECRET_FILE }}
+          BUNDLE_ARCHIVE: ${{ steps.bundle.outputs.archive }}
+          BUNDLE_SHA256: ${{ steps.bundle.outputs.sha256 }}
         run: |
           set -euo pipefail
           safe_path='^/[A-Za-z0-9._/-]+$'
@@ -306,22 +359,154 @@ jobs:
           access_secret_arg=${ACCESS_SECRET_FILE:--}
 
           ssh_config="$RUNNER_TEMP/tracker-ssh/config"
-          incoming_manifest="$STATE_DIRECTORY/incoming-${GITHUB_SHA}.env"
+          incoming_directory=$(ssh -F "$ssh_config" production sh -s -- "$DEPLOY_DIRECTORY" <<'REMOTE'
+          set -eu
+          deploy_directory=$1
+          [ "$(id -u)" -ne 0 ] || exit 1
+          [ -d "$deploy_directory" ] && [ ! -L "$deploy_directory" ] || exit 1
+          umask 077
+          mktemp -d "$deploy_directory/.incoming.XXXXXX"
+          REMOTE
+          )
+          [[ "$incoming_directory" =~ $safe_path ]]
+          [[ "$incoming_directory" == "$DEPLOY_DIRECTORY"/.incoming.* ]]
+          incoming_manifest=$incoming_directory/release.env
+          incoming_bundle=$incoming_directory/deploy.tar.gz
           scp -F "$ssh_config" "$RUNNER_TEMP/release/published-images.env" \
             "production:$incoming_manifest"
+          scp -F "$ssh_config" "$BUNDLE_ARCHIVE" "production:$incoming_bundle"
 
           ssh -F "$ssh_config" production sh -s -- \
             "$DEPLOY_DIRECTORY" "$RUNTIME_ENV" "$STATE_DIRECTORY" \
-            "$incoming_manifest" "$PUBLIC_ORIGIN" \
+            "$incoming_directory" "$incoming_manifest" "$incoming_bundle" "$BUNDLE_SHA256" \
+            "$GITHUB_SHA" "$PUBLIC_ORIGIN" \
             "$access_id_arg" "$access_secret_arg" <<'REMOTE'
           set -eu
           deploy_directory=$1
           runtime_env=$2
           state_directory=$3
-          incoming_manifest=$4
-          public_origin=$5
-          access_id_file=$6
-          access_secret_file=$7
+          incoming_directory=$4
+          incoming_manifest=$5
+          incoming_bundle=$6
+          expected_bundle_sha256=$7
+          revision=$8
+          public_origin=$9
+          shift 9
+          access_id_file=$1
+          access_secret_file=$2
+          staging_directory=
+          cleanup() {
+              rm -f "$incoming_manifest" "$incoming_bundle"
+              rmdir "$incoming_directory" 2>/dev/null || true
+              if [ -n "$staging_directory" ] && [ -d "$staging_directory" ]; then
+                  rm -rf "$staging_directory"
+              fi
+          }
+          trap cleanup EXIT HUP INT TERM
+
+          case "$revision" in
+              *[!0-9a-f]*|'') printf '%s\n' "invalid deploy revision" >&2; exit 1 ;;
+          esac
+          [ "${#revision}" -eq 40 ] || { printf '%s\n' "invalid deploy revision" >&2; exit 1; }
+          case "$expected_bundle_sha256" in
+              *[!0-9a-f]*|'') printf '%s\n' "invalid bundle digest" >&2; exit 1 ;;
+          esac
+          [ "${#expected_bundle_sha256}" -eq 64 ] || { printf '%s\n' "invalid bundle digest" >&2; exit 1; }
+          [ -d "$deploy_directory" ] && [ ! -L "$deploy_directory" ] || {
+              printf '%s\n' "deploy directory must be a real directory" >&2
+              exit 1
+          }
+          [ -d "$incoming_directory" ] && [ ! -L "$incoming_directory" ] || exit 1
+          [ "$(dirname "$incoming_directory")" = "$deploy_directory" ] || exit 1
+          [ "$(dirname "$incoming_manifest")" = "$incoming_directory" ] || exit 1
+          [ "$(dirname "$incoming_bundle")" = "$incoming_directory" ] || exit 1
+          [ -f "$incoming_manifest" ] && [ ! -L "$incoming_manifest" ] || exit 1
+          [ -f "$incoming_bundle" ] && [ ! -L "$incoming_bundle" ] || exit 1
+          manifest_revision=$(awk -F= '$1 == "DEPLOY_REVISION" { print $2; found++ } END { if (found != 1) exit 1 }' "$incoming_manifest")
+          [ "$manifest_revision" = "$revision" ] || {
+              printf '%s\n' "release manifest and bundle revision differ" >&2
+              exit 1
+          }
+          actual_bundle_sha256=$(sha256sum "$incoming_bundle" | awk '{print $1}')
+          [ "$actual_bundle_sha256" = "$expected_bundle_sha256" ] || {
+              printf '%s\n' "deployment bundle checksum mismatch" >&2
+              exit 1
+          }
+
+          releases_directory=$deploy_directory/releases
+          mkdir -p "$releases_directory"
+          [ -d "$releases_directory" ] && [ ! -L "$releases_directory" ] || exit 1
+          staging_directory=$(mktemp -d "$deploy_directory/.release-${revision}.XXXXXX")
+          archive_entries=$(tar -tzf "$incoming_bundle")
+          [ -n "$archive_entries" ] || exit 1
+          while IFS= read -r archive_entry; do
+              case "$archive_entry" in
+                  /*|..|../*|*/../*|*/..|*//* )
+                      printf '%s\n' "unsafe archive entry: $archive_entry" >&2
+                      exit 1
+                      ;;
+              esac
+              case "$archive_entry" in
+                  deploy/compose.production.yml|deploy/nginx.production.conf|\
+                  deploy/scripts/common.sh|deploy/scripts/deploy.sh|\
+                  deploy/scripts/preflight.sh|deploy/scripts/rollback.sh|\
+                  deploy/scripts/smoke.sh) ;;
+                  *) printf '%s\n' "unexpected archive entry: $archive_entry" >&2; exit 1 ;;
+              esac
+          done <<EOF
+          $archive_entries
+          EOF
+          tar -xzf "$incoming_bundle" --no-same-owner --no-same-permissions -C "$staging_directory"
+          for required_file in \
+              compose.production.yml nginx.production.conf \
+              scripts/common.sh scripts/deploy.sh scripts/preflight.sh \
+              scripts/rollback.sh scripts/smoke.sh; do
+              candidate_file=$staging_directory/deploy/$required_file
+              [ -f "$candidate_file" ] && [ ! -L "$candidate_file" ] || {
+                  printf '%s\n' "missing regular bundle file: $required_file" >&2
+                  exit 1
+              }
+          done
+          special_entry=$(find "$staging_directory/deploy" -mindepth 1 ! -type d ! -type f -print -quit)
+          [ -z "$special_entry" ] || {
+              printf '%s\n' "bundle contains a symlink or special entry: $special_entry" >&2
+              exit 1
+          }
+          unexpected_file=$(find "$staging_directory/deploy" -type f \
+              ! -path "$staging_directory/deploy/compose.production.yml" \
+              ! -path "$staging_directory/deploy/nginx.production.conf" \
+              ! -path "$staging_directory/deploy/scripts/common.sh" \
+              ! -path "$staging_directory/deploy/scripts/deploy.sh" \
+              ! -path "$staging_directory/deploy/scripts/preflight.sh" \
+              ! -path "$staging_directory/deploy/scripts/rollback.sh" \
+              ! -path "$staging_directory/deploy/scripts/smoke.sh" -print -quit)
+          [ -z "$unexpected_file" ] || {
+              printf '%s\n' "bundle contains an unexpected file: $unexpected_file" >&2
+              exit 1
+          }
+          chmod 0640 "$staging_directory/deploy/compose.production.yml" \
+              "$staging_directory/deploy/nginx.production.conf"
+          chmod 0750 "$staging_directory/deploy/scripts/"*.sh
+
+          release_directory=$releases_directory/$revision
+          if [ -e "$release_directory" ] || [ -L "$release_directory" ]; then
+              [ -d "$release_directory" ] && [ ! -L "$release_directory" ] || exit 1
+              diff -qr "$staging_directory/deploy" "$release_directory" >/dev/null || {
+                  printf '%s\n' "installed revision is not immutable: $release_directory" >&2
+                  exit 1
+              }
+              [ "$(stat -c '%a' "$release_directory/compose.production.yml")" = 640 ] || exit 1
+              [ "$(stat -c '%a' "$release_directory/nginx.production.conf")" = 640 ] || exit 1
+              for installed_script in "$release_directory/scripts/"*.sh; do
+                  [ -f "$installed_script" ] && [ ! -L "$installed_script" ] &&
+                      [ "$(stat -c '%a' "$installed_script")" = 750 ] || exit 1
+              done
+          else
+              mv "$staging_directory/deploy" "$release_directory"
+          fi
+          rm -rf "$staging_directory"
+          staging_directory=
+
           [ "$access_id_file" != - ] || access_id_file=
           [ "$access_secret_file" != - ] || access_secret_file=
           [ "$(id -u)" -ne 0 ] || {
@@ -332,8 +517,7 @@ jobs:
               export CF_ACCESS_CLIENT_ID_FILE=$access_id_file
               export CF_ACCESS_CLIENT_SECRET_FILE=$access_secret_file
           fi
-          exec "$deploy_directory/scripts/deploy.sh" \
+          "$release_directory/scripts/deploy.sh" \
               "$incoming_manifest" "$runtime_env" \
-              "$deploy_directory/compose.production.yml" \
               "$state_directory" "$public_origin"
           REMOTE

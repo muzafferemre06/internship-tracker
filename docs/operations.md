@@ -10,10 +10,12 @@ tek seferlik `cmd/backup` ise deployment başlamadan önce aynı tutarlı snapsh
 Çalışan production release'i için `/srv/internship-tracker` dizininde çalıştırın:
 
 ```bash
+current_revision=$(awk -F= '$1 == "DEPLOY_REVISION" {print $2}' state/current.env)
 docker compose \
+  --project-directory "deploy/releases/$current_revision" \
   --env-file runtime.env \
   --env-file state/current.env \
-  -f deploy/compose.production.yml \
+  -f "deploy/releases/$current_revision/compose.production.yml" \
   exec api \
   /app/backup -database /app/data/internship-tracker.db -directory /app/backups
 ```
@@ -40,10 +42,12 @@ Bir snapshot'ı production veritabanına yazmadan önce aşağıdaki komutla
 denetleyin:
 
 ```bash
+current_revision=$(awk -F= '$1 == "DEPLOY_REVISION" {print $2}' state/current.env)
 docker compose \
+  --project-directory "deploy/releases/$current_revision" \
   --env-file runtime.env \
   --env-file state/current.env \
-  -f deploy/compose.production.yml \
+  -f "deploy/releases/$current_revision/compose.production.yml" \
   exec api \
   /app/restorecheck -backup /app/backups/internship-tracker-....db \
   -migrations /app/migrations

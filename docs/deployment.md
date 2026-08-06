@@ -20,9 +20,11 @@ Production Compose şu üç image değişkenini yalnız digest manifestinden al�
 API_IMAGE=ghcr.io/owner/internship_tracker/api@sha256:<64-hex>
 WEB_IMAGE=ghcr.io/owner/internship_tracker/web@sha256:<64-hex>
 CLOUDFLARED_IMAGE=docker.io/cloudflare/cloudflared@sha256:<64-hex>
+DEPLOY_REVISION=<40-karakter-küçük-harf-git-commit-sha>
 ```
 
-Deploy preflight'i etiketi veya eksik digest'i reddeder. `publish.yml`, API ve web
+Deploy preflight'i etiketi, eksik digest'i veya tam commit SHA olmayan deploy
+revision'ını reddeder. `publish.yml`, API ve web
 image'larını `linux/amd64` ile `linux/arm64` için tam commit SHA etiketiyle bir kez
 yayımlar; var olan commit etiketini ezmez. BuildKit provenance/SBOM ve GitHub
 artifact attestation image digest'ine bağlanır. Artifact içindeki API/web digest
@@ -32,7 +34,8 @@ kayıtları, seçilmiş `cloudflared` digest'i eklenmeden production manifesti d
 
 - Desteklenen 64-bit Linux sunucusu ve güncel güvenlik yamaları
 - Docker Engine ile `docker compose` v2; deploy operatörünün Docker erişimi
-- `curl`, `awk`, `grep`, `env`, `mktemp`, `sed` ve GNU `stat`
+- `curl`, `awk`, `diff`, `find`, `grep`, `env`, `mktemp`, `sed`, `sha256sum`,
+  `tar` ve GNU `stat`
 - Cloudflare'da yönetilen domain, remotely-managed Tunnel ve Access uygulaması
 - GHCR image'larını çekebilen Docker registry kimliği
 - Production için ayrı, root olmayan bir deploy hesabı
@@ -53,7 +56,10 @@ kullanıcıları okuyamaz.
 
 ```text
 /srv/internship-tracker/
-├── deploy/                       # compose, nginx ve scripts; repodan kopyalanır
+├── deploy/
+│   └── releases/
+│       ├── <commit-sha>/         # immutable compose, nginx ve scripts bundle'ı
+│       └── <önceki-commit-sha>/  # rollback için korunur
 ├── config/
 │   ├── candidate-profile.json
 │   └── sources.json
@@ -76,6 +82,7 @@ kullanıcıları okuyamaz.
 ```bash
 sudo install -d -m 0750 -o <deploy-uid> -g <deploy-gid> /srv/internship-tracker
 sudo install -d -m 0750 -o <deploy-uid> -g <deploy-gid> /srv/internship-tracker/{deploy,config,state,secrets}
+sudo install -d -m 0750 -o <deploy-uid> -g <deploy-gid> /srv/internship-tracker/deploy/releases
 sudo install -d -m 0750 -o 100 -g <deploy-gid> /srv/internship-tracker/secrets/api
 sudo install -m 0640 -o 100 -g <deploy-gid> web_push_private_key /srv/internship-tracker/secrets/api/web_push_private_key
 sudo install -m 0600 -o <deploy-uid> -g <deploy-gid> cloudflare_tunnel_token /srv/internship-tracker/secrets/cloudflare_tunnel_token
@@ -87,12 +94,14 @@ yalnız gereken dosyalar bulunabilir. Backend doğrudan secret env değerini de
 destekler; ancak bu production deployment paketinin preflight'i doğrudan secret
 değerlerini reddeder ve yalnız `_FILE` değişkenlerini kabul eder.
 
-Deploy paketini ilgili committen sunucuya kopyalayın ve scriptleri executable
-yapın:
-
-```bash
-chmod 0755 /srv/internship-tracker/deploy/scripts/*.sh
-```
+Workflow exact `github.sha` revision'ını sparse checkout eder; yalnız
+`deploy/compose.production.yml`, `deploy/nginx.production.conf` ve
+`deploy/scripts/*.sh` dosyalarını arşivler. Sunucu checksum, allowlist, regular
+file/no-symlink sözleşmesi ve manifest revision eşleşmesini doğruladıktan sonra
+bundle'ı `deploy/releases/<commit-sha>` altına atomik taşır. Aynı revision yeniden
+çalıştırıldığında byte farkı varsa immutable release ezilmez ve deploy durur.
+Kurulum `config`, `secrets`, `runtime.env` veya `state` içeriğini kopyalamaz ya da
+ezmez.
 
 ## Runtime yapılandırması
 
@@ -102,7 +111,6 @@ chmod 0755 /srv/internship-tracker/deploy/scripts/*.sh
 ALLOWED_ORIGIN=https://tracker.example.com
 CANDIDATE_PROFILE_FILE=/srv/internship-tracker/config/candidate-profile.json
 SOURCES_FILE=/srv/internship-tracker/config/sources.json
-NGINX_CONFIG_FILE=/srv/internship-tracker/deploy/nginx.production.conf
 API_SECRETS_DIRECTORY=/srv/internship-tracker/secrets/api
 CLOUDFLARE_TUNNEL_TOKEN_FILE=/srv/internship-tracker/secrets/cloudflare_tunnel_token
 DEPLOY_UID=<deploy-uid>
@@ -129,8 +137,9 @@ Deterministic sağlayıcıda `LLM_PROVIDER=deterministic` kullanın ve iki API k
 file değişkenini de kaldırın. OpenRouter için yalnız
 `OPENROUTER_API_KEY_FILE=/run/secrets/openrouter_api_key` eklenir. Production'da
 HTTPS ve path içermeyen `ALLOWED_ORIGIN`, backup ve Web Push zorunludur.
-`runtime.env` için `0600`, profile/source/nginx dosyaları için en fazla `0640`
-önerilir.
+`runtime.env` için `0600`, profile/source dosyaları için en fazla `0640` önerilir.
+Nginx config yolu runtime ayarı değildir; Compose her revision'ın doğrulanmış
+bundle'ındaki `nginx.production.conf` dosyasını salt-okunur bağlar.
 
 ## Cloudflare hazırlığı
 
@@ -159,20 +168,21 @@ docker image inspect --format '{{index .RepoDigests 0}}' docker.io/cloudflare/cl
 
 ## Manuel preflight ve deploy
 
-Publish artifact'inden gelen API/web satırlarına onaylanmış cloudflared digest
-satırını ekleyip `release.env` oluşturun. Sonra root olmayan deploy hesabıyla:
+Publish artifact'inden gelen API/web satırlarına onaylanmış cloudflared digest ve
+bundle'ın tam commit SHA değerini ekleyip `release.env` oluşturun. Önce ilgili
+commit'in allowlist ile sınırlı bundle'ını workflow ile aynı biçimde
+`deploy/releases/<commit-sha>` altına kurun. Sonra root olmayan deploy hesabıyla:
 
 ```bash
-/srv/internship-tracker/deploy/scripts/preflight.sh \
+/srv/internship-tracker/deploy/releases/<commit-sha>/scripts/preflight.sh \
   /srv/internship-tracker/release.env \
   /srv/internship-tracker/runtime.env \
-  /srv/internship-tracker/deploy/compose.production.yml \
+  /srv/internship-tracker/deploy/releases/<commit-sha>/compose.production.yml \
   /srv/internship-tracker/state
 
-/srv/internship-tracker/deploy/scripts/deploy.sh \
+/srv/internship-tracker/deploy/releases/<commit-sha>/scripts/deploy.sh \
   /srv/internship-tracker/release.env \
   /srv/internship-tracker/runtime.env \
-  /srv/internship-tracker/deploy/compose.production.yml \
   /srv/internship-tracker/state \
   https://tracker.example.com
 ```
@@ -181,7 +191,8 @@ Deploy sırası preflight, mevcut SQLite volume'undan zorunlu ve tutarlı
 `/app/backup` snapshot'ı, digest pull, `docker compose up --wait`, container içi
 `/ready` smoke ve isteğe bağlı dış HTTPS smoke'tur. Snapshot başarısızsa
 image veya container değiştirilmez. Başarısız candidate varsa
-`state/current.env` image'ları otomatik geri açılır. İlk deploy başarısızsa
+`state/current.env` image'ları, manifestteki `DEPLOY_REVISION` ile seçilen önceki
+Compose ve smoke scriptiyle otomatik geri açılır. İlk deploy başarısızsa
 yarım kalan container'lar volume silmeden durdurulur. Başarılı deploy mevcut
 manifesti `previous.env` yapıp candidate'ı `current.env` olarak atomik kaydeder.
 Henüz `current.env` bulunmayan ilk deployment'ta korunacak mevcut release olmadığı
@@ -197,18 +208,22 @@ export CF_ACCESS_CLIENT_ID_FILE=/srv/internship-tracker/secrets/cf_access_client
 export CF_ACCESS_CLIENT_SECRET_FILE=/srv/internship-tracker/secrets/cf_access_client_secret
 ```
 
-Manuel rollback:
+Manuel rollback'te önce `state/current.env` içindeki `DEPLOY_REVISION` değerini
+okuyup tam olarak o bundle'ın rollback scriptini çalıştırın:
 
 ```bash
-/srv/internship-tracker/deploy/scripts/rollback.sh \
+current_revision=$(awk -F= '$1 == "DEPLOY_REVISION" {print $2}' /srv/internship-tracker/state/current.env)
+/srv/internship-tracker/deploy/releases/$current_revision/scripts/rollback.sh \
   /srv/internship-tracker/runtime.env \
-  /srv/internship-tracker/deploy/compose.production.yml \
   /srv/internship-tracker/state \
   https://tracker.example.com
 ```
 
-Rollback ancak önceki image manifesti pull, readiness ve smoke kontrollerinden
-geçerse `current.env` ile `previous.env` dosyalarını değiştirir. Migration ileri
+Rollback önceki manifestin `DEPLOY_REVISION` bundle'ını doğrular ve yalnız önceki
+image, Compose, nginx ile smoke sözleşmesi birlikte başarıyla çalışırsa
+`current.env` ile `previous.env` dosyalarını değiştirir. Release dizinlerini
+temizlerken en az current ve previous manifestlerinin işaret ettiği iki revision
+korunmalıdır. Migration ileri
 uyumluluğu ayrıca her sürüm değişikliğinde incelenmelidir; bu akış veritabanı
 şemasını geri almaz.
 
@@ -247,9 +262,10 @@ Actions runner'ının registry oturumu production hosta aktarılmaz. Credential'
 
 Production environment'a required reviewer eklenmesi önerilir. Workflow SSH'ta
 `StrictHostKeyChecking=yes`, ayrılmış known-hosts dosyası, tek identity ve batch
-mode kullanır; hedef hesabın UID'sini de uzaktan doğrular. Sunucudaki deploy
-paketi workflow commit'iyle eşleşmelidir; package güncellemesi ayrı, incelenebilir
-bir provisioning işlemidir.
+mode kullanır; hedef hesabın UID'sini de uzaktan doğrular. Deploy job exact event
+SHA'sını checkout eder ve yalnız production Compose/nginx/script allowlist'ini
+taşır. Uzak kurulum arşiv SHA-256 değerini, manifest revision'ını ve tüm girdilerin
+regular file olup symlink olmadığını deploy başlamadan önce yeniden doğrular.
 
 ## İşletim kontrolleri
 

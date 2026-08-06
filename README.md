@@ -204,7 +204,9 @@ Container image'ları Go 1.26, Alpine 3.24, Node 24 LTS ve nginx 1.30 kararlı
 sürüm hattını kullanır. Pull request CI'ı image'ları yayınlamadan build eder;
 `main` push'u ve manuel workflow ise digest sabitli çok mimarili GHCR image'ları
 yayımlar. Korumalı production deployment yalnız manuel `deploy=true` seçimiyle
-çalışır; ayrıntılar deployment runbook'undadır.
+çalışır. Deploy bundle'ı aynı committen yalnız production Compose, nginx ve shell
+script allowlist'iyle üretilir; sunucuda checksum/revision doğrulamasından sonra
+immutable revision dizinine kurulur. Ayrıntılar deployment runbook'undadır.
 
 ## API
 

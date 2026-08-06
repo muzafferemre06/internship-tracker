@@ -6,16 +6,21 @@ SCRIPT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 # shellcheck source=common.sh
 . "$SCRIPT_DIRECTORY/common.sh"
 
-[ "$#" -ge 4 ] && [ "$#" -le 5 ] ||
-    die "usage: deploy.sh RELEASE_ENV RUNTIME_ENV COMPOSE_FILE STATE_DIRECTORY [PUBLIC_ORIGIN]"
+[ "$#" -ge 3 ] && [ "$#" -le 4 ] ||
+    die "usage: deploy.sh RELEASE_ENV RUNTIME_ENV STATE_DIRECTORY [PUBLIC_ORIGIN]"
 
 RELEASE_MANIFEST=$1
 RUNTIME_ENV=$2
-COMPOSE_FILE=$3
-STATE_DIRECTORY=$4
-PUBLIC_ORIGIN=${5:-}
+STATE_DIRECTORY=$3
+PUBLIC_ORIGIN=${4:-}
 CURRENT_MANIFEST=$STATE_DIRECTORY/current.env
 PREVIOUS_MANIFEST=$STATE_DIRECTORY/previous.env
+BUNDLE_DIRECTORY=$(dirname "$SCRIPT_DIRECTORY")
+RELEASES_DIRECTORY=$(dirname "$BUNDLE_DIRECTORY")
+validate_release_manifest "$RELEASE_MANIFEST"
+DEPLOY_REVISION=$(manifest_value "$RELEASE_MANIFEST" DEPLOY_REVISION)
+validate_deploy_bundle "$BUNDLE_DIRECTORY" "$DEPLOY_REVISION"
+COMPOSE_FILE=$BUNDLE_DIRECTORY/compose.production.yml
 
 if [ -n "$PUBLIC_ORIGIN" ]; then
     allowed_origin=$(env_value "$RUNTIME_ENV" ALLOWED_ORIGIN) ||
@@ -40,9 +45,11 @@ snapshot_current_database() {
         return
     fi
     validate_release_manifest "$CURRENT_MANIFEST"
+    current_bundle=$(bundle_for_manifest "$CURRENT_MANIFEST" "$RELEASES_DIRECTORY")
+    current_compose=$current_bundle/compose.production.yml
 
     printf '%s\n' "creating a consistent pre-deployment SQLite snapshot"
-    compose_cmd "$RUNTIME_ENV" "$CURRENT_MANIFEST" "$COMPOSE_FILE" \
+    compose_cmd "$RUNTIME_ENV" "$CURRENT_MANIFEST" "$current_compose" \
         run --rm --no-deps --entrypoint /app/backup api \
         -database /app/data/internship-tracker.db \
         -directory /app/backups
@@ -57,10 +64,13 @@ restore_current() {
 
     printf '%s\n' "candidate failed; restoring current image manifest" >&2
     validate_release_manifest "$CURRENT_MANIFEST"
-    compose_cmd "$RUNTIME_ENV" "$CURRENT_MANIFEST" "$COMPOSE_FILE" pull --quiet &&
-        compose_cmd "$RUNTIME_ENV" "$CURRENT_MANIFEST" "$COMPOSE_FILE" \
+    current_bundle=$(bundle_for_manifest "$CURRENT_MANIFEST" "$RELEASES_DIRECTORY")
+    current_compose=$current_bundle/compose.production.yml
+    compose_cmd "$RUNTIME_ENV" "$CURRENT_MANIFEST" "$current_compose" pull --quiet &&
+        compose_cmd "$RUNTIME_ENV" "$CURRENT_MANIFEST" "$current_compose" \
             up --detach --remove-orphans --wait --wait-timeout 180 &&
-        "$SCRIPT_DIRECTORY/smoke.sh" "$CURRENT_MANIFEST" "$RUNTIME_ENV" "$COMPOSE_FILE" "$PUBLIC_ORIGIN"
+        "$current_bundle/scripts/smoke.sh" \
+            "$CURRENT_MANIFEST" "$RUNTIME_ENV" "$current_compose" "$PUBLIC_ORIGIN"
 }
 
 snapshot_current_database

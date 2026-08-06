@@ -98,7 +98,7 @@ services:
       - "8080"
     volumes:
       - type: bind
-        source: "${NGINX_CONFIG_FILE:?set the production nginx config host path}"
+        source: ./nginx.production.conf
         target: /etc/nginx/conf.d/default.conf
         read_only: true
     tmpfs:

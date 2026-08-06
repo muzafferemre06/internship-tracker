@@ -31,6 +31,11 @@ digest'leriyle, SBOM/provenance ve attestation ile yayımlar. Manuel production
 adımı digest manifestini korumalı environment üzerinden, Cloudflare Tunnel
 arkasındaki host portsuz Compose runtime'ına deploy eder; runtime secret'ları
 repository dışında salt-okunur dosyalardan bağlanır.
+Deploy job aynı event commit'ini sparse checkout ederek yalnız production
+Compose, nginx ve shell scriptlerini checksum doğrulamalı bir bundle olarak
+aktarır. Bundle commit SHA adlı immutable dizine atomik kurulur; image manifesti
+aynı `DEPLOY_REVISION` değerini taşıdığı için otomatik recovery ve manuel rollback
+her image setini kendi revision'ındaki Compose ve smoke sözleşmesiyle çalıştırır.
 
 Kaynak ve aday profili ayarları `internal/config` tarafından katı biçimde
 doğrulanır. Bilinmeyen JSON alanları kabul edilmez; böylece yazım hataları

@@ -23,7 +23,7 @@ require_absolute_path "$STATE_DIRECTORY" "state directory"
 [ -d "$STATE_DIRECTORY" ] && [ -w "$STATE_DIRECTORY" ] ||
     die "state directory must already exist and be writable: $STATE_DIRECTORY"
 
-for command_name in awk curl docker env grep id mktemp sed; do
+for command_name in awk basename curl dirname docker env find grep id mktemp sed stat; do
     command -v "$command_name" >/dev/null 2>&1 || die "required command is missing: $command_name"
 done
 docker info >/dev/null 2>&1 || die "the non-root operator cannot reach the Docker daemon"
@@ -47,7 +47,7 @@ allowed_origin=$(env_value "$RUNTIME_ENV" ALLOWED_ORIGIN) || die "duplicate ALLO
 printf '%s\n' "$allowed_origin" | grep -Eq '^https://[^/?#]+$' ||
     die "ALLOWED_ORIGIN must be a path-free HTTPS origin"
 
-for path_key in CANDIDATE_PROFILE_FILE SOURCES_FILE NGINX_CONFIG_FILE CLOUDFLARE_TUNNEL_TOKEN_FILE; do
+for path_key in CANDIDATE_PROFILE_FILE SOURCES_FILE CLOUDFLARE_TUNNEL_TOKEN_FILE; do
     host_path=$(env_value "$RUNTIME_ENV" "$path_key") || die "duplicate $path_key in $RUNTIME_ENV"
     [ -n "$host_path" ] || die "$path_key is missing from $RUNTIME_ENV"
     require_absolute_path "$host_path" "$path_key"
