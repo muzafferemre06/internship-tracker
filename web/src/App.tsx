@@ -9,6 +9,8 @@ import {
   type ApplicationStatus,
   type Listing,
 } from "./lib/listings";
+import { listingIDFromURL, urlWithListing } from "./lib/navigation";
+import { disablePush, enablePush, getPushStatus, type PushStatus } from "./lib/push";
 
 type ManualCheck = {
   source_id: string;
@@ -91,6 +93,14 @@ const emptyApplication: ApplicationForm = {
   notes: "",
 };
 
+const pushStatusLabels: Record<PushStatus | "loading", string> = {
+  loading: "Bildirim durumu kontrol ediliyor…",
+  unsupported: "Bu cihazda bildirim kullanılamıyor.",
+  denied: "Bildirim izni tarayıcıda engellenmiş.",
+  subscribed: "Yeni uygun ilan bildirimleri açık.",
+  unsubscribed: "Yeni ilan bildirimleri kapalı.",
+};
+
 export default function App() {
   const [dashboard, setDashboard] = useState<DashboardResponse>(emptyDashboard);
   const [message, setMessage] = useState("Dashboard yükleniyor…");
@@ -99,9 +109,28 @@ export default function App() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [application, setApplication] = useState<ApplicationForm>(emptyApplication);
+  const [pushStatus, setPushStatus] = useState<PushStatus | "loading">("loading");
+  const [pushBusy, setPushBusy] = useState(false);
 
   useEffect(() => {
     void loadDashboard();
+
+    const listingID = listingIDFromURL(window.location.href);
+    if (listingID) void openListingByID(listingID);
+
+    const handlePopState = () => {
+      const nextListingID = listingIDFromURL(window.location.href);
+      if (nextListingID) void openListingByID(nextListingID);
+      else setSelected(null);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    void getPushStatus()
+      .then(setPushStatus)
+      .catch(() => setPushStatus("unsupported"));
   }, []);
 
   async function loadDashboard() {
@@ -139,10 +168,14 @@ export default function App() {
   }
 
   async function openListing(listing: Listing) {
+    await openListingByID(listing.id, listing.company, true);
+  }
+
+  async function openListingByID(listingID: string, company?: string, updateURL = false) {
     setDetailLoading(true);
-    setMessage(`${listing.company} ilanı yükleniyor…`);
+    setMessage(company ? `${company} ilanı yükleniyor…` : "İlan yükleniyor…");
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/listings/${encodeURIComponent(listing.id)}`);
+      const response = await fetch(`${apiBaseUrl}/api/v1/listings/${encodeURIComponent(listingID)}`);
       if (!response.ok) throw new Error(`İlan yüklenemedi (HTTP ${response.status}).`);
       const detail = (await response.json()) as ListingDetail;
       setSelected(detail);
@@ -152,11 +185,40 @@ export default function App() {
         interviewAt: toDateTimeLocal(detail.application?.interview_at),
         notes: detail.application?.notes ?? "",
       });
+      if (updateURL && listingIDFromURL(window.location.href) !== detail.id) {
+        window.history.pushState(null, "", urlWithListing(window.location.href, detail.id));
+      }
       setMessage("İlan ayrıntıları hazır.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "İlan yüklenemedi.");
     } finally {
       setDetailLoading(false);
+    }
+  }
+
+  function closeListing() {
+    setSelected(null);
+    window.history.replaceState(null, "", urlWithListing(window.location.href, null));
+  }
+
+  async function togglePush() {
+    if (pushStatus === "loading" || pushStatus === "unsupported" || pushStatus === "denied") return;
+    setPushBusy(true);
+    try {
+      if (pushStatus === "subscribed") {
+        await disablePush(apiBaseUrl);
+        setPushStatus("unsubscribed");
+        setMessage("Yeni ilan bildirimleri kapatıldı.");
+      } else {
+        await enablePush(apiBaseUrl);
+        setPushStatus("subscribed");
+        setMessage("Yeni uygun ilan bildirimleri açıldı.");
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Bildirim tercihi güncellenemedi.");
+      setPushStatus(await getPushStatus().catch(() => "unsupported"));
+    } finally {
+      setPushBusy(false);
     }
   }
 
@@ -204,9 +266,21 @@ export default function App() {
           <h1>Staj Takip</h1>
           <p className="muted">İlanı bul, kararını ver, başvuru tarihlerini tek yerde tut.</p>
         </div>
-        <button type="button" onClick={startScan} disabled={scanning}>
-          {scanning ? "Taranıyor…" : "Taramayı başlat"}
-        </button>
+        <div className="hero-actions">
+          <button
+            className="notification-button"
+            type="button"
+            aria-pressed={pushStatus === "subscribed"}
+            onClick={togglePush}
+            disabled={pushBusy || pushStatus === "loading" || pushStatus === "unsupported" || pushStatus === "denied"}
+          >
+            {pushBusy ? "Güncelleniyor…" : pushStatus === "subscribed" ? "Bildirimleri kapat" : "Bildirimleri aç"}
+          </button>
+          <span className="notification-state">{pushStatusLabels[pushStatus]}</span>
+          <button type="button" onClick={startScan} disabled={scanning}>
+            {scanning ? "Taranıyor…" : "Taramayı başlat"}
+          </button>
+        </div>
       </header>
 
       <div className="status-row">
@@ -261,10 +335,10 @@ export default function App() {
 
       {selected ? (
         <div className="detail-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.currentTarget === event.target) setSelected(null);
+          if (event.currentTarget === event.target) closeListing();
         }}>
           <aside className="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title">
-            <button className="close-button" type="button" aria-label="İlan detayını kapat" onClick={() => setSelected(null)}>×</button>
+            <button className="close-button" type="button" aria-label="İlan detayını kapat" onClick={closeListing}>×</button>
             <p className="eyebrow dark">{selected.company}</p>
             <h2 id="detail-title">{selected.title}</h2>
             <div className="chips">

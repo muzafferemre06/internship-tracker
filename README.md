@@ -214,6 +214,15 @@ zaman damgası veya `null` olmalıdır. Durum; `incelenecek`, `basvuruldu`,
 `sinav_mulakat`, `olumlu` ya da `olumsuz` değerlerinden biridir. API ham ilan
 metnini detay yanıtına koymaz.
 
+Bildirim kontrolü tarayıcı iznini yalnız kullanıcının düğmeye dokunmasıyla ister.
+Abonelik açılıp kapatılabilir; tarayıcı desteği veya reddedilmiş izin ayrı durum
+olarak gösterilir. Web Push production'da HTTPS ve desteklenen tarayıcı/PWA
+kurulumu gerektirir (localhost geliştirme istisnasıdır). Bildirime dokunmak
+`?listing=<id>` deep-link'iyle doğru detay panelini açar; açık bir PWA penceresi
+varsa yeni pencere çoğaltmak yerine o pencere yönlendirilip öne getirilir.
+Service worker yalnız aynı-origin hedefleri kabul eder ve event `tag` değeriyle
+aynı bildirimin görünür tekrarını bastırır.
+
 Kariyer.net kaynakları aynı domain erişim bütçesini paylaşır. Başarılı veya
 başlatılmış iki Kariyer.net taraması arasında en az 24 saat bırakılır. İlk
 403/429/challenge yanıtı kalan Kariyer.net profillerini çağırmadan durdurur;

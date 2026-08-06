@@ -160,6 +160,14 @@ Typecheck; dashboard, detay ve başvuru formu API sözleşmelerinin React kullan
 uyumunu doğrular. Production build responsive dashboard, detay paneli ve formu
 aynı PWA bundle'ında üretir.
 
+Faz 5 frontend helper testleri VAPID public key'in `Uint8Array` dönüşümünü,
+izin yalnız kullanıcı eyleminde istendiğinde subscribe olmayı, browser
+subscription JSON'unun PUT ile saklanmasını, backend hatasında yeni aboneliğin
+geri alınmasını, DELETE + unsubscribe sırasını ve `?listing=<id>` URL
+ekleme/temizleme davranışını mock runtime/fetch ile doğrular. Service worker
+ayrıca `node --check` ile sözdizimi kontrolünden geçer; gerçek push servisi veya
+tarayıcı notification ağı normal testlerde kullanılmaz.
+
 `internal/acceptance/phase4_test.go`, gerçek migration/SQLite ile analizli ilan
 oluşturur; üretim HTTP handler'ından detayı okur, RFC3339 tarihli başvuru kaydını
 günceller ve son dashboard yanıtında aktif başvuruyu, yaklaşan tarihi ve manuel

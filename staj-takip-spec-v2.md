@@ -659,6 +659,13 @@ HTTP handler'ı üzerinden ağ çağrısı olmadan doğrular.
 Çıkış kriteri: Kullanıcı uygulamayı açmadan zamanlanmış tarama çalışır;
 birincil şirketteki yeni uygun staj ilanı PWA push bildirimi üretir.
 
+Uygulanan doğrulama: Process-içi cron scheduler ve tarama kilidi; analizle aynı
+SQLite transaction'ında versionlanmış outbox/dedup; cihaz bazlı Web Push
+delivery/retry/410 temizliği; kullanıcı eylemiyle PWA aboneliği ve doğru ilanı
+açan aynı-origin deep-link fixture/fake testlerle tamamlandı. Faz 5'in bütününün
+kapanması için production barındırma/güvenli erişim, image publish/deploy-smoke-
+rollback, offsite backup ve secret yönetimi kanıtları ayrıca tamamlanmalıdır.
+
 SQLite yedekleme, production'da açıkça etkinleştirilen günlük bir süreç olmalı;
 çalışan SQLite dosyasının ham kopyası yerine SQLite'ın tutarlı snapshot yöntemi
 kullanılmalıdır. Yedekler private dosya izinleriyle saklanmalı, sınırlı retention

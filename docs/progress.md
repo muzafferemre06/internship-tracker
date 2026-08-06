@@ -44,6 +44,12 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
   HTTP `409` davranışı
 - Production'da açıkça etkinleşen günlük SQLite `VACUUM INTO` snapshot'ı,
   bütünlük doğrulaması, private izinler ve sınırlı retention
+- Analizle aynı SQLite transaction'ında oluşan versionlanmış bildirim outbox'ı,
+  cihaz bazlı delivery ve tekrar taramada bildirim dedup'ı
+- Strict HTTPS abonelik API'si, VAPID/RFC 8291 Web Push göndericisi, sınırlı
+  retry ve 404/410 cihaz temizliği
+- Kullanıcı hareketiyle açılıp kapanan PWA bildirim aboneliği, güvenli service
+  worker payload'ı ve doğru ilan detayını açan `?listing=<id>` deep-link'i
 
 ## Doğrulanan çıkış kriterleri
 
@@ -73,11 +79,17 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 - Backup testi geçici SQLite snapshot'ının kaynak sonradan değişse bile
   restore edilebildiğini; integrity, `0700`/`0600` izinleri ve retention
   temizliğini doğrular.
+- RFC 8291 resmî ciphertext vektörü, doğrulanabilir RFC 8292 ES256 JWT, fake
+  multi-device sender ve gerçek SQLite delivery testleri ağsız geçer.
+- Faz 5 fixture kabulü primary/açık/ilgili/uygun ilanı iki taramada tek outbox
+  olayı ve tek deep-linked fake push olarak teslim eder.
+- PWA push/navigation helper testleri, TypeScript typecheck ve production build
+  geçer; service worker yalnız aynı-origin hedefi açar.
 
 ## Sıradaki iş
 
-Faz 5 otomatik çalışma ve PWA push'tır. Runtime/CI temeli, güvenli process-içi
-zamanlanmış tarama ve günlük SQLite snapshot/retention tamamlandı. Sıradaki dilim
-barındırma/erişim kararını kaydetmek ve Web Push abonelik/dedup akışını
-uygulamaktır; image publish, deployment, offsite backup otomasyonu ve secret
-yönetimi henüz CI'a eklenmedi.
+Faz 5'in runtime/CI temeli, güvenli process-içi zamanlanmış taraması, günlük
+SQLite snapshot/retention'ı ve uçtan uca Web Push abonelik/dedup akışı tamamlandı.
+Sıradaki dilim barındırma ve güvenli erişim kararını kaydetmek; image publish,
+deployment/smoke/rollback, offsite backup otomasyonu ve production secret
+yönetimini CI/deployment akışına eklemektir.

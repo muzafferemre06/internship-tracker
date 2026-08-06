@@ -78,6 +78,14 @@ yalnızca HTTPS, credential/fragment içermeyen ve localhost/private IP olmayan
 adresler kabul edilir. Payload; şirket/ilan başlığı ve iç listing deep-link'iyle
 sınırlıdır, aday profili, notlar, ham ilan metni ve resmî dış URL'yi taşımaz.
 
+PWA bildirim iznini sayfa yüklenirken istemez. Kullanıcı eylemi public VAPID
+key'i backend'den alır, service worker kaydındaki `PushManager` aboneliğini
+idempotent API'ye yollar veya kapatma sırasında hem backend kaydını hem tarayıcı
+aboneliğini kaldırır. `?listing=<id>` aynı dashboard bundle'ında ilan detayını
+yükler; kart açma/kapama ve browser history aynı URL sözleşmesini paylaşır.
+Service worker payload metinlerini sınırlar, dış origin URL'lerini `/` hedefine
+indirger ve önce mevcut same-origin pencereyi navigate/focus eder.
+
 ## Zamanlanmış tarama ve eşzamanlılık
 
 `cmd/api`, HTTP sunucusunu dinlemeye almadan önce `SCAN_SCHEDULE` için beş alanlı

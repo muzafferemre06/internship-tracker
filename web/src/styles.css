@@ -51,6 +51,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .hero button { flex: 0 0 auto; color: #073b32; background: #d7ffef; }
+.hero-actions { display: grid; grid-template-columns: auto auto; align-items: center; gap: 0.55rem; }
+.notification-button { border: 1px solid rgba(215, 255, 239, 0.62); color: white !important; background: transparent !important; }
+.notification-state { grid-column: 1 / -1; color: #b9ded3; font-size: 0.76rem; text-align: right; }
 h1, h2, h3, p { margin-top: 0; }
 h1 { margin-bottom: 0.35rem; font-size: clamp(2rem, 7vw, 3.5rem); line-height: 1; }
 h2 { margin-bottom: 0; font-size: 1.15rem; }
@@ -145,6 +148,8 @@ h3 { margin-bottom: 0.8rem; }
   .shell { width: min(100% - 1rem, 1120px); padding-top: 0.5rem; }
   .hero { align-items: stretch; flex-direction: column; border-radius: 1rem; }
   .hero button { width: 100%; }
+  .hero-actions { grid-template-columns: 1fr; }
+  .notification-state { grid-column: auto; text-align: center; }
   .status-row { align-items: flex-start; flex-direction: column; justify-content: center; padding: 0.75rem 0; }
   .metrics { grid-template-columns: 1fr 1fr; }
   .dashboard-grid { grid-template-columns: 1fr; }
