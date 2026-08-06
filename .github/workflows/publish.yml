@@ -1,0 +1,343 @@
+name: Publish production images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy the published commit to the production environment
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  backend-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: true
+
+      - name: Verify backend
+        run: |
+          set -euo pipefail
+          test -z "$(gofmt -l $(git ls-files '*.go'))"
+          go vet ./...
+          go test -race ./...
+          go build ./cmd/api
+
+  frontend-gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify frontend
+        run: |
+          set -euo pipefail
+          npm test
+          npm audit --audit-level=high
+          npm run build
+
+  publish:
+    needs: [backend-gate, frontend-gate]
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: api
+            dockerfile: deploy/backend.Dockerfile
+          - component: web
+            dockerfile: deploy/frontend.Dockerfile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve lowercase image name
+        id: image
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: |
+          set -euo pipefail
+          repository="${GITHUB_REPOSITORY,,}"
+          echo "name=ghcr.io/${repository}/${COMPONENT}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve immutable commit tag
+        id: existing
+        env:
+          IMAGE_NAME: ${{ steps.image.outputs.name }}
+        run: |
+          set -euo pipefail
+          if docker buildx imagetools inspect "${IMAGE_NAME}:${GITHUB_SHA}" >/dev/null 2>&1; then
+            digest=$(docker buildx imagetools inspect "${IMAGE_NAME}:${GITHUB_SHA}" | \
+              awk '$1 == "Digest:" { print $2; exit }')
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "digest=$digest" >> "$GITHUB_OUTPUT"
+            echo "Reusing immutable commit tag ${IMAGE_NAME}:${GITHUB_SHA}."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and publish multi-platform image
+        id: build
+        if: steps.existing.outputs.exists != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image.outputs.name }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=publish-${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=publish-${{ matrix.component }}
+
+      - name: Attest published image digest
+        if: steps.existing.outputs.exists != 'true'
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Record digest
+        env:
+          COMPONENT: ${{ matrix.component }}
+          DIGEST: ${{ steps.build.outputs.digest || steps.existing.outputs.digest }}
+          IMAGE_NAME: ${{ steps.image.outputs.name }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/published-digests"
+          printf '%s_IMAGE=%s@%s\n' "${COMPONENT^^}" "$IMAGE_NAME" "$DIGEST" \
+            > "$RUNNER_TEMP/published-digests/${COMPONENT}.env"
+
+      - name: Upload digest record
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.component }}
+          path: ${{ runner.temp }}/published-digests/${{ matrix.component }}.env
+          if-no-files-found: error
+          retention-days: 14
+
+  release-manifest:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download digest records
+        uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+
+      - name: Assemble published image manifest
+        run: |
+          set -euo pipefail
+          api_record=$(cat "$RUNNER_TEMP/digests/api.env")
+          web_record=$(cat "$RUNNER_TEMP/digests/web.env")
+          [[ "$api_record" =~ ^API_IMAGE=.+@sha256:[0-9a-f]{64}$ ]]
+          [[ "$web_record" =~ ^WEB_IMAGE=.+@sha256:[0-9a-f]{64}$ ]]
+          printf '%s\n%s\n' "$api_record" "$web_record" > "$RUNNER_TEMP/published-images.env"
+
+      - name: Upload published image manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-images-${{ github.sha }}
+          path: ${{ runner.temp }}/published-images.env
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy:
+    needs: release-manifest
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - name: Check production deployment configuration
+        id: gate
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+          DEPLOY_DIRECTORY: ${{ vars.PRODUCTION_DEPLOY_DIRECTORY }}
+          RUNTIME_ENV: ${{ vars.PRODUCTION_RUNTIME_ENV_PATH }}
+          STATE_DIRECTORY: ${{ vars.PRODUCTION_STATE_DIRECTORY }}
+          PUBLIC_ORIGIN: ${{ vars.PRODUCTION_PUBLIC_ORIGIN }}
+          CLOUDFLARED_IMAGE: ${{ vars.PRODUCTION_CLOUDFLARED_IMAGE }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$DEPLOY_HOST" && -n "$DEPLOY_USER" && -n "$DEPLOY_KEY" &&
+                -n "$DEPLOY_KNOWN_HOSTS" && -n "$DEPLOY_DIRECTORY" &&
+                -n "$RUNTIME_ENV" && -n "$STATE_DIRECTORY" &&
+                -n "$PUBLIC_ORIGIN" && -n "$CLOUDFLARED_IMAGE" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Production deployment skipped because its protected secrets or variables are incomplete."
+          fi
+
+      - name: Download published image manifest
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: production-images-${{ github.sha }}
+          path: ${{ runner.temp }}/release
+
+      - name: Complete and validate release manifest
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          CLOUDFLARED_IMAGE: ${{ vars.PRODUCTION_CLOUDFLARED_IMAGE }}
+        run: |
+          set -euo pipefail
+          [[ "$CLOUDFLARED_IMAGE" =~ ^[^[:space:]@]+@sha256:[0-9a-f]{64}$ ]]
+          printf 'CLOUDFLARED_IMAGE=%s\n' "$CLOUDFLARED_IMAGE" \
+            >> "$RUNNER_TEMP/release/published-images.env"
+          test "$(wc -l < "$RUNNER_TEMP/release/published-images.env")" -eq 3
+
+      - name: Configure strict SSH client
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+          DEPLOY_PORT: ${{ vars.PRODUCTION_SSH_PORT || '22' }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_HOST" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ && "$DEPLOY_USER" != root ]]
+          [[ "$DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]] && (( DEPLOY_PORT >= 1 && DEPLOY_PORT <= 65535 ))
+
+          ssh_directory="$RUNNER_TEMP/tracker-ssh"
+          mkdir -m 700 "$ssh_directory"
+          printf '%s\n' "$DEPLOY_KEY" > "$ssh_directory/id"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_directory/known_hosts"
+          chmod 600 "$ssh_directory/id" "$ssh_directory/known_hosts"
+
+          known_host="$DEPLOY_HOST"
+          if [[ "$DEPLOY_PORT" != 22 ]]; then
+            known_host="[$DEPLOY_HOST]:$DEPLOY_PORT"
+          fi
+          ssh-keygen -F "$known_host" -f "$ssh_directory/known_hosts" >/dev/null
+
+          {
+            echo "Host production"
+            echo "  HostName $DEPLOY_HOST"
+            echo "  User $DEPLOY_USER"
+            echo "  Port $DEPLOY_PORT"
+            echo "  IdentityFile $ssh_directory/id"
+            echo "  UserKnownHostsFile $ssh_directory/known_hosts"
+            echo "  StrictHostKeyChecking yes"
+            echo "  IdentitiesOnly yes"
+            echo "  BatchMode yes"
+          } > "$ssh_directory/config"
+          chmod 600 "$ssh_directory/config"
+
+      - name: Deploy digest manifest
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          DEPLOY_DIRECTORY: ${{ vars.PRODUCTION_DEPLOY_DIRECTORY }}
+          RUNTIME_ENV: ${{ vars.PRODUCTION_RUNTIME_ENV_PATH }}
+          STATE_DIRECTORY: ${{ vars.PRODUCTION_STATE_DIRECTORY }}
+          PUBLIC_ORIGIN: ${{ vars.PRODUCTION_PUBLIC_ORIGIN }}
+          ACCESS_ID_FILE: ${{ vars.PRODUCTION_CF_ACCESS_CLIENT_ID_FILE }}
+          ACCESS_SECRET_FILE: ${{ vars.PRODUCTION_CF_ACCESS_CLIENT_SECRET_FILE }}
+        run: |
+          set -euo pipefail
+          safe_path='^/[A-Za-z0-9._/-]+$'
+          [[ "$DEPLOY_DIRECTORY" =~ $safe_path && "$DEPLOY_DIRECTORY" != *'/../'* ]]
+          [[ "$RUNTIME_ENV" =~ $safe_path && "$RUNTIME_ENV" != *'/../'* ]]
+          [[ "$STATE_DIRECTORY" =~ $safe_path && "$STATE_DIRECTORY" != *'/../'* ]]
+          [[ "$PUBLIC_ORIGIN" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?/?$ ]]
+          if [[ -n "$ACCESS_ID_FILE" || -n "$ACCESS_SECRET_FILE" ]]; then
+            [[ "$ACCESS_ID_FILE" =~ $safe_path && "$ACCESS_ID_FILE" != *'/../'* ]]
+            [[ "$ACCESS_SECRET_FILE" =~ $safe_path && "$ACCESS_SECRET_FILE" != *'/../'* ]]
+          fi
+          access_id_arg=${ACCESS_ID_FILE:--}
+          access_secret_arg=${ACCESS_SECRET_FILE:--}
+
+          ssh_config="$RUNNER_TEMP/tracker-ssh/config"
+          incoming_manifest="$STATE_DIRECTORY/incoming-${GITHUB_SHA}.env"
+          scp -F "$ssh_config" "$RUNNER_TEMP/release/published-images.env" \
+            "production:$incoming_manifest"
+
+          ssh -F "$ssh_config" production sh -s -- \
+            "$DEPLOY_DIRECTORY" "$RUNTIME_ENV" "$STATE_DIRECTORY" \
+            "$incoming_manifest" "$PUBLIC_ORIGIN" \
+            "$access_id_arg" "$access_secret_arg" <<'REMOTE'
+          set -eu
+          deploy_directory=$1
+          runtime_env=$2
+          state_directory=$3
+          incoming_manifest=$4
+          public_origin=$5
+          access_id_file=$6
+          access_secret_file=$7
+          [ "$access_id_file" != - ] || access_id_file=
+          [ "$access_secret_file" != - ] || access_secret_file=
+          [ "$(id -u)" -ne 0 ] || {
+              printf '%s\n' "refusing to deploy as root" >&2
+              exit 1
+          }
+          if [ -n "$access_id_file" ]; then
+              export CF_ACCESS_CLIENT_ID_FILE=$access_id_file
+              export CF_ACCESS_CLIENT_SECRET_FILE=$access_secret_file
+          fi
+          exec "$deploy_directory/scripts/deploy.sh" \
+              "$incoming_manifest" "$runtime_env" \
+              "$deploy_directory/compose.production.yml" \
+              "$state_directory" "$public_origin"
+          REMOTE

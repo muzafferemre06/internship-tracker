@@ -22,8 +22,11 @@ WEB_IMAGE=ghcr.io/owner/internship_tracker/web@sha256:<64-hex>
 CLOUDFLARED_IMAGE=docker.io/cloudflare/cloudflared@sha256:<64-hex>
 ```
 
-Deploy preflight'i etiketi veya eksik digest'i reddeder. API/web digest kayıtları,
-seçilmiş `cloudflared` digest'i eklenmeden production manifesti değildir.
+Deploy preflight'i etiketi veya eksik digest'i reddeder. `publish.yml`, API ve web
+image'larını `linux/amd64` ile `linux/arm64` için tam commit SHA etiketiyle bir kez
+yayımlar; var olan commit etiketini ezmez. BuildKit provenance/SBOM ve GitHub
+artifact attestation image digest'ine bağlanır. Artifact içindeki API/web digest
+kayıtları, seçilmiş `cloudflared` digest'i eklenmeden production manifesti değildir.
 
 ## Önkoşullar
 
@@ -153,9 +156,8 @@ docker image inspect --format '{{index .RepoDigests 0}}' docker.io/cloudflare/cl
 
 ## Manuel preflight ve deploy
 
-Güvenilen registry kayıtlarından gelen API/web satırlarına onaylanmış cloudflared
-digest satırını ekleyip `release.env` oluşturun. Sonra root olmayan deploy
-hesabıyla:
+Publish artifact'inden gelen API/web satırlarına onaylanmış cloudflared digest
+satırını ekleyip `release.env` oluşturun. Sonra root olmayan deploy hesabıyla:
 
 ```bash
 /srv/internship-tracker/deploy/scripts/preflight.sh \
@@ -201,6 +203,39 @@ geçerse `current.env` ile `previous.env` dosyalarını değiştirir. Migration 
 uyumluluğu ayrıca her sürüm değişikliğinde incelenmelidir; bu akış veritabanı
 şemasını geri almaz.
 
+## GitHub production environment
+
+Workflow yalnız `main` push ve elle `workflow_dispatch` ile image yayınlar; pull
+request secret'larına erişmez ve image push etmez. Gerçek deploy yalnız dispatch
+ekranında `deploy=true` seçilirse ve aşağıdaki protected production environment
+değerlerinin tamamı varsa çalışır.
+
+Secrets:
+
+- `PRODUCTION_HOST`
+- `PRODUCTION_USER` (root olamaz)
+- `PRODUCTION_SSH_PRIVATE_KEY`
+- `PRODUCTION_KNOWN_HOSTS` (`ssh-keyscan` ile workflow içinde üretilmez; önceden
+  bağımsız kanaldan doğrulanmış host key kaydıdır)
+
+Variables:
+
+- `PRODUCTION_SSH_PORT` (yoksa `22`)
+- `PRODUCTION_DEPLOY_DIRECTORY`
+- `PRODUCTION_RUNTIME_ENV_PATH`
+- `PRODUCTION_STATE_DIRECTORY`
+- `PRODUCTION_PUBLIC_ORIGIN`
+- `PRODUCTION_CLOUDFLARED_IMAGE` (digest sabitli tam reference)
+- `PRODUCTION_CF_ACCESS_CLIENT_ID_FILE` ve
+  `PRODUCTION_CF_ACCESS_CLIENT_SECRET_FILE` (dış smoke Access service token
+  kullanıyorsa sunucudaki mutlak dosya yolları; ikisi birlikte verilir)
+
+Production environment'a required reviewer eklenmesi önerilir. Workflow SSH'ta
+`StrictHostKeyChecking=yes`, ayrılmış known-hosts dosyası, tek identity ve batch
+mode kullanır; hedef hesabın UID'sini de uzaktan doğrular. Sunucudaki deploy
+paketi workflow commit'iyle eşleşmelidir; package güncellemesi ayrı, incelenebilir
+bir provisioning işlemidir.
+
 ## İşletim kontrolleri
 
 Her deploy sonrasında en az şunları kaydedin:
@@ -218,5 +253,7 @@ ve benzeri komutlar bu runbook'un parçası değildir.
 
 Cloudflare Tunnel'ın outbound-only modeli ve token kapsamı için Cloudflare'ın
 [Tunnel dokümanı](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/)
-ile [token-file parametresi](https://developers.cloudflare.com/tunnel/advanced/run-parameters/#token-file)
+ile [token-file parametresi](https://developers.cloudflare.com/tunnel/advanced/run-parameters/#token-file),
+container attestation izinleri için GitHub'ın
+[artifact attestation rehberi](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations)
 esas alınır.
