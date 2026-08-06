@@ -88,7 +88,11 @@ sudo install -m 0640 -o 100 -g <deploy-gid> candidate-profile.json /srv/internsh
 sudo install -m 0640 -o 100 -g <deploy-gid> sources.json /srv/internship-tracker/config/sources.json
 sudo install -d -m 0750 -o 100 -g <deploy-gid> /srv/internship-tracker/secrets/api
 sudo install -m 0640 -o 100 -g <deploy-gid> web_push_private_key /srv/internship-tracker/secrets/api/web_push_private_key
+# Yalnız seçilen dış sağlayıcının anahtarını kurun:
+sudo install -m 0640 -o 100 -g <deploy-gid> gemini_api_key /srv/internship-tracker/secrets/api/gemini_api_key
+# veya: sudo install -m 0640 -o 100 -g <deploy-gid> openrouter_api_key /srv/internship-tracker/secrets/api/openrouter_api_key
 sudo install -m 0600 -o <deploy-uid> -g <deploy-gid> cloudflare_tunnel_token /srv/internship-tracker/secrets/cloudflare_tunnel_token
+sudo install -m 0600 -o <deploy-uid> -g <deploy-gid> runtime.env /srv/internship-tracker/runtime.env
 ```
 
 Secret değerlerini shell history'ye yazmayın. Bir secret manager'dan dosyaya
