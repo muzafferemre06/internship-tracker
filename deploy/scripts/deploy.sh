@@ -17,6 +17,13 @@ PUBLIC_ORIGIN=${5:-}
 CURRENT_MANIFEST=$STATE_DIRECTORY/current.env
 PREVIOUS_MANIFEST=$STATE_DIRECTORY/previous.env
 
+if [ -n "$PUBLIC_ORIGIN" ]; then
+    allowed_origin=$(env_value "$RUNTIME_ENV" ALLOWED_ORIGIN) ||
+        die "duplicate ALLOWED_ORIGIN in $RUNTIME_ENV"
+    [ "${PUBLIC_ORIGIN%/}" = "$allowed_origin" ] ||
+        die "public smoke origin must match ALLOWED_ORIGIN"
+fi
+
 "$SCRIPT_DIRECTORY/preflight.sh" "$RELEASE_MANIFEST" "$RUNTIME_ENV" "$COMPOSE_FILE" "$STATE_DIRECTORY"
 acquire_deploy_lock "$STATE_DIRECTORY"
 
@@ -36,7 +43,7 @@ snapshot_current_database() {
 
     printf '%s\n' "creating a consistent pre-deployment SQLite snapshot"
     compose_cmd "$RUNTIME_ENV" "$CURRENT_MANIFEST" "$COMPOSE_FILE" \
-        run --rm --no-deps api /app/backup \
+        run --rm --no-deps --entrypoint /app/backup api \
         -database /app/data/internship-tracker.db \
         -directory /app/backups
 }

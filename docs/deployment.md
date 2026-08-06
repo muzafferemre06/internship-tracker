@@ -83,8 +83,9 @@ sudo install -m 0600 -o <deploy-uid> -g <deploy-gid> cloudflare_tunnel_token /sr
 
 Secret değerlerini shell history'ye yazmayın. Bir secret manager'dan dosyaya
 aktarırken atomik değişim ve doğru owner/mode uygulayın. API secret dizininde
-yalnız gereken dosyalar bulunabilir. Production backend doğrudan secret env
-değerini kabul etmez; file değişkeni kullanır.
+yalnız gereken dosyalar bulunabilir. Backend doğrudan secret env değerini de
+destekler; ancak bu production deployment paketinin preflight'i doğrudan secret
+değerlerini reddeder ve yalnız `_FILE` değişkenlerini kabul eder.
 
 Deploy paketini ilgili committen sunucuya kopyalayın ve scriptleri executable
 yapın:
@@ -141,8 +142,10 @@ HTTPS ve path içermeyen `ALLOWED_ORIGIN`, backup ve Web Push zorunludur.
    kullanılacak hesabı/politikayı yetkilendirin.
 4. HTTPS redirect ve edge TLS politikasını açın. Origin host portu olmadığı için
    Tunnel'ı devre dışı bırakmak uygulamayı internetten erişilemez bırakır.
-5. Otomatik dış smoke kullanılacaksa en dar kapsamlı Access service token üretin;
-   client ID/secret'ı ayrı `0600` dosyalarda saklayın.
+5. Access arkasındaki hostname'e yapılan otomatik dış smoke için en dar kapsamlı
+   Access service token ve onu kabul eden Service Auth politikası zorunludur;
+   client ID/secret'ı ayrı `0600` dosyalarda saklayın. Service token
+   kullanmayacaksanız `/ready` için açıkça incelenmiş bir bypass politikası gerekir.
 
 Cloudflare, `cloudflared tunnel run --token-file` desteğini 2025.4.0 ve sonrasında
 sağlar. Seçilen image digest'i bu alt sınırdan yeni ve Cloudflare'ın destek
@@ -185,7 +188,9 @@ Henüz `current.env` bulunmayan ilk deployment'ta korunacak mevcut release olmad
 için pre-deploy snapshot adımı atlanır.
 
 Access arkasındaki dış smoke için komuttan önce credential dosya yollarını
-verin; değerler argüman veya process listesine konmaz:
+verin; değerler argüman veya process listesine konmaz. `PUBLIC_ORIGIN`,
+`runtime.env` içindeki `ALLOWED_ORIGIN` ile aynı olmalıdır; deploy scripti
+eşleşmeyi zorunlu kılar:
 
 ```bash
 export CF_ACCESS_CLIENT_ID_FILE=/srv/internship-tracker/secrets/cf_access_client_id
@@ -232,8 +237,13 @@ Variables:
 - `PRODUCTION_PUBLIC_ORIGIN`
 - `PRODUCTION_CLOUDFLARED_IMAGE` (digest sabitli tam reference)
 - `PRODUCTION_CF_ACCESS_CLIENT_ID_FILE` ve
-  `PRODUCTION_CF_ACCESS_CLIENT_SECRET_FILE` (dış smoke Access service token
-  kullanıyorsa sunucudaki mutlak dosya yolları; ikisi birlikte verilir)
+  `PRODUCTION_CF_ACCESS_CLIENT_SECRET_FILE` (Access korumalı dış smoke için
+  sunucudaki mutlak service-token dosya yolları; ikisi birlikte verilir)
+
+GHCR paketleri private ise production host ayrıca yalnız `read:packages`
+eşdeğeri pull erişimi olan registry kimliğiyle oturum açmış olmalıdır. GitHub
+Actions runner'ının registry oturumu production hosta aktarılmaz. Credential'ı
+`runtime.env`, release manifesti veya deploy komut satırına koymayın.
 
 Production environment'a required reviewer eklenmesi önerilir. Workflow SSH'ta
 `StrictHostKeyChecking=yes`, ayrılmış known-hosts dosyası, tek identity ve batch

@@ -44,9 +44,10 @@ services:
       WEB_PUSH_PUBLIC_KEY: "${WEB_PUSH_PUBLIC_KEY:?set the VAPID public key}"
       WEB_PUSH_PRIVATE_KEY_FILE: /run/secrets/web_push_private_key
       WEB_PUSH_SUBJECT: "${WEB_PUSH_SUBJECT:?set the VAPID contact URI}"
-      # Null values keep unused provider variables absent rather than present-but-empty.
-      OPENROUTER_API_KEY_FILE:
-      GEMINI_API_KEY_FILE:
+      # The selected provider's path points at its read-only mounted secret.
+      # Empty values are harmless for the deterministic provider.
+      OPENROUTER_API_KEY_FILE: "${OPENROUTER_API_KEY_FILE:-}"
+      GEMINI_API_KEY_FILE: "${GEMINI_API_KEY_FILE:-}"
     expose:
       - "8080"
     volumes:

@@ -201,9 +201,10 @@ Production compose ayrıca günlük SQLite snapshot'larını `tracker_backups`
 volume'unda tutar; bu volume'u ana veritabanı volume'undan ayrı bir host/offsite
 backup hedefine düzenli olarak dışa aktarmak işletim sorumluluğudur.
 Container image'ları Go 1.26, Alpine 3.24, Node 24 LTS ve nginx 1.30 kararlı
-sürüm hattını kullanır. Image'lar her pull request ve `main` push'ında
-yayınlanmadan yalnızca build edilerek doğrulanır; yayınlama ve deployment daha
-sonraki Faz 5 dilimidir.
+sürüm hattını kullanır. Pull request CI'ı image'ları yayınlamadan build eder;
+`main` push'u ve manuel workflow ise digest sabitli çok mimarili GHCR image'ları
+yayımlar. Korumalı production deployment yalnız manuel `deploy=true` seçimiyle
+çalışır; ayrıntılar deployment runbook'undadır.
 
 ## API
 

@@ -71,6 +71,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate production deployment contract
+        run: deploy/tests/production_contract_test.sh
+
       - name: Build backend image
         uses: docker/build-push-action@v6
         with:

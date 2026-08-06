@@ -7,12 +7,20 @@ tek seferlik `cmd/backup` ise deployment başlamadan önce aynı tutarlı snapsh
 
 ## Snapshot alma
 
-Container içindeki production volume için deployment başlamadan önce çalıştırın:
+Çalışan production release'i için `/srv/internship-tracker` dizininde çalıştırın:
 
 ```bash
-docker compose -f deploy/compose.yml exec api \
+docker compose \
+  --env-file runtime.env \
+  --env-file state/current.env \
+  -f deploy/compose.production.yml \
+  exec api \
   /app/backup -database /app/data/internship-tracker.db -directory /app/backups
 ```
+
+Normal deployment bu işlemi `deploy.sh` içinde zorunlu olarak ve backup
+binary'sini açık entrypoint seçerek yapar. Bu manuel komut yalnız ek snapshot
+gerektiğinde kullanılır.
 
 Komut yalnız var olan, normal bir SQLite dosyasını `mode=rw` ile açar; hatalı
 bir yol nedeniyle boş bir veritabanı oluşturmaz. Adı kullanıcı tarafından
@@ -32,7 +40,11 @@ Bir snapshot'ı production veritabanına yazmadan önce aşağıdaki komutla
 denetleyin:
 
 ```bash
-docker compose -f deploy/compose.yml exec api \
+docker compose \
+  --env-file runtime.env \
+  --env-file state/current.env \
+  -f deploy/compose.production.yml \
+  exec api \
   /app/restorecheck -backup /app/backups/internship-tracker-....db \
   -migrations /app/migrations
 ```
