@@ -19,6 +19,11 @@ type Config struct {
 	GeminiAPIKey         string
 	ScanSchedule         string
 	ScanTimezone         string
+	BackupEnabled        string
+	BackupDirectory      string
+	BackupTime           string
+	BackupTimezone       string
+	BackupRetention      string
 }
 
 func Load() Config {
@@ -42,6 +47,11 @@ func Load() Config {
 		GeminiAPIKey:     os.Getenv("GEMINI_API_KEY"),
 		ScanSchedule:     envOrDefault("SCAN_SCHEDULE", "0 9 * * 1"),
 		ScanTimezone:     envOrDefault("SCAN_TIMEZONE", "Europe/Istanbul"),
+		BackupEnabled:    envOrDefault("BACKUP_ENABLED", "false"),
+		BackupDirectory:  os.Getenv("BACKUP_DIRECTORY"),
+		BackupTime:       envOrDefault("BACKUP_TIME", "02:00"),
+		BackupTimezone:   envOrDefault("BACKUP_TIMEZONE", "Europe/Istanbul"),
+		BackupRetention:  envOrDefault("BACKUP_RETENTION", "7"),
 	}
 }
 

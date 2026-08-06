@@ -94,6 +94,15 @@ fake runner ile doğrular. Orchestrator eşzamanlılık testi bloklayan fake run
 ile ikinci taramanın `ErrScanInProgress` döndürdüğünü; HTTP testi bunun kullanıcıya
 `409` olarak yansıdığını kapsar.
 
+SQLite backup testleri yalnızca geçici dizin ve SQLite kullanır. Disabled
+varsayılanın dizin/dosya üretmediğini; etkin yanlış environment değerlerinin
+startup yapılandırmasında reddedildiğini; günlük saatin IANA timezone'a göre
+hesaplandığını doğrular. Snapshot testi kaynak veritabanını yazdıktan sonra
+`VACUUM INTO` ile backup alır, kaynağa yeni satır ekler, snapshot'ı ayrı SQLite
+bağlantısı olarak açarak ilk durumun restore edilebildiğini kanıtlar. Aynı test
+`integrity_check`, `0700` dizin/`0600` dosya izinleri ve iki kayıtlık retention
+sınırını ağ erişimi olmadan kapsar.
+
 ## Faz 3.5 canlı kabul testi
 
 Gerçek ilan kabul testi normal `go test ./...` akışından ayrılır. Test yalnızca

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/muzaffer/internship-tracker/internal/analyzer"
+	"github.com/muzaffer/internship-tracker/internal/backup"
 	"github.com/muzaffer/internship-tracker/internal/config"
 	"github.com/muzaffer/internship-tracker/internal/database"
 	"github.com/muzaffer/internship-tracker/internal/domain"
@@ -73,6 +74,14 @@ func main() {
 		logger.Error("scan scheduler initialization failed", "error", err)
 		os.Exit(1)
 	}
+	backupService, err := backup.New(db, backup.Config{
+		Enabled: cfg.BackupEnabled, Directory: cfg.BackupDirectory, Time: cfg.BackupTime,
+		Timezone: cfg.BackupTimezone, Retention: cfg.BackupRetention,
+	}, logger)
+	if err != nil {
+		logger.Error("SQLite backup initialization failed", "error", err)
+		os.Exit(1)
+	}
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
@@ -86,10 +95,13 @@ func main() {
 	appContext, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	scanScheduler.Start(appContext)
+	backupService.Start(appContext)
 
 	go func() {
 		logger.Info("api starting", "address", cfg.HTTPAddr, "environment", cfg.AppEnv,
-			"scan_schedule", cfg.ScanSchedule, "scan_timezone", cfg.ScanTimezone)
+			"scan_schedule", cfg.ScanSchedule, "scan_timezone", cfg.ScanTimezone,
+			"backup_enabled", cfg.BackupEnabled, "backup_time", cfg.BackupTime,
+			"backup_timezone", cfg.BackupTimezone, "backup_retention", cfg.BackupRetention)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("api stopped unexpectedly", "error", err)
 			os.Exit(1)
@@ -106,6 +118,10 @@ func main() {
 	}
 	if err := scanScheduler.Wait(ctx); err != nil {
 		logger.Error("scheduled scan shutdown failed", "error", err)
+		os.Exit(1)
+	}
+	if err := backupService.Wait(ctx); err != nil {
+		logger.Error("SQLite backup shutdown failed", "error", err)
 		os.Exit(1)
 	}
 

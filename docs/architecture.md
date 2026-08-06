@@ -10,6 +10,8 @@
 - `internal/orchestrator`: kaynakları izole ederek uçtan uca taramayı yürütür.
 - `internal/scheduler`: doğrulanmış cron/zaman dilimi ile orchestrator'ı process
   içinde zamanlanmış olarak tetikler.
+- `internal/backup`: SQLite destekli snapshot, günlük tetikleme ve sınırlı
+  retention uygular.
 - `internal/httpapi`: PWA'nın kullandığı HTTP uçları.
 - `internal/database`: SQLite bağlantısı ve sıralı migration uygulaması.
 - `web`: backend secret'larına erişmeyen PWA istemcisi.
@@ -35,13 +37,12 @@ tiplerini kullanır. Orchestrator bu portları birleştirir. HTTP ve zamanlanmı
 görevler orchestrator'ı tetikler.
 
 ```text
-HTTP / scheduler
-      |
-      v
-orchestrator ---> scraper adapters
-      |--------> listing analyzer ---> OpenRouter
-      |--------> repository --------> SQLite
-`--------> notifications -----> Web Push
+HTTP / scan scheduler ---> orchestrator ---> scraper adapters
+                             |---------> listing analyzer ---> OpenRouter
+                             |---------> repository --------> SQLite
+backup timer ----------------'                              |
+                                                           `--> consistent snapshot volume
+notifications ---------------------------------------------> Web Push
 ```
 
 ## Zamanlanmış tarama ve eşzamanlılık
@@ -59,6 +60,23 @@ manuel çağrı `ErrScanInProgress` üzerinden HTTP `409` alır, eşzamanlı sch
 context'i iptal eder; scheduler timer'ı ve aktif scheduled run bu context'i
 görür, API shutdown'ı scheduler'ın durmasını en fazla aynı 10 saniyelik bütçe
 içinde bekler.
+
+## SQLite snapshot ve retention
+
+`internal/backup`, etkinleştirildiğinde aynı açık SQLite bağlantısında `VACUUM
+INTO` çalıştırır. Bu, WAL eşlikçi dosyalarını veya ana veritabanı dosyasını ham
+kopyalamadan transactionally consistent bir snapshot üretir. Snapshot önce aynı
+private dizindeki `.partial` dosyasına yazılır, SQLite `integrity_check` ile
+doğrulanır, `0600` izni uygulanır ve atomik rename ile yayımlanır. Dizin `0700`
+olarak zorlanır. Snapshot ismi zaman sıralı olduğundan yalnızca uygulamanın
+`internship-tracker-*.db` dosyaları, `BACKUP_RETENTION` sınırının üstünde en
+eskiden başlayarak temizlenir.
+
+`BACKUP_ENABLED` varsayılan olarak `false` olduğundan geliştirme süreci disk
+çıktısı üretmez. Etkin production kurulumunda dizin, günlük `HH:MM` saati, IANA
+timezone ve pozitif retention değerinin tamamı dinleme öncesinde doğrulanır.
+Ana signal context'i günlük timer'a ve çalışmakta olan `VACUUM INTO` çağrısına
+aktarılır; graceful shutdown bu goroutine'i aynı kapanış bütçesinde bekler.
 
 ## Secret ilkeleri
 

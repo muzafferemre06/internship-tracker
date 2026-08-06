@@ -141,6 +141,9 @@ docker compose -f deploy/compose.yml up --build
 PWA bu kurulumda `http://localhost:8081` adresinden açılır. Compose dosyası
 yerel `configs/candidate-profile.json` ve `configs/sources.json` dosyalarını
 salt okunur bağlar; SQLite verisini adlandırılmış bir volume içinde korur.
+Production compose ayrıca günlük SQLite snapshot'larını `tracker_backups`
+volume'unda tutar; bu volume'u ana veritabanı volume'undan ayrı bir host/offsite
+backup hedefine düzenli olarak dışa aktarmak işletim sorumluluğudur.
 Container image'ları Go 1.26, Alpine 3.24, Node 24 LTS ve nginx 1.30 kararlı
 sürüm hattını kullanır. Image'lar her pull request ve `main` push'ında
 yayınlanmadan yalnızca build edilerek doğrulanır; yayınlama ve deployment daha
@@ -200,6 +203,28 @@ kilidini paylaşır. Çakışan manuel istek `409` döner; zamanlanmış tetikle
 durdurur ve aktif zamanlanmış taramanın context'ini iptal ederek kapanma akışına
 katılır. Scheduler yalnızca uygulama process'i çalışırken görev çalıştırır;
 kesinti sonrası kaçan çalışmayı telafi etmez.
+
+## SQLite yedekleme
+
+Yerel geliştirmede `BACKUP_ENABLED=false` varsayılandır; uygulama yedek dizini
+oluşturmaz ve dosya yazmaz. Production'da backup, `BACKUP_ENABLED=true` ile
+açıkça etkinleştirilmelidir. Etkinken `BACKUP_DIRECTORY` zorunludur;
+`BACKUP_TIME` günlük yerel saati `HH:MM`, `BACKUP_TIMEZONE` IANA zaman dilimini,
+`BACKUP_RETENTION` ise saklanacak günlük snapshot sayısını belirler. Varsayılan
+zaman `02:00`, zaman dilimi `Europe/Istanbul` ve retention `7` gündür.
+
+Geçersiz etkin backup ayarı API dinlemeye başlamadan süreci durdurur. Snapshot,
+çalışan veritabanı dosyasını kopyalamak yerine SQLite'ın `VACUUM INTO` desteğiyle
+üretilir; geçici dosyanın `integrity_check` sonucu `ok` değilse yayımlanmaz.
+Başarılı snapshot atomik olarak yayımlanır, dosya izni `0600`, dizin izni `0700`
+olur ve yalnızca uygulamanın kendi eski snapshot'ları retention sınırını aşınca
+silinir. Kapanış sinyali bekleyen günlük timer'ı ve aktif backup context'ini
+iptal eder.
+
+`deploy/compose.yml`, yedeklemeyi açık ve `/app/backups` için ayrı kalıcı volume
+ile kurar. Bu, host kaybına karşı tek başına yeterli değildir: volume snapshot'ı
+veya şifreli dışa aktarım ayrı bir retention politikasıyla tutulmalı; her deploy
+öncesinde bir snapshot alınmalı ve en az bir restore provası yapılmalıdır.
 
 Model cevabı JSON Schema ile istenir ve backend'de bilinmeyen alanları da reddeden
 aynı katı sözleşmeyle doğrulanır. Bozuk JSON, şema hatası, timeout, 429 ve geçici

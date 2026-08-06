@@ -42,6 +42,8 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
   context'ine bağlı process-içi zamanlanmış tarama
 - Manuel ve zamanlanmış taramaların ortak kilidi; çakışan manuel tarama için
   HTTP `409` davranışı
+- Production'da açıkça etkinleşen günlük SQLite `VACUUM INTO` snapshot'ı,
+  bütünlük doğrulaması, private izinler ve sınırlı retention
 
 ## Doğrulanan çıkış kriterleri
 
@@ -68,10 +70,14 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
   zaman damgalı güvenli kanıt `docs/acceptance/phase-3.5-2026-08-03.md` içinde.
 - Faz 4 fixture kabulü gerçek SQLite ve HTTP handler üzerinden ilan inceleme,
   başvuru güncelleme, tarih sıralaması ve manuel kontrol görünürlüğünü doğrular.
+- Backup testi geçici SQLite snapshot'ının kaynak sonradan değişse bile
+  restore edilebildiğini; integrity, `0700`/`0600` izinleri ve retention
+  temizliğini doğrular.
 
 ## Sıradaki iş
 
-Faz 5 otomatik çalışma ve PWA push'tır. Runtime/CI temeli ile güvenli process-içi
-zamanlanmış tarama tamamlandı. Sıradaki dilim barındırma/erişim kararını kaydetmek
-ve Web Push abonelik/dedup akışını uygulamaktır; image publish, deployment ve
-secret yönetimi henüz CI'a eklenmedi.
+Faz 5 otomatik çalışma ve PWA push'tır. Runtime/CI temeli, güvenli process-içi
+zamanlanmış tarama ve günlük SQLite snapshot/retention tamamlandı. Sıradaki dilim
+barındırma/erişim kararını kaydetmek ve Web Push abonelik/dedup akışını
+uygulamaktır; image publish, deployment, offsite backup otomasyonu ve secret
+yönetimi henüz CI'a eklenmedi.

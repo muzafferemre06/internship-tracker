@@ -8,6 +8,11 @@ func TestLoadUsesDefaults(t *testing.T) {
 	t.Setenv("DATABASE_PATH", "")
 	t.Setenv("SCAN_SCHEDULE", "")
 	t.Setenv("SCAN_TIMEZONE", "")
+	t.Setenv("BACKUP_ENABLED", "")
+	t.Setenv("BACKUP_DIRECTORY", "")
+	t.Setenv("BACKUP_TIME", "")
+	t.Setenv("BACKUP_TIMEZONE", "")
+	t.Setenv("BACKUP_RETENTION", "")
 
 	cfg := Load()
 
@@ -35,6 +40,10 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if cfg.ScanSchedule != "0 9 * * 1" || cfg.ScanTimezone != "Europe/Istanbul" {
 		t.Fatalf("unexpected default scan schedule settings: %#v", cfg)
 	}
+	if cfg.BackupEnabled != "false" || cfg.BackupDirectory != "" || cfg.BackupTime != "02:00" ||
+		cfg.BackupTimezone != "Europe/Istanbul" || cfg.BackupRetention != "7" {
+		t.Fatalf("unexpected default backup settings: %#v", cfg)
+	}
 }
 
 func TestLoadReadsEnvironment(t *testing.T) {
@@ -44,6 +53,11 @@ func TestLoadReadsEnvironment(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
 	t.Setenv("SCAN_SCHEDULE", "30 8 * * 1-5")
 	t.Setenv("SCAN_TIMEZONE", "UTC")
+	t.Setenv("BACKUP_ENABLED", "true")
+	t.Setenv("BACKUP_DIRECTORY", "/var/lib/tracker-backups")
+	t.Setenv("BACKUP_TIME", "03:15")
+	t.Setenv("BACKUP_TIMEZONE", "Europe/Athens")
+	t.Setenv("BACKUP_RETENTION", "14")
 
 	cfg := Load()
 
@@ -52,5 +66,9 @@ func TestLoadReadsEnvironment(t *testing.T) {
 	}
 	if cfg.ScanSchedule != "30 8 * * 1-5" || cfg.ScanTimezone != "UTC" {
 		t.Fatalf("scan schedule environment was not loaded: %#v", cfg)
+	}
+	if cfg.BackupEnabled != "true" || cfg.BackupDirectory != "/var/lib/tracker-backups" ||
+		cfg.BackupTime != "03:15" || cfg.BackupTimezone != "Europe/Athens" || cfg.BackupRetention != "14" {
+		t.Fatalf("backup environment was not loaded: %#v", cfg)
 	}
 }

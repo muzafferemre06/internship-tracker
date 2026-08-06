@@ -41,6 +41,22 @@ func Open(ctx context.Context, path string, migrations fs.FS) (*sql.DB, error) {
 	return db, nil
 }
 
+// Backup creates a transactionally consistent SQLite snapshot using VACUUM INTO.
+// The destination must not exist. Callers are responsible for placing the
+// snapshot atomically and applying their file-permission policy.
+func Backup(ctx context.Context, db *sql.DB, destination string) error {
+	if db == nil {
+		return errors.New("sqlite database is required")
+	}
+	if strings.TrimSpace(destination) == "" {
+		return errors.New("backup destination is required")
+	}
+	if _, err := db.ExecContext(ctx, "VACUUM INTO ?", destination); err != nil {
+		return fmt.Errorf("vacuum sqlite backup into %q: %w", destination, err)
+	}
+	return nil
+}
+
 func prepare(ctx context.Context, db *sql.DB, migrations fs.FS) error {
 	if err := db.PingContext(ctx); err != nil {
 		return fmt.Errorf("ping sqlite database: %w", err)

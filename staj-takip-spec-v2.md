@@ -659,6 +659,13 @@ HTTP handler'ı üzerinden ağ çağrısı olmadan doğrular.
 Çıkış kriteri: Kullanıcı uygulamayı açmadan zamanlanmış tarama çalışır;
 birincil şirketteki yeni uygun staj ilanı PWA push bildirimi üretir.
 
+SQLite yedekleme, production'da açıkça etkinleştirilen günlük bir süreç olmalı;
+çalışan SQLite dosyasının ham kopyası yerine SQLite'ın tutarlı snapshot yöntemi
+kullanılmalıdır. Yedekler private dosya izinleriyle saklanmalı, sınırlı retention
+uygulanmalı, bütünlük kontrolünden geçmeli ve restore edilebilirliği geçici
+dizinli otomatik testle kanıtlanmalıdır. Yerel geliştirme varsayılanı yedek dosyası
+oluşturmamalıdır.
+
 ### Faz 6 — Öncelikli özel kaynaklar
 
 - Akdoğan Tech kaynak araştırması ve adapter

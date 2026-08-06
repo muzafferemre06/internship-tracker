@@ -20,8 +20,14 @@ services:
       LLM_OUTPUT_COST_PER_MILLION_USD: ${LLM_OUTPUT_COST_PER_MILLION_USD:-0}
       SCAN_SCHEDULE: ${SCAN_SCHEDULE:-0 9 * * 1}
       SCAN_TIMEZONE: ${SCAN_TIMEZONE:-Europe/Istanbul}
+      BACKUP_ENABLED: "true"
+      BACKUP_DIRECTORY: /app/backups
+      BACKUP_TIME: ${BACKUP_TIME:-02:00}
+      BACKUP_TIMEZONE: ${BACKUP_TIMEZONE:-Europe/Istanbul}
+      BACKUP_RETENTION: ${BACKUP_RETENTION:-7}
     volumes:
       - tracker_data:/app/data
+      - tracker_backups:/app/backups
       - ../configs/candidate-profile.json:/app/configs/candidate-profile.json:ro
       - ../configs/sources.json:/app/configs/sources.json:ro
     restart: unless-stopped
@@ -38,3 +44,4 @@ services:
 
 volumes:
   tracker_data:
+  tracker_backups:
