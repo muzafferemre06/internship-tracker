@@ -171,7 +171,7 @@ func validateProductionOrigin(value string) error {
 		return fmt.Errorf("ALLOWED_ORIGIN must be an HTTPS origin without a path in production")
 	}
 	host := strings.TrimSuffix(strings.ToLower(origin.Hostname()), ".")
-	if host == "" || host == "localhost" {
+	if host == "" || host == "localhost" || strings.HasSuffix(host, ".localhost") {
 		return fmt.Errorf("ALLOWED_ORIGIN must not use localhost in production")
 	}
 	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {

@@ -178,6 +178,7 @@ func TestLoadValidatesProductionRequirements(t *testing.T) {
 	}{
 		{"http origin", "ALLOWED_ORIGIN", "http://tracker.example.test", "HTTPS origin"},
 		{"localhost origin", "ALLOWED_ORIGIN", "https://localhost", "must not use localhost"},
+		{"localhost subdomain origin", "ALLOWED_ORIGIN", "https://app.localhost", "must not use localhost"},
 		{"origin path", "ALLOWED_ORIGIN", "https://tracker.example.test/app", "without a path"},
 		{"memory database", "DATABASE_PATH", ":memory:", "DATABASE_PATH"},
 		{"relative migrations", "MIGRATIONS_PATH", "migrations", "MIGRATIONS_PATH"},

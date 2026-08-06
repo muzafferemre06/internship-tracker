@@ -1,7 +1,8 @@
 # Production güvenlik yapılandırması
 
-`APP_ENV=production` yalnızca path içermeyen, localhost olmayan bir HTTPS
-`ALLOWED_ORIGIN` ile başlar. SQLite, migration, aday profili ve kaynak
+`APP_ENV=production` yalnızca path içermeyen; `localhost`, `.localhost` alt alanı
+ve loopback IP kullanmayan bir HTTPS `ALLOWED_ORIGIN` ile başlar. SQLite,
+migration, aday profili ve kaynak
 dosyalarının yolları ile backup dizini mutlak olmalıdır; `:memory:` ve SQLite
 URI veritabanları kabul edilmez. Backup etkin olmalı, Web Push etkin olmalı ve
 VAPID private key verilmelidir. Varsayılan deterministik analizci, bir dış LLM
