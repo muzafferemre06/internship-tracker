@@ -20,34 +20,39 @@ services:
     image: "${API_IMAGE:?API_IMAGE must be a repository@sha256 digest reference}"
     pull_policy: always
     init: true
+    # List form is required so the optional provider secret files can be passed
+    # through only when set. Map form would emit an empty string that the API's
+    # config validation rejects (OPENROUTER_API_KEY_FILE/GEMINI_API_KEY_FILE
+    # cannot be empty), which broke startup for the default deterministic
+    # provider.
     environment:
-      APP_ENV: production
-      HTTP_ADDR: ":8080"
-      ALLOWED_ORIGIN: "${ALLOWED_ORIGIN:?set the public HTTPS origin}"
-      DATABASE_PATH: /app/data/internship-tracker.db
-      MIGRATIONS_PATH: /app/migrations
-      CANDIDATE_PROFILE_PATH: /app/configs/candidate-profile.json
-      SOURCES_PATH: /app/configs/sources.json
-      LLM_PROVIDER: "${LLM_PROVIDER:-deterministic}"
-      LLM_MODEL: "${LLM_MODEL:-}"
-      LLM_THINKING_LEVEL: "${LLM_THINKING_LEVEL:-minimal}"
-      LLM_INPUT_COST_PER_MILLION_USD: "${LLM_INPUT_COST_PER_MILLION_USD:-0}"
-      LLM_OUTPUT_COST_PER_MILLION_USD: "${LLM_OUTPUT_COST_PER_MILLION_USD:-0}"
-      SCAN_SCHEDULE: "${SCAN_SCHEDULE:-0 9 * * 1}"
-      SCAN_TIMEZONE: "${SCAN_TIMEZONE:-Europe/Istanbul}"
-      BACKUP_ENABLED: "true"
-      BACKUP_DIRECTORY: /app/backups
-      BACKUP_TIME: "${BACKUP_TIME:-02:00}"
-      BACKUP_TIMEZONE: "${BACKUP_TIMEZONE:-Europe/Istanbul}"
-      BACKUP_RETENTION: "${BACKUP_RETENTION:-7}"
-      WEB_PUSH_ENABLED: "true"
-      WEB_PUSH_PUBLIC_KEY: "${WEB_PUSH_PUBLIC_KEY:?set the VAPID public key}"
-      WEB_PUSH_PRIVATE_KEY_FILE: /run/secrets/web_push_private_key
-      WEB_PUSH_SUBJECT: "${WEB_PUSH_SUBJECT:?set the VAPID contact URI}"
-      # The selected provider's path points at its read-only mounted secret.
-      # Empty values are harmless for the deterministic provider.
-      OPENROUTER_API_KEY_FILE: "${OPENROUTER_API_KEY_FILE:-}"
-      GEMINI_API_KEY_FILE: "${GEMINI_API_KEY_FILE:-}"
+      - APP_ENV=production
+      - HTTP_ADDR=:8080
+      - ALLOWED_ORIGIN=${ALLOWED_ORIGIN:?set the public HTTPS origin}
+      - DATABASE_PATH=/app/data/internship-tracker.db
+      - MIGRATIONS_PATH=/app/migrations
+      - CANDIDATE_PROFILE_PATH=/app/configs/candidate-profile.json
+      - SOURCES_PATH=/app/configs/sources.json
+      - LLM_PROVIDER=${LLM_PROVIDER:-deterministic}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - LLM_THINKING_LEVEL=${LLM_THINKING_LEVEL:-minimal}
+      - LLM_INPUT_COST_PER_MILLION_USD=${LLM_INPUT_COST_PER_MILLION_USD:-0}
+      - LLM_OUTPUT_COST_PER_MILLION_USD=${LLM_OUTPUT_COST_PER_MILLION_USD:-0}
+      - SCAN_SCHEDULE=${SCAN_SCHEDULE:-0 9 * * 1}
+      - SCAN_TIMEZONE=${SCAN_TIMEZONE:-Europe/Istanbul}
+      - BACKUP_ENABLED=true
+      - BACKUP_DIRECTORY=/app/backups
+      - BACKUP_TIME=${BACKUP_TIME:-02:00}
+      - BACKUP_TIMEZONE=${BACKUP_TIMEZONE:-Europe/Istanbul}
+      - BACKUP_RETENTION=${BACKUP_RETENTION:-7}
+      - WEB_PUSH_ENABLED=true
+      - WEB_PUSH_PUBLIC_KEY=${WEB_PUSH_PUBLIC_KEY:?set the VAPID public key}
+      - WEB_PUSH_PRIVATE_KEY_FILE=/run/secrets/web_push_private_key
+      - WEB_PUSH_SUBJECT=${WEB_PUSH_SUBJECT:?set the VAPID contact URI}
+      # Pass through only when the selected provider needs it; leaving these unset
+      # (deterministic provider) keeps them out of the container environment.
+      - OPENROUTER_API_KEY_FILE
+      - GEMINI_API_KEY_FILE
     expose:
       - "8080"
     volumes:
