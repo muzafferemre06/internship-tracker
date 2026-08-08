@@ -148,8 +148,11 @@ volumes:
   tracker_backups:
 
 networks:
+  # Not internal: the API needs outbound HTTPS to scrape source career
+  # pages, call the optional LLM provider, and deliver Web Push messages.
+  # Neither api nor web publish a host port, so this does not add inbound
+  # exposure.
   application:
-    internal: true
   tunnel:
 
 secrets:
