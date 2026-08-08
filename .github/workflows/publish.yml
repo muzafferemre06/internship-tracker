@@ -145,6 +145,13 @@ jobs:
 
       - name: Attest published image digest
         if: steps.existing.outputs.exists != 'true'
+        # Build provenance attestations require a public repo or a paid plan
+        # on private repos (GitHub error: "Feature not available for
+        # user-owned private repositories"). This repo is intentionally
+        # private on the free tier, so treat the attestation as best-effort:
+        # the image is still built, pushed, and its digest recorded below
+        # regardless of whether this step succeeds.
+        continue-on-error: true
         uses: actions/attest@v4
         with:
           subject-name: ${{ steps.image.outputs.name }}
