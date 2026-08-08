@@ -690,6 +690,50 @@ oluşturmamalıdır.
 Çıkış kriteri: Her kaynak otomatik desteklenir veya açık biçimde manuel
 kontrol olarak sınıflandırılır; sessiz başarısızlık olmaz.
 
+#### Kaynak keşif notları (2026-08-08, web araştırması)
+
+Aşağıdaki bulgular yalnız gözlemdir; henüz adapter/fixture kodu yazılmadı
+(AGENTS.md'nin test-önce ve faz-öncesi onay kuralları gereği, kod yazımı ayrı
+bir onay adımı bekliyor). Amaç, her şirketi bir tier'a (§16 arka plan, Faz
+9-14) yerleştirmek.
+
+**Akdoğan Tech** (`akdogan.tech/career`): Statik sayfa, ilan listesi yok, JSON-LD
+yok, ATS entegrasyonu yok. Başvuru yalnız `career@akdogan.tech` adresine CV
+göndermeyle yapılıyor — kazınabilir ayrı ilan yapısı yok. **Tier önerisi:
+`manual`.** Otomatik adapter yazılabilecek bir yapı yok; sayfa periyodik
+olarak (içerik değişikliği için) manuel kontrol listesine alınabilir.
+
+**Turkcell** (`kariyerim.turkcell.com.tr`): Özel/JS tabanlı sistem; Workday,
+SuccessFactors gibi bilinen bir ATS tespit edilmedi. JSON-LD yok. Ayrı ilan
+başlıkları listeleyen bir sayfa yerine **program düzeyinde** açılış sayfaları
+var (GNÇYTNK genç yetenek, Sınırsız Yetenek), "Hemen Başvur" bağlantıları
+(`/gncytnkstaj`, `/genc-yetenek/basvuru`) program başvurusuna götürüyor. **Tier
+önerisi: `manual` veya yeni bir `program_window` deseni** — mevcut
+`RawListing` modeli (başlık + URL başına bir ilan) buraya tam oturmuyor; asıl
+sinyal "program açık mı/ne zaman kapanıyor" oluyor. Bu, adapter yazmadan önce
+ayrı bir tasarım kararı gerektiriyor (bkz. §20 açık kararlar'a eklenecek).
+
+**Havelsan**: Resmî başvuru kanalları LinkedIn ve kendi "Kovan" portalı
+(`kariyer.havelsan.com.tr`) olarak `havelsan.com/tr/alim-sureci` sayfasında
+açıkça belirtiliyor. Kovan, istemci tarafında render edilen bir uygulama gibi
+görünüyor (düz HTML çekiminde yalnız başlık geldi, ilan içeriği gelmedi) —
+gerçek ilanları görmek muhtemelen headless render veya arkadaki API'nin
+(varsa) keşfini gerektiriyor; bu oturumda doğrulanamadı. Ayrıca Havelsan'ın
+eski bir kariyer.net profili de var
+(`kariyer.net/firma-profil/havelsan-1148-1612`) ama bu oturumda 403 ile
+engellendi — mevcut `kariyer_net` adapter'ının zaten ele aldığı Cloudflare
+challenge/korumasıyla tutarlı (`AccessError.Protective()`), yeni bir sorun
+değil. **Tier önerisi: `llm_generic` veya `learned_selector` adayı**, ama
+Kovan'ın JS-render/API yapısı doğrulanmadan kesinleşemez; kariyer.net
+kanalı yalnız erişim engeli kalkarsa yedek olabilir.
+
+Ortak gözlem: Üçünde de mevcut iki adapter'dan (kariyer_net, lever) hiçbiri
+doğrudan uygulanamıyor. Havelsan dışında hiçbiri şu an "ilan listesi" tarzı
+kazınabilir bir yapı sunmuyor — bu, Faz 10'un yapılandırılmış-veri
+kaynaklarının (JSON-LD/ATS API) bu üç şirket için düşük olasılıklı olduğunu,
+Faz 11-12'nin (reduce-then-LLM + öğrenilmiş reçete) veya basit `manual`
+sınıflandırmasının daha gerçekçi olduğunu gösteriyor.
+
 ### Faz 7 — Şirket kapsamını genişletme
 
 - birincil listedeki kalan şirketler
@@ -935,3 +979,13 @@ DevOps çalışmaları üründen kopuk örnekler yerine proje ilerledikçe eklen
 - Mart 2027 yaklaşırken tarama takviminin yeniden doğrulanması
 - Her şirket için doğrulanmış resmî kaynak URL'leri
 - OpenRouter model seçimi ve ölçülmüş aylık maliyet
+- Turkcell gibi program-düzeyinde (ilan başına değil) başvuru açan kaynaklar
+  için veri modeli: mevcut `RawListing`/`listings` şeması (başlık + canonical
+  URL başına bir kayıt) "program açık/kapalı + tarih aralığı" sinyaline tam
+  oturmuyor; ayrı bir `program_window` kavramı mı gerekiyor yoksa program
+  açılışı tek bir sentetik "ilan" olarak mı modellenmeli, karara bağlanmalı
+  (bkz. Faz 6 kaynak keşif notları, 2026-08-08)
+- Havelsan'ın "Kovan" portalının (`kariyer.havelsan.com.tr`) istemci tarafı
+  render mimarisi ve varsa arkasındaki JSON API henüz doğrulanmadı; headless
+  render veya ağ isteği incelemesi gerektiriyor (bkz. Faz 6 kaynak keşif
+  notları)
