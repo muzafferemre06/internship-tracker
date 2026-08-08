@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -386,6 +387,52 @@ func TestSQLiteRepositoryPersistsScanReportAndSourceState(t *testing.T) {
 	}
 	if clearedError.Valid {
 		t.Fatalf("expected source error to clear after success, got %q", clearedError.String)
+	}
+}
+
+func TestSQLiteRepositoryWatchlistIsSeparateFromManualChecks(t *testing.T) {
+	repository, _ := newTestRepository(t)
+	registerMeteksan(t, repository)
+	if err := repository.RecordSourceFailure(
+		context.Background(), "meteksan-kariyer-net", time.Date(2026, 8, 8, 9, 0, 0, 0, time.UTC), "unexpected HTTP status 429",
+	); err != nil {
+		t.Fatalf("record source failure: %v", err)
+	}
+	if err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
+		Key: "akdogan-tech-career", Company: "Akdoğan Tech", PriorityGroup: "primary",
+		Type: "career_page", URL: "https://akdogan.tech/career", Adapter: "manual", Strategy: "manual",
+		TrackingStatus: "manual", Enabled: false,
+	}); err != nil {
+		t.Fatalf("register manual source: %v", err)
+	}
+
+	dashboard, err := repository.Dashboard(context.Background())
+	if err != nil {
+		t.Fatalf("load dashboard: %v", err)
+	}
+
+	if len(dashboard.ManualChecks) != 1 || dashboard.ManualChecks[0].SourceID != "meteksan-kariyer-net" {
+		t.Fatalf("expected only the failing source in manual checks, got %#v", dashboard.ManualChecks)
+	}
+	if len(dashboard.Watchlist) != 1 || dashboard.Watchlist[0].SourceID != "akdogan-tech-career" ||
+		dashboard.Watchlist[0].Company != "Akdoğan Tech" || dashboard.Watchlist[0].LastCheckedAt != nil {
+		t.Fatalf("expected only the manual company in the watchlist, got %#v", dashboard.Watchlist)
+	}
+
+	checkedAt := time.Date(2026, 8, 8, 10, 0, 0, 0, time.UTC)
+	if err := repository.MarkSourceChecked(context.Background(), "akdogan-tech-career", checkedAt); err != nil {
+		t.Fatalf("mark source checked: %v", err)
+	}
+	dashboard, err = repository.Dashboard(context.Background())
+	if err != nil {
+		t.Fatalf("reload dashboard: %v", err)
+	}
+	if dashboard.Watchlist[0].LastCheckedAt == nil || !dashboard.Watchlist[0].LastCheckedAt.Equal(checkedAt) {
+		t.Fatalf("expected watchlist entry to record checked time, got %#v", dashboard.Watchlist[0].LastCheckedAt)
+	}
+
+	if err := repository.MarkSourceChecked(context.Background(), "does-not-exist", checkedAt); !errors.Is(err, ErrSourceNotFound) {
+		t.Fatalf("expected ErrSourceNotFound for unknown source, got %v", err)
 	}
 }
 

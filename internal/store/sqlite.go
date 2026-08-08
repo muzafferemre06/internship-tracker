@@ -22,6 +22,7 @@ type SQLiteRepository struct {
 }
 
 var ErrListingNotFound = errors.New("listing not found")
+var ErrSourceNotFound = errors.New("source not found")
 
 func NewSQLiteRepository(db *sql.DB) (*SQLiteRepository, error) {
 	if db == nil {
@@ -41,13 +42,18 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 	}
 	defer tx.Rollback()
 
+	trackingStatus := strings.TrimSpace(source.TrackingStatus)
+	if trackingStatus == "" {
+		trackingStatus = "active"
+	}
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO companies(name, priority_group)
-		VALUES (?, ?)
+		INSERT INTO companies(name, priority_group, tracking_status)
+		VALUES (?, ?, ?)
 		ON CONFLICT(name) DO UPDATE SET
 			priority_group = excluded.priority_group,
+			tracking_status = excluded.tracking_status,
 			updated_at = CURRENT_TIMESTAMP
-	`, source.Company, source.PriorityGroup); err != nil {
+	`, source.Company, source.PriorityGroup, trackingStatus); err != nil {
 		return fmt.Errorf("upsert company %q: %w", source.Company, err)
 	}
 
@@ -751,6 +757,10 @@ func (r *SQLiteRepository) Dashboard(ctx context.Context) (DashboardSnapshot, er
 	if err != nil {
 		return DashboardSnapshot{}, fmt.Errorf("load manual checks: %w", err)
 	}
+	watchlist, err := r.watchlist(ctx)
+	if err != nil {
+		return DashboardSnapshot{}, fmt.Errorf("load watchlist: %w", err)
+	}
 
 	lastScan, err := r.lastScan(ctx)
 	if err != nil {
@@ -762,10 +772,15 @@ func (r *SQLiteRepository) Dashboard(ctx context.Context) (DashboardSnapshot, er
 		NeedsDecision:      needsDecision,
 		ActiveApplications: activeApplications,
 		ManualChecks:       manualChecks,
+		Watchlist:          watchlist,
 		LastScan:           lastScan,
 	}, nil
 }
 
+// manualChecks surfaces sources the scraper attempted and failed on. It
+// deliberately excludes tracking_status = 'manual' companies (see
+// watchlist), so a source never appears in both: it either was never
+// automated by design, or it broke while being automated.
 func (r *SQLiteRepository) manualChecks(ctx context.Context) ([]ManualCheck, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT company_sources.source_key, companies.name, company_sources.url,
@@ -773,7 +788,7 @@ func (r *SQLiteRepository) manualChecks(ctx context.Context) ([]ManualCheck, err
 			company_sources.last_success_at
 		FROM company_sources
 		JOIN companies ON companies.id = company_sources.company_id
-		WHERE companies.tracking_status = 'manual' OR company_sources.last_error IS NOT NULL
+		WHERE company_sources.last_error IS NOT NULL AND companies.tracking_status != 'manual'
 		ORDER BY companies.priority_group = 'primary' DESC, companies.name, company_sources.source_key
 	`)
 	if err != nil {
@@ -795,6 +810,64 @@ func (r *SQLiteRepository) manualChecks(ctx context.Context) ([]ManualCheck, err
 		checks = append(checks, check)
 	}
 	return checks, rows.Err()
+}
+
+// watchlist returns companies the user has deliberately chosen to track by
+// hand, regardless of scrape/error state (see manualChecks for the opposite).
+func (r *SQLiteRepository) watchlist(ctx context.Context) ([]WatchlistEntry, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT company_sources.source_key, companies.name, company_sources.url,
+			company_sources.last_manual_check_at
+		FROM company_sources
+		JOIN companies ON companies.id = company_sources.company_id
+		WHERE companies.tracking_status = 'manual'
+		ORDER BY companies.priority_group = 'primary' DESC, companies.name, company_sources.source_key
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	entries := make([]WatchlistEntry, 0)
+	for rows.Next() {
+		var entry WatchlistEntry
+		var lastChecked sql.NullString
+		if err := rows.Scan(&entry.SourceID, &entry.Company, &entry.URL, &lastChecked); err != nil {
+			return nil, err
+		}
+		entry.LastCheckedAt, err = parseStoredTime(lastChecked)
+		if err != nil {
+			return nil, fmt.Errorf("parse watchlist last checked time: %w", err)
+		}
+		entries = append(entries, entry)
+	}
+	return entries, rows.Err()
+}
+
+// MarkSourceChecked records that the user manually checked a watchlist
+// source right now. It is not restricted to tracking_status = 'manual'
+// sources at the storage layer; the dashboard only surfaces the timestamp
+// for watchlist entries.
+func (r *SQLiteRepository) MarkSourceChecked(ctx context.Context, sourceKey string, checkedAt time.Time) error {
+	sourceKey = strings.TrimSpace(sourceKey)
+	if sourceKey == "" {
+		return ErrSourceNotFound
+	}
+	result, err := r.db.ExecContext(ctx, `
+		UPDATE company_sources SET last_manual_check_at = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE source_key = ?
+	`, checkedAt.UTC().Format(time.RFC3339Nano), sourceKey)
+	if err != nil {
+		return fmt.Errorf("mark source checked: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("mark source checked: %w", err)
+	}
+	if affected == 0 {
+		return ErrSourceNotFound
+	}
+	return nil
 }
 
 func (r *SQLiteRepository) lastScan(ctx context.Context) (*ScanSummary, error) {

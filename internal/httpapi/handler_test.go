@@ -48,8 +48,11 @@ func (f *fakeReadinessChecker) Check(context.Context) error {
 }
 
 type fakeTrackingRepository struct {
-	detail store.ListingDetail
-	saved  store.ApplicationTracking
+	detail        store.ListingDetail
+	saved         store.ApplicationTracking
+	dashboard     store.DashboardSnapshot
+	checkedSource string
+	checkedAt     time.Time
 }
 
 type fakePushRepository struct {
@@ -70,7 +73,16 @@ func (f *fakePushRepository) DeletePushSubscription(_ context.Context, endpoint 
 }
 
 func (f *fakeTrackingRepository) Dashboard(context.Context) (store.DashboardSnapshot, error) {
-	return store.DashboardSnapshot{}, nil
+	return f.dashboard, nil
+}
+
+func (f *fakeTrackingRepository) MarkSourceChecked(_ context.Context, sourceKey string, checkedAt time.Time) error {
+	if sourceKey == "missing-source" {
+		return store.ErrSourceNotFound
+	}
+	f.checkedSource = sourceKey
+	f.checkedAt = checkedAt
+	return nil
 }
 
 func (f *fakeTrackingRepository) ListingDetail(_ context.Context, listingID string) (store.ListingDetail, error) {
@@ -367,6 +379,44 @@ func TestApplicationUpdateRejectsInvalidTimestamp(t *testing.T) {
 
 	if response.Code != http.StatusBadRequest || repository.saved.Status != "" {
 		t.Fatalf("unexpected invalid timestamp response: status=%d saved=%#v", response.Code, repository.saved)
+	}
+}
+
+func TestWatchlistCheckedMarksSourceAndReturnsDashboard(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repository := &fakeTrackingRepository{
+		dashboard: store.DashboardSnapshot{Watchlist: []store.WatchlistEntry{{SourceID: "akdogan-tech-career", Company: "Akdoğan Tech"}}},
+	}
+	handler := NewHandler("http://localhost:5173", logger, nil, repository, nil)
+
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/watchlist/akdogan-tech-career/checked", nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK || repository.checkedSource != "akdogan-tech-career" ||
+		!strings.Contains(response.Body.String(), "akdogan-tech-career") {
+		t.Fatalf("unexpected watchlist checked response: status=%d checked=%q body=%s",
+			response.Code, repository.checkedSource, response.Body.String())
+	}
+}
+
+func TestWatchlistCheckedRejectsUnknownSourceAndWrongMethod(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repository := &fakeTrackingRepository{}
+	handler := NewHandler("http://localhost:5173", logger, nil, repository, nil)
+
+	notFoundRequest := httptest.NewRequest(http.MethodPut, "/api/v1/watchlist/missing-source/checked", nil)
+	notFoundResponse := httptest.NewRecorder()
+	handler.ServeHTTP(notFoundResponse, notFoundRequest)
+	if notFoundResponse.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for unknown source, got %d", notFoundResponse.Code)
+	}
+
+	wrongMethodRequest := httptest.NewRequest(http.MethodGet, "/api/v1/watchlist/akdogan-tech-career/checked", nil)
+	wrongMethodResponse := httptest.NewRecorder()
+	handler.ServeHTTP(wrongMethodResponse, wrongMethodRequest)
+	if wrongMethodResponse.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected 405 for GET, got %d", wrongMethodResponse.Code)
 	}
 }
 

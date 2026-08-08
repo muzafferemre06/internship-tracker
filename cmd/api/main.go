@@ -191,14 +191,15 @@ func configureSources(
 	for _, company := range configured.Companies {
 		for _, sourceConfig := range company.Sources {
 			registration := domain.SourceRegistration{
-				Key:           sourceConfig.ID,
-				Company:       company.Name,
-				PriorityGroup: company.PriorityGroup,
-				Type:          sourceConfig.Type,
-				URL:           sourceConfig.URL,
-				Adapter:       sourceConfig.Adapter,
-				Strategy:      sourceConfig.EffectiveStrategy(),
-				Enabled:       sourceConfig.Enabled,
+				Key:            sourceConfig.ID,
+				Company:        company.Name,
+				PriorityGroup:  company.PriorityGroup,
+				Type:           sourceConfig.Type,
+				URL:            sourceConfig.URL,
+				Adapter:        sourceConfig.Adapter,
+				Strategy:       sourceConfig.EffectiveStrategy(),
+				TrackingStatus: company.EffectiveTrackingStatus(),
+				Enabled:        sourceConfig.Enabled,
 			}
 			if err := repository.RegisterSource(ctx, registration); err != nil {
 				return nil, err

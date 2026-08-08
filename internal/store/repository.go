@@ -54,6 +54,17 @@ type ManualCheck struct {
 	LastSuccessAt *time.Time `json:"last_success_at,omitempty"`
 }
 
+// WatchlistEntry is a company the user has deliberately chosen to track by
+// hand (tracking_status = "manual"), independent of whether any scrape was
+// ever attempted or failed. See ManualCheck for scraper-failure-surfaced
+// sources, which is a distinct, error-driven list.
+type WatchlistEntry struct {
+	SourceID      string     `json:"source_id"`
+	Company       string     `json:"company"`
+	URL           string     `json:"url"`
+	LastCheckedAt *time.Time `json:"last_checked_at,omitempty"`
+}
+
 type ScanSummary struct {
 	ID               int64     `json:"id"`
 	FinishedAt       time.Time `json:"finished_at"`
@@ -69,6 +80,7 @@ type DashboardSnapshot struct {
 	NeedsDecision      []DashboardListing `json:"needs_decision"`
 	ActiveApplications []DashboardListing `json:"active_applications"`
 	ManualChecks       []ManualCheck      `json:"manual_checks"`
+	Watchlist          []WatchlistEntry   `json:"watchlist"`
 	LastScan           *ScanSummary       `json:"last_scan"`
 }
 
@@ -147,6 +159,7 @@ type DashboardRepository interface {
 type TrackingRepository interface {
 	ListingDetail(ctx context.Context, listingID string) (ListingDetail, error)
 	SaveApplication(ctx context.Context, listingID string, tracking ApplicationTracking) error
+	MarkSourceChecked(ctx context.Context, sourceKey string, checkedAt time.Time) error
 }
 
 type PushSubscription struct {

@@ -40,9 +40,19 @@ type SourcesConfig struct {
 }
 
 type CompanyConfig struct {
-	Name          string         `json:"name"`
-	PriorityGroup string         `json:"priority_group"`
-	Sources       []SourceConfig `json:"sources"`
+	Name           string         `json:"name"`
+	PriorityGroup  string         `json:"priority_group"`
+	TrackingStatus string         `json:"tracking_status,omitempty"`
+	Sources        []SourceConfig `json:"sources"`
+}
+
+// EffectiveTrackingStatus returns the company's declared tracking status, or
+// "active" when unset.
+func (c CompanyConfig) EffectiveTrackingStatus() string {
+	if status := strings.TrimSpace(c.TrackingStatus); status != "" {
+		return status
+	}
+	return "active"
 }
 
 type SourceConfig struct {
@@ -170,6 +180,12 @@ func (c SourcesConfig) validate() error {
 		case "primary", "secondary", "candidate":
 		default:
 			return fmt.Errorf("company %q has invalid priority_group %q", name, company.PriorityGroup)
+		}
+
+		switch company.EffectiveTrackingStatus() {
+		case "active", "manual", "paused":
+		default:
+			return fmt.Errorf("company %q has invalid tracking_status %q", name, company.TrackingStatus)
 		}
 
 		for sourceIndex, source := range company.Sources {

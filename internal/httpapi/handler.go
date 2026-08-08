@@ -91,6 +91,7 @@ func NewHandler(
 	mux.HandleFunc("/api/v1/analyses/retry", handler.retryAnalyses)
 	mux.HandleFunc("/api/v1/listings/{id}", handler.listingDetail)
 	mux.HandleFunc("/api/v1/listings/{id}/application", handler.application)
+	mux.HandleFunc("/api/v1/watchlist/{id}/checked", handler.watchlistChecked)
 	mux.HandleFunc("/api/v1/push/public-key", handler.pushKey)
 	mux.HandleFunc("/api/v1/push/subscriptions", handler.pushSubscriptions)
 
@@ -281,6 +282,37 @@ func (h Handler) application(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 	writeJSON(writer, http.StatusOK, detail)
+}
+
+func (h Handler) watchlistChecked(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPut {
+		methodNotAllowed(writer)
+		return
+	}
+	if h.trackingStore == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "watchlist store is unavailable"})
+		return
+	}
+	if err := h.trackingStore.MarkSourceChecked(request.Context(), request.PathValue("id"), time.Now().UTC()); err != nil {
+		if errors.Is(err, store.ErrSourceNotFound) {
+			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "source was not found"})
+			return
+		}
+		h.logger.Error("watchlist check update failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "watchlist entry could not be updated"})
+		return
+	}
+	if h.dashboardStore == nil {
+		writer.WriteHeader(http.StatusNoContent)
+		return
+	}
+	dashboard, err := h.dashboardStore.Dashboard(request.Context())
+	if err != nil {
+		h.logger.Error("dashboard reload after watchlist check failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "dashboard could not be reloaded"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, dashboard)
 }
 
 func parseOptionalTime(value *string) (*time.Time, error) {

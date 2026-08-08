@@ -74,6 +74,49 @@ func TestLoadSourcesRejectsUnknownStrategy(t *testing.T) {
 	}
 }
 
+func TestLoadSourcesInfersActiveTrackingStatus(t *testing.T) {
+	sources, err := LoadSources("../../configs/sources.example.json")
+	if err != nil {
+		t.Fatalf("load example sources: %v", err)
+	}
+	for _, company := range sources.Companies {
+		if status := company.EffectiveTrackingStatus(); status != "active" {
+			t.Fatalf("expected company %q to default to active tracking status, got %q", company.Name, status)
+		}
+	}
+}
+
+func TestLoadSourcesAcceptsManualTrackingStatus(t *testing.T) {
+	path := writeConfigTestFile(t, `{
+		"companies":[{
+			"name":"Test", "priority_group":"primary", "tracking_status":"manual",
+			"sources":[{"id":"test", "type":"career_page", "url":"https://example.test/careers", "adapter":"manual", "strategy":"manual", "enabled":false}]
+		}]
+	}`)
+
+	sources, err := LoadSources(path)
+	if err != nil {
+		t.Fatalf("load manual sources: %v", err)
+	}
+	if got := sources.Companies[0].EffectiveTrackingStatus(); got != "manual" {
+		t.Fatalf("expected manual tracking status, got %q", got)
+	}
+}
+
+func TestLoadSourcesRejectsInvalidTrackingStatus(t *testing.T) {
+	path := writeConfigTestFile(t, `{
+		"companies":[{
+			"name":"Test", "priority_group":"primary", "tracking_status":"not_a_real_status",
+			"sources":[{"id":"test", "type":"career_page", "url":"https://example.test/careers", "adapter":"manual", "strategy":"manual", "enabled":false}]
+		}]
+	}`)
+
+	_, err := LoadSources(path)
+	if err == nil || !strings.Contains(err.Error(), "invalid tracking_status") {
+		t.Fatalf("expected invalid tracking_status error, got %v", err)
+	}
+}
+
 func TestLoadSourcesRejectsInvalidURL(t *testing.T) {
 	path := writeConfigTestFile(t, `{
 		"companies":[{
