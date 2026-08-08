@@ -178,6 +178,22 @@ Lever'ın herkese açık robots politikasındaki bir saniyelik crawl aralığı 
 kalıcı domain erişim bütçesiyle uygulanır. 403/429/challenge yanıtları kısa ve
 güvenli teşhislerle devre kesiciyi tetikler; yanıt gövdesi saklanmaz.
 
+### Kaynak strateji dispatch'i (Faz 9)
+
+`internal/scraper/registry.go`, adapter adını (`kariyer_net`, `lever`, ...) bir
+`SourceFactory`'ye eşleyen veri-odaklı bir tablo (`adapterFactories`) tutar.
+`cmd/api/main.go`'daki `configureSources`, sabit kodlu bir `switch` yerine
+`scraper.NewSource(adapter, spec)` ile bu tabloyu kullanır. Her kaynak ayrıca
+bir `strategy` alanı taşır (`internal/config.SourceConfig.EffectiveStrategy`):
+açıkça belirtilmemişse, Faz 9 öncesi elle yazılmış adapter'lar (`kariyer_net`,
+`lever`) `legacy_html` stratejisine varsayılan olarak atanır. Strateji,
+`company_sources.strategy` sütununda (`migrations/006_source_strategy.sql`)
+kalıcı hale gelir. Faz 10-12'nin ekleyeceği `json_ld`, `ats_api`,
+`learned_selector`, `llm_generic` ve el ile takip edilen `manual` stratejileri
+aynı tabloya yeni fabrika kayıtları eklenerek bağlanır; downstream (dedup,
+analiz, bildirim) değişmez. Ayrıntılı gerekçe için
+`staj-takip-spec-v2.md` §16, Faz 9-14.
+
 Faz 3.5 kabul akışı adapter'ı doğrudan SQLite repository ve `ModelAnalyzer` ile
 orchestrator içinde çalıştırır. İkinci tarama aynı canonical URL'yi günceller,
 ancak işlenmiş analizi yeniden çağırmaz. Sonuç, üretimde kullanılan dashboard

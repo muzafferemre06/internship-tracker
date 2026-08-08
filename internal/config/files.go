@@ -50,8 +50,41 @@ type SourceConfig struct {
 	Type     string `json:"type"`
 	URL      string `json:"url"`
 	Adapter  string `json:"adapter"`
+	Strategy string `json:"strategy,omitempty"`
 	PageName string `json:"page_name,omitempty"`
 	Enabled  bool   `json:"enabled"`
+}
+
+// legacyHTMLAdapters lists the pre-Faz-9 hand-written adapters that default
+// to the "legacy_html" strategy when a source does not declare one explicitly.
+var legacyHTMLAdapters = map[string]struct{}{
+	"kariyer_net": {},
+	"lever":       {},
+}
+
+// validSourceStrategies are the source-strategy tiers defined by Faz 9-12
+// (see staj-takip-spec-v2.md §16). "legacy_html" is not part of the target
+// enum but is kept as the explicit, documented default for adapters that
+// predate the strategy abstraction.
+var validSourceStrategies = map[string]struct{}{
+	"legacy_html":      {},
+	"json_ld":          {},
+	"ats_api":          {},
+	"learned_selector": {},
+	"llm_generic":      {},
+	"manual":           {},
+}
+
+// EffectiveStrategy returns the source's declared strategy, or an inferred
+// default for adapters registered before the strategy field existed.
+func (s SourceConfig) EffectiveStrategy() string {
+	if strategy := strings.TrimSpace(s.Strategy); strategy != "" {
+		return strategy
+	}
+	if _, ok := legacyHTMLAdapters[s.Adapter]; ok {
+		return "legacy_html"
+	}
+	return ""
 }
 
 func LoadCandidateProfile(path string) (CandidateProfile, error) {
@@ -165,6 +198,13 @@ func (s SourceConfig) validate() error {
 	parsedURL, err := url.ParseRequestURI(s.URL)
 	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
 		return errors.New("url must be an absolute HTTP(S) URL")
+	}
+	strategy := s.EffectiveStrategy()
+	if strategy == "" {
+		return fmt.Errorf("strategy is required for adapter %q", s.Adapter)
+	}
+	if _, ok := validSourceStrategies[strategy]; !ok {
+		return fmt.Errorf("unknown strategy %q", strategy)
 	}
 	return nil
 }

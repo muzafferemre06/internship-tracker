@@ -758,6 +758,17 @@ Neden: Şirket sayısı arttıkça asıl darboğaz koddur. Stratejiyi veriye ta�
 her yeni kaynağı "bir satır + tier seçimi"ne indirger ve sonraki tüm fazların
 temelini kurar.
 
+Uygulama durumu (2026-08-08): Dispatch soyutlaması tamamlandı —
+`internal/scraper/registry.go`'daki veri-tablosu (`adapterFactories`) sabit
+kodlu `switch`'in yerini aldı; `SourceConfig.EffectiveStrategy()` açık
+`strategy` alanını veya `kariyer_net`/`lever` için `legacy_html` varsayılanını
+döndürür ve `company_sources.strategy` sütununda saklanır
+(`migrations/006_source_strategy.sql`). Mevcut iki adapter regresyonsuz
+çalışıyor (`go test ./...` yeşil). **Eksik kalan:** kaynak bazlı
+sağlık/durum snapshot'ı (son ilan sayısı, strateji sürümü) henüz yok — bu,
+Faz 12'nin golden-snapshot guard'ıyla birlikte eklenecek, ayrı bırakıldı çünkü
+anlamı yalnız öğrenilmiş reçeteler bağlamında netleşiyor.
+
 ### Faz 10 — Yapılandırılmış-veri-öncelikli ingestion (deterministik, AI'sız)
 
 Amaç: birçok kariyer sayfasının veriyi zaten hazır verdiği ucuz yolları önce

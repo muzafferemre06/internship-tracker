@@ -56,18 +56,23 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 		return fmt.Errorf("find company %q: %w", source.Company, err)
 	}
 
+	strategy := strings.TrimSpace(source.Strategy)
+	if strategy == "" {
+		strategy = "legacy_html"
+	}
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO company_sources(
-			company_id, source_key, source_type, url, adapter_type, enabled
-		) VALUES (?, ?, ?, ?, ?, ?)
+			company_id, source_key, source_type, url, adapter_type, strategy, enabled
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(source_key) DO UPDATE SET
 			company_id = excluded.company_id,
 			source_type = excluded.source_type,
 			url = excluded.url,
 			adapter_type = excluded.adapter_type,
+			strategy = excluded.strategy,
 			enabled = excluded.enabled,
 			updated_at = CURRENT_TIMESTAMP
-	`, companyID, source.Key, source.Type, source.URL, source.Adapter, boolInt(source.Enabled)); err != nil {
+	`, companyID, source.Key, source.Type, source.URL, source.Adapter, strategy, boolInt(source.Enabled)); err != nil {
 		return fmt.Errorf("upsert source %q: %w", source.Key, err)
 	}
 

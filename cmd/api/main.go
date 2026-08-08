@@ -197,6 +197,7 @@ func configureSources(
 				Type:          sourceConfig.Type,
 				URL:           sourceConfig.URL,
 				Adapter:       sourceConfig.Adapter,
+				Strategy:      sourceConfig.EffectiveStrategy(),
 				Enabled:       sourceConfig.Enabled,
 			}
 			if err := repository.RegisterSource(ctx, registration); err != nil {
@@ -206,37 +207,19 @@ func configureSources(
 				continue
 			}
 
-			switch sourceConfig.Adapter {
-			case "kariyer_net":
-				pageName := sourceConfig.PageName
-				if strings.TrimSpace(pageName) == "" {
-					pageName = company.Name
-				}
-				source, err := scraper.NewKariyerNetSource(
-					sourceConfig.ID,
-					company.Name,
-					pageName,
-					sourceConfig.URL,
-					nil,
-				)
-				if err != nil {
-					return nil, fmt.Errorf("configure source %q: %w", sourceConfig.ID, err)
-				}
-				sources = append(sources, source)
-			case "lever":
-				source, err := scraper.NewLeverSource(
-					sourceConfig.ID,
-					company.Name,
-					sourceConfig.URL,
-					nil,
-				)
-				if err != nil {
-					return nil, fmt.Errorf("configure source %q: %w", sourceConfig.ID, err)
-				}
-				sources = append(sources, source)
-			default:
+			if !scraper.SupportsAdapter(sourceConfig.Adapter) {
 				return nil, fmt.Errorf("source %q uses unsupported adapter %q", sourceConfig.ID, sourceConfig.Adapter)
 			}
+			source, err := scraper.NewSource(sourceConfig.Adapter, scraper.SourceSpec{
+				ID:       sourceConfig.ID,
+				Company:  company.Name,
+				PageName: sourceConfig.PageName,
+				URL:      sourceConfig.URL,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("configure source %q: %w", sourceConfig.ID, err)
+			}
+			sources = append(sources, source)
 		}
 	}
 	return sources, nil

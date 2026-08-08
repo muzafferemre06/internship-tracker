@@ -46,6 +46,34 @@ func TestLoadSources(t *testing.T) {
 	}
 }
 
+func TestLoadSourcesInfersLegacyHTMLStrategy(t *testing.T) {
+	sources, err := LoadSources("../../configs/sources.example.json")
+	if err != nil {
+		t.Fatalf("load example sources: %v", err)
+	}
+	for _, company := range sources.Companies {
+		for _, source := range company.Sources {
+			if strategy := source.EffectiveStrategy(); strategy != "legacy_html" {
+				t.Fatalf("expected source %q to infer legacy_html strategy, got %q", source.ID, strategy)
+			}
+		}
+	}
+}
+
+func TestLoadSourcesRejectsUnknownStrategy(t *testing.T) {
+	path := writeConfigTestFile(t, `{
+		"companies":[{
+			"name":"Test", "priority_group":"primary",
+			"sources":[{"id":"test", "type":"career_page", "url":"https://example.test/careers", "adapter":"kariyer_net", "strategy":"not_a_real_strategy", "enabled":true}]
+		}]
+	}`)
+
+	_, err := LoadSources(path)
+	if err == nil || !strings.Contains(err.Error(), "unknown strategy") {
+		t.Fatalf("expected unknown strategy error, got %v", err)
+	}
+}
+
 func TestLoadSourcesRejectsInvalidURL(t *testing.T) {
 	path := writeConfigTestFile(t, `{
 		"companies":[{
