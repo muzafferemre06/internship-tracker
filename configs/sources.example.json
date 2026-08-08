@@ -86,6 +86,32 @@
           "enabled": true
         }
       ]
+    },
+    {
+      "name": "Example JSON-LD Company",
+      "priority_group": "candidate",
+      "sources": [
+        {
+          "id": "example-jsonld-careers",
+          "type": "career_page",
+          "url": "https://careers.example.com/",
+          "adapter": "json_ld",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "Example Greenhouse Company",
+      "priority_group": "candidate",
+      "sources": [
+        {
+          "id": "example-greenhouse-board",
+          "type": "ats_board",
+          "url": "https://boards-api.greenhouse.io/v1/boards/exampleco/jobs",
+          "adapter": "greenhouse",
+          "enabled": false
+        }
+      ]
     }
   ]
 }

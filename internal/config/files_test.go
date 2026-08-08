@@ -37,7 +37,7 @@ func TestLoadSources(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load example sources: %v", err)
 	}
-	if len(sources.Companies) != 6 || sources.Companies[0].Name != "Commencis" ||
+	if len(sources.Companies) != 8 || sources.Companies[0].Name != "Commencis" ||
 		sources.Companies[0].Sources[0].Adapter != "lever" {
 		t.Fatalf("unexpected sources: %#v", sources)
 	}
@@ -46,15 +46,26 @@ func TestLoadSources(t *testing.T) {
 	}
 }
 
-func TestLoadSourcesInfersLegacyHTMLStrategy(t *testing.T) {
+func TestLoadSourcesInfersStrategyFromAdapter(t *testing.T) {
 	sources, err := LoadSources("../../configs/sources.example.json")
 	if err != nil {
 		t.Fatalf("load example sources: %v", err)
 	}
+	// Adapter -> inferred strategy when the source omits an explicit "strategy".
+	want := map[string]string{
+		"lever":       "legacy_html",
+		"kariyer_net": "legacy_html",
+		"json_ld":     "json_ld",
+		"greenhouse":  "ats_api",
+	}
 	for _, company := range sources.Companies {
 		for _, source := range company.Sources {
-			if strategy := source.EffectiveStrategy(); strategy != "legacy_html" {
-				t.Fatalf("expected source %q to infer legacy_html strategy, got %q", source.ID, strategy)
+			expected, ok := want[source.Adapter]
+			if !ok {
+				t.Fatalf("example source %q uses undocumented adapter %q", source.ID, source.Adapter)
+			}
+			if strategy := source.EffectiveStrategy(); strategy != expected {
+				t.Fatalf("source %q: expected inferred strategy %q, got %q", source.ID, expected, strategy)
 			}
 		}
 	}

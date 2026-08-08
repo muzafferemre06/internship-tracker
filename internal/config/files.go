@@ -72,6 +72,14 @@ var legacyHTMLAdapters = map[string]struct{}{
 	"lever":       {},
 }
 
+// adapterDefaultStrategy maps Faz 10+ adapters to their tier strategy so a
+// source only has to declare its adapter; the strategy is inferred (see
+// staj-takip-spec-v2.md §16). Explicit "strategy" in config still wins.
+var adapterDefaultStrategy = map[string]string{
+	"json_ld":    "json_ld",
+	"greenhouse": "ats_api",
+}
+
 // validSourceStrategies are the source-strategy tiers defined by Faz 9-12
 // (see staj-takip-spec-v2.md §16). "legacy_html" is not part of the target
 // enum but is kept as the explicit, documented default for adapters that
@@ -93,6 +101,9 @@ func (s SourceConfig) EffectiveStrategy() string {
 	}
 	if _, ok := legacyHTMLAdapters[s.Adapter]; ok {
 		return "legacy_html"
+	}
+	if strategy, ok := adapterDefaultStrategy[s.Adapter]; ok {
+		return strategy
 	}
 	return ""
 }

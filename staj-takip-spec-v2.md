@@ -837,6 +837,21 @@ kullanmak. En yüksek kapsam artışını en düşük maliyetle sağlar.
 Çıkış kriteri: JSON-LD içeren bir fixture sayfası ve bir ATS API fixture'ı, hiç
 AI çağrısı olmadan strict şemaya normalize edilip mevcut dedup/analiz yoluna girer.
 
+Uygulama durumu (2026-08-08): Tamamlandı. İki deterministik adapter aynı
+`adapterFactories` tablosuna eklendi: `json_ld` (`internal/scraper/jsonld.go`)
+schema.org `JobPosting` JSON-LD'yi (@graph/dizi/tekil sarmalı düzleştirerek)
+çıkarır; `greenhouse` (`internal/scraper/greenhouse.go`, strateji `ats_api`)
+herkese açık Greenhouse board API JSON'unu tüketir. İkisi de yalnızca
+`RawListing`'e normalize eder (tag'ler sökülür, URL kanonikleşir), yapı
+değişiminde sessiz "sıfır ilan" yerine `ErrUnexpectedPage` üretir; boş
+Greenhouse board'u ise geçerli sayılır. `adapterDefaultStrategy` stratejiyi
+adapter'dan çıkardığı için kaynak eklemek tek kayıt. Fixture-tabanlı birim
+testleri (`jsonld_test.go`, `greenhouse_test.go`) ve uçtan uca kabul testi
+(`internal/acceptance/phase10_test.go`: tam orchestrator → dedup → analiz →
+dashboard, değişmeyen ikinci taramada sıfır yeni/tekrar analiz) yeşil.
+**Kapsam-dışı bırakılan:** sitemap.xml ve RSS/Atom keşfi ile Workday adapter'ı
+sonraki artımlara bırakıldı; JSON-LD + Greenhouse çıkış kriterini karşılıyor.
+
 Neden: Bu tier, muhtemelen herhangi bir akıllı sezgiselden daha çok şirketi,
 sıfır AI maliyeti ve sıfır kırılgan selector ile kapsar. Pahalı yollara düşmeden
 önce daima denenmelidir.

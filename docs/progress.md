@@ -64,6 +64,11 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
   preflight, smoke ve image rollback scriptleri
 - `amd64`/`arm64` GHCR image yayını, SBOM/provenance/attestation ve korumalı
   production environment deployment workflow'u
+- Adapter adını fabrikaya eşleyen veri-odaklı `adapterFactories` dispatch tablosu
+  ve kaynak başına `strategy` alanı (Faz 9)
+- Faz 10 yapılandırılmış-veri adapter'ları: schema.org `JobPosting` JSON-LD
+  (`json_ld`) ve herkese açık Greenhouse board API (`greenhouse`/`ats_api`);
+  ikisi de AI'sız `RawListing`'e normalize edip mevcut dedup/analiz yoluna girer
 
 ## Doğrulanan çıkış kriterleri
 
@@ -97,6 +102,15 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
   multi-device sender ve gerçek SQLite delivery testleri ağsız geçer.
 - Faz 5 fixture kabulü primary/açık/ilgili/uygun ilanı iki taramada tek outbox
   olayı ve tek deep-linked fake push olarak teslim eder.
+- Faz 9 dispatch tablosu kayıtlı adapter'ları fabrikadan üretir, bilinmeyen
+  adapter'ı reddeder; mevcut kariyer.net/Lever regresyonsuz çalışır.
+- Faz 10 JSON-LD ve Greenhouse adapter'ları fixture'lardan strict şemaya
+  (tag'siz metin, kanonik URL) normalize eder; JSON-LD bloğu/`JobPosting`
+  eksikse veya başlık yoksa sessiz sıfır yerine hata verir; boş Greenhouse
+  board'u geçerli sayılır.
+- Faz 10 kabul testi JSON-LD sayfasını tam orchestrator → dedup → analiz →
+  dashboard yolundan geçirir; ikinci taramada sıfır yeni kayıt ve tekrar analiz
+  olmadığını doğrular.
 - PWA push/navigation helper testleri, TypeScript typecheck ve production build
   geçer; service worker yalnız aynı-origin hedefi açar.
 - Gerçek geçici SQLite ve fake checker testleri `/ready` DB/migration

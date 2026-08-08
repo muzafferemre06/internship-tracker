@@ -23,6 +23,22 @@ func TestNewSourceDispatchesRegisteredAdapters(t *testing.T) {
 				URL:     "https://jobs.lever.co/commencis/04a5cd98-ab26-4b48-bb64-3397ffe79a55",
 			},
 		},
+		{
+			adapter: "json_ld",
+			spec: SourceSpec{
+				ID:      "northstar-careers",
+				Company: "Northstar Robotics",
+				URL:     "https://careers.northstar.example/",
+			},
+		},
+		{
+			adapter: "greenhouse",
+			spec: SourceSpec{
+				ID:      "acme-greenhouse",
+				Company: "Acme Robotics",
+				URL:     "https://boards-api.greenhouse.io/v1/boards/acmerobotics/jobs",
+			},
+		},
 	}
 
 	for _, testCase := range cases {

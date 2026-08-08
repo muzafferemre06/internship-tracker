@@ -194,6 +194,34 @@ aynı tabloya yeni fabrika kayıtları eklenerek bağlanır; downstream (dedup,
 analiz, bildirim) değişmez. Ayrıntılı gerekçe için
 `staj-takip-spec-v2.md` §16, Faz 9-14.
 
+### Yapılandırılmış-veri adapter'ları (Faz 10)
+
+Faz 10, ucuz ve deterministik (AI'sız) iki adapter'ı aynı `adapterFactories`
+tablosuna ekler; ikisi de yalnızca `domain.RawListing`'e normalize edip mevcut
+dedup/analiz yoluna girer:
+
+- `json_ld` (`internal/scraper/jsonld.go`, strateji `json_ld`): Bir kariyer
+  sayfasındaki `<script type="application/ld+json">` bloklarını okur, tekil
+  obje / dizi / `@graph` sarmalını düzleştirir ve `schema.org` `JobPosting`
+  objelerini çıkarır. `title` zorunludur; `url` verilmişse query/fragment
+  soyularak kanonikleştirilir, yoksa sayfa URL'sine düşer; `employmentType`,
+  `jobLocation.address.addressLocality`, `datePosted`, `validThrough` ve
+  tag'leri sökülmüş `description` normalize metne katılır. Hiç JSON-LD bloğu,
+  hiç `JobPosting` veya başlıksız `JobPosting` bulunması sessiz "sıfır ilan"
+  değil, `ErrUnexpectedPage` üretir.
+- `greenhouse` (`internal/scraper/greenhouse.go`, strateji `ats_api`): Herkese
+  açık Greenhouse board API'sini (`boards-api.greenhouse.io/v1/boards/{token}/
+  jobs`) tüketir; scraping değil yapılandırılmış JSON. `content=true` zorlanır,
+  her ilanın HTML-escape'li `content` alanı bir kez unescape edilip tag'leri
+  sökülerek metne indirilir. Başlıksız veya geçersiz `absolute_url`'lu ilan hata
+  verir; boş board (`{"jobs":[]}`) ise geçerli deterministik bir sonuçtur.
+
+Yeni adapter'lar `adapterDefaultStrategy` üzerinden stratejilerini kendiliğinden
+çıkarır, böylece kaynak eklemek yalnızca bir kayıt (adapter + URL) olur.
+Kabul kanıtı: `internal/acceptance/phase10_test.go`, bir JSON-LD sayfasını tam
+orchestrator → dedup → analiz → dashboard yolundan geçirir ve değişmeyen ikinci
+taramada sıfır yeni kayıt/tekrar analiz doğrular.
+
 ### İzleme listesi ve taranamayan kaynaklar (Faz 6 ön hazırlığı)
 
 Dashboard iki ayrı, kesişmeyen liste sunar. `manual_checks`

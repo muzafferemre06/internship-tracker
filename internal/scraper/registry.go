@@ -33,6 +33,13 @@ var adapterFactories = map[string]SourceFactory{
 	"lever": func(spec SourceSpec) (Source, error) {
 		return NewLeverSource(spec.ID, spec.Company, spec.URL, nil)
 	},
+	// Faz 10 structured-data-first adapters (deterministic, AI-free).
+	"json_ld": func(spec SourceSpec) (Source, error) {
+		return NewJSONLDSource(spec.ID, spec.Company, spec.URL, nil)
+	},
+	"greenhouse": func(spec SourceSpec) (Source, error) {
+		return NewGreenhouseSource(spec.ID, spec.Company, spec.URL, nil)
+	},
 }
 
 // NewSource dispatches to the registered factory for the given adapter name.
