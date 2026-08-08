@@ -86,6 +86,51 @@
           "enabled": true
         }
       ]
+    },
+    {
+      "name": "Akdoğan Tech",
+      "priority_group": "primary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "akdogan-tech-career",
+          "type": "career_page",
+          "url": "https://akdogan.tech/career",
+          "adapter": "manual",
+          "strategy": "manual",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "Turkcell",
+      "priority_group": "primary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "turkcell-genc-yetenek",
+          "type": "career_page",
+          "url": "https://kariyerim.turkcell.com.tr/genc-yetenek",
+          "adapter": "manual",
+          "strategy": "manual",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "Havelsan",
+      "priority_group": "primary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "havelsan-kovan",
+          "type": "career_page",
+          "url": "https://kariyer.havelsan.com.tr/",
+          "adapter": "manual",
+          "strategy": "manual",
+          "enabled": false
+        }
+      ]
     }
   ]
 }
