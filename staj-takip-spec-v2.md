@@ -701,16 +701,6 @@ kontrol olarak sınıflandırılır; sessiz başarısızlık olmaz.
 Çıkış kriteri: Yeni bir şirket mevcut adapter'la konfigüre edilebilir veya
 sınırları belirli yeni bir adapter olarak eklenebilir.
 
-### Faz 8 — İkincil kaynaklar ve zengin başvuru bilgisi
-
-- LinkedIn/kariyer platformları/sosyal medya kaynak değerlendirmesi
-- şirket başvuru süreci özetleri
-- kaynak ve güncellik bilgisi
-- cevaplardan tercih öğrenme
-- daha gelişmiş kişiselleştirme
-
-Bu faz MVP sonrasıdır.
-
 ### Ölçeklenebilir kaynak kapsamı (Faz 9–14) — arka plan
 
 Faz 9–14, 2026-08-08 ürün görüşmesinde alınan yön kararını uygular: uygulama
@@ -881,6 +871,24 @@ per-domain uygulanır.
 Neden: Anti-bot sistemleriyle savaşmak sürdürülemez ve risklidir; yasal
 erişilebilen içeriğe AI uygulanır, gerisi manuel listeye yönlendirilir (§18
 kapsam-dışı ilkeleriyle tutarlı).
+
+### Faz 15 — İkincil kaynaklar ve zengin başvuru bilgisi (eski Faz 8, ertelendi)
+
+- LinkedIn/kariyer platformları/sosyal medya kaynak değerlendirmesi
+- şirket başvuru süreci özetleri
+- kaynak ve güncellik bilgisi
+- cevaplardan tercih öğrenme
+- daha gelişmiş kişiselleştirme
+
+Bu faz MVP sonrasıdır ve 2026-08-08'de bilinçli olarak sona alındı: bu faz
+Faz 9–14'ün inşa edeceği altyapıya bağımlıdır — LinkedIn/sosyal medya
+değerlendirmesi Faz 14'ün "scraping yapılmaz, e-posta/manuel'e yönlendir"
+sınırını önceden gerektirir; süreç özetleri ve zengin başvuru bilgisi Faz 11'in
+reduce-then-LLM çıkarım motorunu kullanabilir. Bu fazı Faz 9–14'ten önce
+çalışmak, henüz var olmayan bir uyum sınırına ve çıkarım motoruna dayanmak
+anlamına gelirdi; bu yüzden sona alındı. (Faz numarası korunmuştur; Faz 9–14
+zaten uygulanmış/dokümante edilmiş referanslarla eşleşsin diye yeniden
+numaralandırılmamıştır.)
 
 ## 17. Aşamalı DevOps öğrenme planı
 
