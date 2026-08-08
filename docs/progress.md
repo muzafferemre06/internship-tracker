@@ -69,6 +69,11 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 - Faz 10 yapılandırılmış-veri adapter'ları: schema.org `JobPosting` JSON-LD
   (`json_ld`) ve herkese açık Greenhouse board API (`greenhouse`/`ats_api`);
   ikisi de AI'sız `RawListing`'e normalize edip mevcut dedup/analiz yoluna girer
+- Faz 11 kaotik/bespoke kaynaklar için reduce-then-LLM `llm_generic` adapter'ı:
+  deterministik reduce (anahtar kelime + yapısal pencereleme), content-hash
+  kapısı + blok diff (değişmeyen taramada sıfır model çağrısı), enjekte
+  `ListingExtractor` portu ve strict doğrulama; Gemini extractor ayrı pakette
+- Faz 9 dispatch'inin `SourceDeps` ile genişletilmesi (shared extractor enjeksiyonu)
 
 ## Doğrulanan çıkış kriterleri
 
@@ -111,6 +116,16 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 - Faz 10 kabul testi JSON-LD sayfasını tam orchestrator → dedup → analiz →
   dashboard yolundan geçirir; ikinci taramada sıfır yeni kayıt ve tekrar analiz
   olmadığını doğrular.
+- Faz 11 `llm_generic` adapter'ı bespoke fixture'ından iş bloklarını çıkarır,
+  gezinme/footer/promo gürültüsünü modele göndermez; değişmeyen ikinci taramada
+  hiç extractor çağrısı yapmaz; malformed model çıktısı kaynak hatası olur; aday
+  blok yoksa sessiz sıfır yerine hata verir.
+- Faz 11 kabul testi bespoke sayfayı fake extractor + fake model ile tam
+  orchestrator → dedup → analiz → dashboard yolundan geçirir (2 ilan, ikinci
+  taramada 0 yeni, tek extractor çağrısı).
+- Faz 11 opt-in canlı integration testi gerçek `gemini-3.1-flash-lite` ile yerel
+  sunulan bespoke sayfadan uçtan uca çıkarma + analiz + dedup'ı doğrular
+  (2026-08-08: found=2, first_new=2, second_new=0, 475 token).
 - PWA push/navigation helper testleri, TypeScript typecheck ve production build
   geçer; service worker yalnız aynı-origin hedefi açar.
 - Gerçek geçici SQLite ve fake checker testleri `/ready` DB/migration

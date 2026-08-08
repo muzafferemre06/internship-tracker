@@ -18,6 +18,7 @@ import (
 	"github.com/muzaffer/internship-tracker/internal/config"
 	"github.com/muzaffer/internship-tracker/internal/database"
 	"github.com/muzaffer/internship-tracker/internal/domain"
+	"github.com/muzaffer/internship-tracker/internal/extractor"
 	"github.com/muzaffer/internship-tracker/internal/httpapi"
 	"github.com/muzaffer/internship-tracker/internal/orchestrator"
 	"github.com/muzaffer/internship-tracker/internal/push"
@@ -62,7 +63,14 @@ func main() {
 		logger.Error("repository initialization failed", "error", err)
 		os.Exit(1)
 	}
-	sources, err := configureSources(context.Background(), sourcesConfig, repository)
+	listingExtractor, err := configureExtractor(cfg)
+	if err != nil {
+		logger.Error("listing extractor initialization failed", "error", err)
+		os.Exit(1)
+	}
+	sources, err := configureSources(context.Background(), sourcesConfig, repository, scraper.SourceDeps{
+		Extractor: listingExtractor,
+	})
 	if err != nil {
 		logger.Error("source initialization failed", "error", err)
 		os.Exit(1)
@@ -186,6 +194,7 @@ func configureSources(
 	ctx context.Context,
 	configured config.SourcesConfig,
 	repository *store.SQLiteRepository,
+	deps scraper.SourceDeps,
 ) ([]scraper.Source, error) {
 	sources := make([]scraper.Source, 0)
 	for _, company := range configured.Companies {
@@ -216,7 +225,7 @@ func configureSources(
 				Company:  company.Name,
 				PageName: sourceConfig.PageName,
 				URL:      sourceConfig.URL,
-			})
+			}, deps)
 			if err != nil {
 				return nil, fmt.Errorf("configure source %q: %w", sourceConfig.ID, err)
 			}
@@ -241,27 +250,46 @@ func analyzerProfile(profile config.CandidateProfile) analyzer.CandidateProfile 
 	}
 }
 
-func configureAnalyzer(cfg config.Config) (analyzer.ListingAnalyzer, error) {
+// configureModelProvider builds the configured LLM provider, or returns a nil
+// provider when the deterministic analyzer is selected (no live model).
+func configureModelProvider(cfg config.Config) (analyzer.ModelProvider, error) {
 	switch strings.ToLower(strings.TrimSpace(cfg.LLMProvider)) {
 	case "deterministic":
-		return analyzer.NewDeterministicAnalyzer(), nil
+		return nil, nil
 	case "openrouter":
-		provider, err := analyzer.NewOpenRouterProvider(cfg.OpenRouterAPIKey, &http.Client{Timeout: 20 * time.Second})
-		if err != nil {
-			return nil, err
-		}
-		return newConfiguredModelAnalyzer(provider, cfg)
+		return analyzer.NewOpenRouterProvider(cfg.OpenRouterAPIKey, &http.Client{Timeout: 20 * time.Second})
 	case "google", "gemini":
-		provider, err := analyzer.NewGoogleProvider(
+		return analyzer.NewGoogleProvider(
 			cfg.GeminiAPIKey, cfg.LLMThinkingLevel, &http.Client{Timeout: 60 * time.Second},
 		)
-		if err != nil {
-			return nil, err
-		}
-		return newConfiguredModelAnalyzer(provider, cfg)
 	default:
 		return nil, fmt.Errorf("unsupported LLM provider %q", cfg.LLMProvider)
 	}
+}
+
+func configureAnalyzer(cfg config.Config) (analyzer.ListingAnalyzer, error) {
+	provider, err := configureModelProvider(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if provider == nil {
+		return analyzer.NewDeterministicAnalyzer(), nil
+	}
+	return newConfiguredModelAnalyzer(provider, cfg)
+}
+
+// configureExtractor builds the Faz 11 listing extractor from the configured
+// provider. It returns a nil extractor under the deterministic analyzer; any
+// enabled llm_generic source then fails fast with a clear message.
+func configureExtractor(cfg config.Config) (scraper.ListingExtractor, error) {
+	provider, err := configureModelProvider(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if provider == nil {
+		return nil, nil
+	}
+	return extractor.NewGeminiExtractor(provider, cfg.LLMModel)
 }
 
 func newConfiguredModelAnalyzer(provider analyzer.ModelProvider, cfg config.Config) (analyzer.ListingAnalyzer, error) {

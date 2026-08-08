@@ -112,6 +112,19 @@
           "enabled": false
         }
       ]
+    },
+    {
+      "name": "Example Bespoke Company",
+      "priority_group": "candidate",
+      "sources": [
+        {
+          "id": "example-bespoke-careers",
+          "type": "career_page",
+          "url": "https://careers.example.com/kariyer",
+          "adapter": "llm_generic",
+          "enabled": false
+        }
+      ]
     }
   ]
 }

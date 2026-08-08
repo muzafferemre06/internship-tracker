@@ -1,11 +1,22 @@
 package scraper
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
+
+type stubExtractor struct{}
+
+func (stubExtractor) Name() string { return "stub" }
+func (stubExtractor) Extract(context.Context, ExtractionRequest) (ExtractionResult, error) {
+	return ExtractionResult{}, nil
+}
 
 func TestNewSourceDispatchesRegisteredAdapters(t *testing.T) {
 	cases := []struct {
 		adapter string
 		spec    SourceSpec
+		deps    SourceDeps
 	}{
 		{
 			adapter: "kariyer_net",
@@ -39,6 +50,15 @@ func TestNewSourceDispatchesRegisteredAdapters(t *testing.T) {
 				URL:     "https://boards-api.greenhouse.io/v1/boards/acmerobotics/jobs",
 			},
 		},
+		{
+			adapter: "llm_generic",
+			spec: SourceSpec{
+				ID:      "vega-careers",
+				Company: "Vega Yazılım",
+				URL:     "https://kariyer.vega.example/kariyer",
+			},
+			deps: SourceDeps{Extractor: stubExtractor{}},
+		},
 	}
 
 	for _, testCase := range cases {
@@ -46,7 +66,7 @@ func TestNewSourceDispatchesRegisteredAdapters(t *testing.T) {
 			if !SupportsAdapter(testCase.adapter) {
 				t.Fatalf("expected %q to be a supported adapter", testCase.adapter)
 			}
-			source, err := NewSource(testCase.adapter, testCase.spec)
+			source, err := NewSource(testCase.adapter, testCase.spec, testCase.deps)
 			if err != nil {
 				t.Fatalf("build source: %v", err)
 			}
@@ -57,11 +77,18 @@ func TestNewSourceDispatchesRegisteredAdapters(t *testing.T) {
 	}
 }
 
+func TestNewSourceLLMGenericRequiresExtractor(t *testing.T) {
+	_, err := NewSource("llm_generic", SourceSpec{ID: "x", Company: "X", URL: "https://careers.example/"}, SourceDeps{})
+	if err == nil {
+		t.Fatal("expected error when llm_generic has no configured extractor")
+	}
+}
+
 func TestNewSourceRejectsUnknownAdapter(t *testing.T) {
 	if SupportsAdapter("does_not_exist") {
 		t.Fatalf("expected unknown adapter to be unsupported")
 	}
-	if _, err := NewSource("does_not_exist", SourceSpec{ID: "x", Company: "X", URL: "https://example.test"}); err == nil {
+	if _, err := NewSource("does_not_exist", SourceSpec{ID: "x", Company: "X", URL: "https://example.test"}, SourceDeps{}); err == nil {
 		t.Fatalf("expected error for unknown adapter")
 	}
 }

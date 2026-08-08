@@ -37,7 +37,7 @@ func TestLoadSources(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load example sources: %v", err)
 	}
-	if len(sources.Companies) != 8 || sources.Companies[0].Name != "Commencis" ||
+	if len(sources.Companies) != 9 || sources.Companies[0].Name != "Commencis" ||
 		sources.Companies[0].Sources[0].Adapter != "lever" {
 		t.Fatalf("unexpected sources: %#v", sources)
 	}
@@ -57,6 +57,7 @@ func TestLoadSourcesInfersStrategyFromAdapter(t *testing.T) {
 		"kariyer_net": "legacy_html",
 		"json_ld":     "json_ld",
 		"greenhouse":  "ats_api",
+		"llm_generic": "llm_generic",
 	}
 	for _, company := range sources.Companies {
 		for _, source := range company.Sources {

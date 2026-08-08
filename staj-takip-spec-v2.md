@@ -883,6 +883,26 @@ yasal erişilebilen) kaotik içerik için, maliyeti kontrol altında tutan AI de
 değişmeyen ikinci taramada hiç LLM çağrısı yapılmaz; geçersiz/eksik çıktı
 `islenemedi`/`karar_bekliyor` yoluna düşer.
 
+Uygulama durumu (2026-08-08): Tamamlandı. `llm_generic` adapter'ı
+(`internal/scraper/llmgeneric.go`) aynı `adapterFactories` tablosuna eklendi;
+downstream değişmedi. Akış: fetch → **reduce** (script/style/nav/footer/aside
+atılır; aday bloklar anahtar kelime + yapısal yakınlık/innermost ile pencerelenir;
+başvuru linkleri `LINK:` satırı olarak eklenir) → **content-hash kapısı + blok
+bazlı diff** (yalnız yeni/değişen blok modele gider; değişmeyen taramada sıfır
+LLM çağrısı — blok hash → çıkarılan ilan önbelleği) → enjekte `ListingExtractor`
+portu → strict doğrulama (başlık + sayfaya göre çözümlenen mutlak URL; eksik
+çıktı düşürülür, malformed model çıktısı hata=`islenemedi`). Aday bloğu
+bulunmayan sayfa sessiz sıfır yerine `ErrUnexpectedPage` verir. Extractor portu
+`scraper.ListingExtractor`; Gemini implementasyonu ayrı pakette
+(`internal/extractor/gemini.go`) olduğundan scraper analyzer'a bağımlı olmaz.
+Testler: fixture birim testleri (`llmgeneric_test.go`, `extractor/gemini_test.go`),
+uçtan uca kabul (`phase11_test.go`), ve **canlı Gemini** integration testi
+(`phase11_live_test.go`, opt-in): 2026-08-08'de gerçek `gemini-3.1-flash-lite`
+ile yerel olarak sunulan bespoke sayfadan 2 ilan çıkarıldı, analiz edildi,
+ikinci taramada 0 yeni (dedup), 475 token. Kapsam-dışı bırakıldı: embedding
+benzerlik basamağı ve headless render (Playwright); şu an keyword/yakınlık →
+LLM ve kalıcı (restart'ı aşan) blok önbelleği (Faz 12 reçete deposuyla gelecek).
+
 Neden: kariyer.net gibi kararlı sözleşmesi olan siteleri LLM'e taşımak gerilemedir;
 bu adapter yalnız gerçekten kaotik kaynaklar içindir. Reduce + hash + diff
 basamakları, kapsamı genişletirken AI maliyetini taban seviyede tutar.

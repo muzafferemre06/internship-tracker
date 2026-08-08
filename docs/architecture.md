@@ -222,6 +222,40 @@ Kabul kanıtı: `internal/acceptance/phase10_test.go`, bir JSON-LD sayfasını t
 orchestrator → dedup → analiz → dashboard yolundan geçirir ve değişmeyen ikinci
 taramada sıfır yeni kayıt/tekrar analiz doğrular.
 
+### Reduce-then-LLM generic adapter (Faz 11)
+
+`llm_generic` adapter'ı (`internal/scraper/llmgeneric.go`) API'si ve kararlı
+yapısı olmayan kaotik/bespoke kariyer sayfaları içindir. LLM'i taramanın sıcak
+yolundan çıkarır:
+
+1. **Reduce (deterministik, AI'sız):** `script/style/nav/header/footer/aside/
+   form` alt ağaçları atılır; `li/article/tr/section/div` kapsayıcılarından metni
+   bir iş anahtar kelimesi (staj/intern/başvur/apply/pozisyon…) içeren ve uzunluk
+   sınırındaki *innermost* bloklar seçilir; her blok satır-yapılı metne indirilir
+   ve çözümlenen başvuru linkleri `LINK:` satırı olarak eklenir. Aday blok yoksa
+   sessiz sıfır yerine `ErrUnexpectedPage`.
+2. **Content-hash kapısı + blok diff:** Her blok metninin SHA-256'sı alınır;
+   yalnız önbellekte olmayan (yeni/değişen) bloklar modele gönderilir. Değişmeyen
+   taramada hiç model çağrısı yapılmaz — adapter, blok-hash → çıkarılan ilan
+   eşlemesini süreç-içi tutar. (Restart'ı aşan kalıcı önbellek Faz 12'ye bırakıldı.)
+3. **Extraction portu:** `scraper.ListingExtractor` enjekte edilir; model çıktısı
+   `source_block` index'iyle bloğa geri bağlanır. Üretimde
+   `internal/extractor.GeminiExtractor` bu portu `analyzer.ModelProvider` üzerinden
+   strict JSON şemayla uygular; ayrı pakette olduğu için scraper analyzer'a bağımlı
+   olmaz. Normal testler deterministik fake extractor kullanır.
+4. **Strict doğrulama:** Çıkarılan ilan başlık + sayfaya göre çözümlenen mutlak
+   HTTP(S) URL taşımalıdır; eksik çıktı düşürülür, tüm yanıtın bozuk JSON olması
+   kaynak hatası (`islenemedi`) olur. Geçerli ilanlar `RawListing` olarak mevcut
+   dedup/analiz yoluna girer.
+
+Adapter'ı istemek shared bir bağımlılık gerektirdiği için Faz 9 dispatch'i
+`SourceDeps{Extractor}` ile genişletildi (`scraper.NewSource(adapter, spec, deps)`);
+`cmd/api` extractor'ı yapılandırılmış LLM sağlayıcısından kurar, deterministik
+modda extractor `nil` olur ve etkin bir `llm_generic` kaynağı açık hatayla durur.
+Kabul kanıtı: `phase11_test.go` (fake) tam ingestion + dedup'ı; `phase11_live_test.go`
+(opt-in, gerçek Gemini) yerel sunulan bespoke sayfada uçtan uca çıkarma+analizi
+doğrular.
+
 ### İzleme listesi ve taranamayan kaynaklar (Faz 6 ön hazırlığı)
 
 Dashboard iki ayrı, kesişmeyen liste sunar. `manual_checks`

@@ -76,8 +76,9 @@ var legacyHTMLAdapters = map[string]struct{}{
 // source only has to declare its adapter; the strategy is inferred (see
 // staj-takip-spec-v2.md §16). Explicit "strategy" in config still wins.
 var adapterDefaultStrategy = map[string]string{
-	"json_ld":    "json_ld",
-	"greenhouse": "ats_api",
+	"json_ld":     "json_ld",
+	"greenhouse":  "ats_api",
+	"llm_generic": "llm_generic",
 }
 
 // validSourceStrategies are the source-strategy tiers defined by Faz 9-12
