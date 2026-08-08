@@ -20,11 +20,19 @@ type ManualCheck = {
   last_success_at?: string;
 };
 
+type WatchlistEntry = {
+  source_id: string;
+  company: string;
+  url: string;
+  last_checked_at?: string;
+};
+
 type DashboardResponse = {
   new_listings: Listing[];
   needs_decision: Listing[];
   active_applications: Listing[];
   manual_checks: ManualCheck[];
+  watchlist: WatchlistEntry[];
   last_scan: null | {
     id: number;
     finished_at: string;
@@ -83,6 +91,7 @@ const emptyDashboard: DashboardResponse = {
   needs_decision: [],
   active_applications: [],
   manual_checks: [],
+  watchlist: [],
   last_scan: null,
 };
 
@@ -111,6 +120,7 @@ export default function App() {
   const [application, setApplication] = useState<ApplicationForm>(emptyApplication);
   const [pushStatus, setPushStatus] = useState<PushStatus | "loading">("loading");
   const [pushBusy, setPushBusy] = useState(false);
+  const [checkingSourceID, setCheckingSourceID] = useState<string | null>(null);
 
   useEffect(() => {
     void loadDashboard();
@@ -222,6 +232,23 @@ export default function App() {
     }
   }
 
+  async function markWatchlistChecked(sourceID: string) {
+    setCheckingSourceID(sourceID);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/watchlist/${encodeURIComponent(sourceID)}/checked`, {
+        method: "PUT",
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = (await response.json()) as DashboardResponse;
+      setDashboard({ ...emptyDashboard, ...data });
+      setMessage("Kontrol zamanı kaydedildi.");
+    } catch {
+      setMessage("Kontrol zamanı kaydedilemedi.");
+    } finally {
+      setCheckingSourceID(null);
+    }
+  }
+
   async function saveApplication(event: React.FormEvent) {
     event.preventDefault();
     if (!selected) return;
@@ -296,7 +323,8 @@ export default function App() {
         <article><strong>{grouped.priority.length}</strong><span>Öncelikli yeni ilan</span></article>
         <article><strong>{dashboard.needs_decision.length}</strong><span>Karar bekliyor</span></article>
         <article><strong>{dashboard.active_applications.length}</strong><span>Aktif başvuru</span></article>
-        <article><strong>{dashboard.manual_checks.length}</strong><span>Manuel kontrol</span></article>
+        <article><strong>{dashboard.manual_checks.length}</strong><span>Taranamayan kaynak</span></article>
+        <article><strong>{dashboard.watchlist.length}</strong><span>İzleme listesi</span></article>
       </section>
 
       <div className="dashboard-grid">
@@ -319,13 +347,40 @@ export default function App() {
         </section>
 
         <section className="panel manual-panel">
-          <div className="panel-heading"><h2>Manuel kontrol listesi</h2><span>{dashboard.manual_checks.length}</span></div>
-          {dashboard.manual_checks.length === 0 ? <p className="empty">Manuel kontrol gerektiren kaynak yok.</p> : (
+          <div className="panel-heading"><h2>Taranamayan kaynaklar</h2><span>{dashboard.manual_checks.length}</span></div>
+          {dashboard.manual_checks.length === 0 ? <p className="empty">Taranamayan kaynak yok.</p> : (
             <ul className="manual-list">
               {dashboard.manual_checks.map((check) => (
                 <li key={check.source_id}>
                   <div><strong>{check.company}</strong><p>{check.reason}</p></div>
                   <a href={check.url} target="_blank" rel="noreferrer">Kaynağı aç <span aria-hidden="true">↗</span></a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="panel watchlist-panel">
+          <div className="panel-heading"><h2>İzleme listesi</h2><span>{dashboard.watchlist.length}</span></div>
+          {dashboard.watchlist.length === 0 ? <p className="empty">İzleme listesinde kaynak yok.</p> : (
+            <ul className="manual-list">
+              {dashboard.watchlist.map((entry) => (
+                <li key={entry.source_id}>
+                  <div>
+                    <strong>{entry.company}</strong>
+                    <p>{entry.last_checked_at ? `Son kontrol: ${formatDate(entry.last_checked_at)}` : "Henüz kontrol edilmedi."}</p>
+                  </div>
+                  <div className="watchlist-actions">
+                    <a href={entry.url} target="_blank" rel="noreferrer">Kaynağı aç <span aria-hidden="true">↗</span></a>
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={checkingSourceID === entry.source_id}
+                      onClick={() => markWatchlistChecked(entry.source_id)}
+                    >
+                      {checkingSourceID === entry.source_id ? "Kaydediliyor…" : "Kontrol ettim"}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
