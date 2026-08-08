@@ -711,6 +711,166 @@ sınırları belirli yeni bir adapter olarak eklenebilir.
 
 Bu faz MVP sonrasıdır.
 
+### Ölçeklenebilir kaynak kapsamı (Faz 9–14) — arka plan
+
+Faz 9–14, 2026-08-08 ürün görüşmesinde alınan yön kararını uygular: uygulama
+öncelikle **kişisel** bir araç olarak geliştirilecek (çok kullanıcılı ürün
+hedefi ertelendi) ve gerçek faydası **kaynak kapsamını genişletmekten** gelecek
+— altyapı (Faz 0–5) zaten olgun. Temel içgörü: bugün izlenen tüm kaynaklar
+kariyer.net üzerinde ve kariyer.net'in kendi takip/uyarı özelliğini tekrarlıyor.
+Asıl değer, kariyer.net'in görmediği kaynaklardan (şirket kariyer sayfaları,
+ATS'ler, teknokent şirketleri) gelen ilanları tek bir yerde toplamakta.
+
+Her şirket için elle scraper yazmak sürdürülemez bir bakım yüküdür ("selector
+kırılması" tuzağı). Bu fazlar o yükü kademeli (tiered) bir kaynak-strateji
+mimarisiyle çözer. Yönlendirici ilkeler:
+
+- **Maliyet disiplini:** LLM yalnız yeni/değişmiş içerikte çağrılır; ucuz ve
+  deterministik yollar her zaman önce denenir (§13 hash/dedup ile tutarlı).
+- **Sessiz başarısızlık yok:** Yapı değişince "sıfır ilan" kabul edilmez; hata
+  üretilir veya kendini onaran akış tetiklenir (§14 ile tutarlı).
+- **Veri-odaklı esneklik:** Yeni şirket eklemek kod deploy'u değil, bir kayıt
+  eklemektir.
+- **Uyum:** Erişim koruması/CAPTCHA aşılmaz; site ToS ve robots.txt'e uyulur
+  (§18 kapsam-dışı ile tutarlı).
+
+Önerilen sıra değeri erken getirir: önce ucuz ve geniş kapsam (Faz 9–10), sonra
+kaotik siteler için AI destekli çıkarım (Faz 11–12), sonra ölçek sorunları
+(Faz 13–14).
+
+### Faz 9 — Kaynak strateji soyutlaması (veri-odaklı, kademeli dispatch)
+
+Amaç: kaynak davranışını bir **veri özelliği** yapmak. Her kaynak bir `strategy`
+alanı taşır; orchestrator mevcut `Source` arayüzü arkasında bu stratejiye göre
+adapter seçer, böylece downstream (dedup, analiz, bildirim) değişmez.
+
+- Kaynak stratejileri: `json_ld | ats_api | learned_selector | llm_generic | manual`.
+- Stratejiler ve parametreleri config/DB'de tanımlıdır; yeni şirket eklemek kod
+  değişikliği gerektirmez.
+- Her kaynak bir sağlık/durum snapshot'ı taşır (son başarı, son ilan sayısı, son
+  hata, strateji sürümü).
+
+Çıkış kriteri: Aynı orchestrator yolu kaynak başına strateji seçerek çalışır;
+mevcut kariyer.net ve Lever adapter'ları strateji dispatch'i altında regresyonsuz
+çalışır.
+
+Neden: Şirket sayısı arttıkça asıl darboğaz koddur. Stratejiyi veriye taşımak
+her yeni kaynağı "bir satır + tier seçimi"ne indirger ve sonraki tüm fazların
+temelini kurar.
+
+### Faz 10 — Yapılandırılmış-veri-öncelikli ingestion (deterministik, AI'sız)
+
+Amaç: birçok kariyer sayfasının veriyi zaten hazır verdiği ucuz yolları önce
+kullanmak. En yüksek kapsam artışını en düşük maliyetle sağlar.
+
+- **schema.org `JobPosting` JSON-LD**: Google for Jobs nedeniyle çok sayıda site
+  `<script type="application/ld+json">` içinde standart ilan verisi (title,
+  location, employmentType, datePosted, validThrough) gömer. Deterministik,
+  ücretsiz, siteler arası standart ve layout değişimine dayanıklı.
+- **sitemap.xml ve RSS/Atom** keşfi: ilan URL'lerini desen/feed üzerinden bulma.
+- **ATS JSON API adapter'ları**: Greenhouse (`boards-api.greenhouse.io`), Workday;
+  Lever zaten mevcut. Scraping değil, yapılandırılmış API — ucuz ve kararlı.
+- Tier sırası: `json_ld → feed/sitemap → ats_api → (sonraki fazların fallback'i)`.
+
+Çıkış kriteri: JSON-LD içeren bir fixture sayfası ve bir ATS API fixture'ı, hiç
+AI çağrısı olmadan strict şemaya normalize edilip mevcut dedup/analiz yoluna girer.
+
+Neden: Bu tier, muhtemelen herhangi bir akıllı sezgiselden daha çok şirketi,
+sıfır AI maliyeti ve sıfır kırılgan selector ile kapsar. Pahalı yollara düşmeden
+önce daima denenmelidir.
+
+### Faz 11 — Kaotik/bespoke siteler için generic reduce-then-LLM adapter
+
+Amaç: API'si ve kararlı yapısı olmayan uzun-kuyruk kariyer sayfaları ve (yalnız
+yasal erişilebilen) kaotik içerik için, maliyeti kontrol altında tutan AI destekli
+çıkarım.
+
+- **Fetch (+ gerekirse headless render / Playwright)**: modern kariyer portalları
+  çoğunlukla JS SPA'dır (§11.1 yardımcı katmanı).
+- **Reduce (ucuz, deterministik, AI'sız)**: `script/style/nav/footer` çıkar,
+  HTML'i düz metne/markdown'a indir, anahtar kelime (staj/başvur/ilan/açık
+  pozisyon/intern/new grad) + **yapısal yakınlık** (aynı blok, tekrar eden
+  kart/liste) ile aday blokları pencerele.
+- **Ucuz sınıflandırıcı basamağı**: keyword/yakınlık filtresi (bedava) → embedding
+  benzerliği (neredeyse bedava) → LLM extraction (nadir). Gürültünün çoğu ilk iki
+  basamakta elenir.
+- **Content-hash kapısı**: indirgenmiş içeriğin hash'i değişmedikçe LLM çağrılmaz
+  (§13 ile tutarlı).
+- **Diff-tabanlı çıkarım**: hash değiştiğinde, önceki indirgenmiş bloklara göre
+  yalnız yeni/değişen blok(lar) modele gönderilir; tüm sayfa değil.
+- **Strict şema doğrulama + deterministik dedup**: LLM çıktısı asla doğrudan
+  bildirime gitmez; mevcut analyzer'ın şema/iş-kuralı yeniden doğrulaması uygulanır.
+  Düşük güven → `karar_bekliyor`/inceleme kuyruğu, bildirim değil.
+
+Çıkış kriteri: Bespoke bir HTML fixture'ından ilan(lar) doğru çıkarılır;
+değişmeyen ikinci taramada hiç LLM çağrısı yapılmaz; geçersiz/eksik çıktı
+`islenemedi`/`karar_bekliyor` yoluna düşer.
+
+Neden: kariyer.net gibi kararlı sözleşmesi olan siteleri LLM'e taşımak gerilemedir;
+bu adapter yalnız gerçekten kaotik kaynaklar içindir. Reduce + hash + diff
+basamakları, kapsamı genişletirken AI maliyetini taban seviyede tutar.
+
+### Faz 12 — Kendini onaran öğrenilmiş çıkarım reçeteleri
+
+Amaç: "her site için elle selector yazma/onarma" bakım yükünü ortadan kaldırmak.
+Ajan reçeteyi **bir kez kurulumda üretir/onarır**; deterministik motor onu her
+taramada ucuza çalıştırır.
+
+- **Reçete**: selector/kural seti, sürüm, ve **son başarılı ilan sayısı/parmak izi
+  (golden snapshot)**. Kaynak bazında DB'de saklanır.
+- Her tarama reçeteyi deterministik çalıştırır (AI'sız, bedava).
+- **Onarım guard'ı**: kimlik kontrolü kırılırsa, tarihsel N ilandan 0'a düşülürse
+  veya şema doğrulaması kırılırsa → reçete AI ile yeniden türetilir, sürüm
+  artırılır, saklanır.
+- Reçeteler DB'de birikir; sistemin her sitenin şekline dair kurumsal bilgisi olur.
+  Kullanıcı düzeltmeleri reçeteyi iyileştirir (hafif insan-döngüde).
+
+Çıkış kriteri: Bir fixture site için AI ile üretilen reçete saklanır ve sonraki
+taramalar AI'sız çalışır; yapısı değiştirilen bir fixture'da golden-snapshot
+guard'ı sessiz "sıfır ilan" yerine yeniden-türetmeyi tetikler.
+
+Neden: Bu "ajan scraper'ı yazar/onarır, deterministik motor çalıştırır" kalıbıdır.
+AI'yı her taramanın sıcak yolundan çıkarır; hem maliyeti hem de sessiz başarısızlık
+riskini düşürür.
+
+### Faz 13 — Kaynaklar arası dedup ve kanonik fırsat modeli
+
+Amaç: Aynı ilan birden çok kaynakta (kariyer.net + şirket sayfası + LinkedIn)
+göründüğünde tek fırsat = tek bildirim.
+
+- **Kanonik fırsat**: `company + normalize edilmiş başlık (+ lokasyon)` üzerinden
+  bulanık (fuzzy) eşleme.
+- Birden çok listing tek fırsata bağlanır; bildirim `dedup_key` fırsat düzeyinde
+  uygulanır (§8/§13 ile tutarlı).
+
+Çıkış kriteri: İki farklı kaynaktan gelen aynı ilan tek fırsat olarak gösterilir
+ve yalnız bir bildirim üretir.
+
+Neden: Kaynak sayısı arttıkça per-source dedup yetmez; aksi hâlde daha çok kaynak
+= daha çok tekrar bildirim = kullanıcının bildirimleri kapatması.
+
+### Faz 14 — Sosyal/manuel kaynaklar ve uyum (compliance)
+
+Amaç: Erişim sınırlarını dürüstçe ele almak. Kaotik içerik için "reduce → AI"
+doğru araçtır; ama bazı kaynaklarda sorun *parsing* değil *erişim*tir.
+
+- **LinkedIn/sosyal medya doğrudan scraping YAPILMAZ**: agresif bot koruması,
+  ToS/yasal risk ve kullanıcının kendi hesabının banlanma riski. Alternatifler:
+  kullanıcının **kendi iş-uyarı e-postalarını** ayrıştırma (rıza dahilinde, kendi
+  gelen kutusu), varsa RSS, ya da **manuel kontrol listesi**.
+- **Per-domain erişim yönetimi**: mevcut `AccessPolicy` genişletilir — robots.txt
+  saygısı, rate limit, cooldown birinci sınıf hâle gelir.
+- Otomatik erişilemeyen her kaynak sessizce geçilmez; manuel kontrol listesine
+  düşer (§6 ile tutarlı).
+
+Çıkış kriteri: LinkedIn benzeri bir kaynak, scraping denemeden manuel-checklist
+veya e-posta-ayrıştırma stratejisiyle temsil edilir; robots/rate-limit politikası
+per-domain uygulanır.
+
+Neden: Anti-bot sistemleriyle savaşmak sürdürülemez ve risklidir; yasal
+erişilebilen içeriğe AI uygulanır, gerisi manuel listeye yönlendirilir (§18
+kapsam-dışı ilkeleriyle tutarlı).
+
 ## 17. Aşamalı DevOps öğrenme planı
 
 DevOps çalışmaları üründen kopuk örnekler yerine proje ilerledikçe eklenir:
