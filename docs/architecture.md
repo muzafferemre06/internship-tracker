@@ -194,6 +194,25 @@ aynı tabloya yeni fabrika kayıtları eklenerek bağlanır; downstream (dedup,
 analiz, bildirim) değişmez. Ayrıntılı gerekçe için
 `staj-takip-spec-v2.md` §16, Faz 9-14.
 
+### İzleme listesi ve taranamayan kaynaklar (Faz 6 ön hazırlığı)
+
+Dashboard iki ayrı, kesişmeyen liste sunar. `manual_checks`
+(`company_sources.last_error IS NOT NULL AND companies.tracking_status !=
+'manual'`) yalnız scraper'ın deneyip başarısız olduğu kaynakları gösterir —
+tanı amaçlı, geçicidir. `watchlist` (`companies.tracking_status = 'manual'`)
+kullanıcının bilinçli olarak elle takip etmeyi seçtiği, kalıcı bir listedir;
+scraper hiç denenmez (`enabled: false`), hata durumundan bağımsızdır. Bir
+kaynak asla iki listede birden görünmez. `company_sources.last_manual_check_at`
+(`migrations/007_watchlist.sql`) kullanıcının "Kontrol ettim" ile işaretlediği
+son zamanı tutar; `PUT /api/v1/watchlist/{id}/checked`
+(`store.TrackingRepository.MarkSourceChecked`) bu alanı günceller ve güncel
+dashboard snapshot'ını döner. `config.CompanyConfig.TrackingStatus` şirket
+düzeyinde `active`/`manual`/`paused` değerini taşır ve `RegisterSource` ile
+`companies.tracking_status`'a yazılır. İlk watchlist girdileri (Akdoğan Tech,
+Turkcell, Havelsan) `configs/sources.json`'da `adapter: "manual"`,
+`strategy: "manual"` ile tanımlıdır — bkz. `staj-takip-spec-v2.md` §16, Faz 6
+kaynak keşif notları.
+
 Faz 3.5 kabul akışı adapter'ı doğrudan SQLite repository ve `ModelAnalyzer` ile
 orchestrator içinde çalıştırır. İkinci tarama aynı canonical URL'yi günceller,
 ancak işlenmiş analizi yeniden çağırmaz. Sonuç, üretimde kullanılan dashboard

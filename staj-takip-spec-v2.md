@@ -734,6 +734,23 @@ kaynaklarının (JSON-LD/ATS API) bu üç şirket için düşük olasılıklı o
 Faz 11-12'nin (reduce-then-LLM + öğrenilmiş reçete) veya basit `manual`
 sınıflandırmasının daha gerçekçi olduğunu gösteriyor.
 
+#### İzleme listesi uygulaması (2026-08-08)
+
+Üçü de (Akdoğan Tech, Turkcell, Havelsan) `manual` olarak sınıflandırıldı ve
+dashboard'a **ayrı, kalıcı bir "İzleme listesi" paneli** eklendi — mevcut
+"Manuel kontrol listesi" panelinin (adı "Taranamayan kaynaklar" olarak
+netleştirildi) anlamı yalnız scraper hatası olan kaynaklara daraltıldı, ikisi
+artık kesişmiyor. Kullanıcı "Kontrol ettim" ile son kontrol zamanını
+kaydedebiliyor (`PUT /api/v1/watchlist/{id}/checked`). Bu, Faz 6'nın "her
+kaynak otomatik desteklenir veya açık biçimde manuel kontrol olarak
+sınıflandırılır" çıkış kriterinin bu üç şirket için karşılandığı anlamına
+gelir — ama gerçek adapter/otomasyon çalışması (özellikle Havelsan'ın Kovan
+portalı için, bkz. yukarıdaki açık karar) hâlâ yapılmadı; watchlist bir
+nihai durum değil, o çalışma tamamlanana kadarki dürüst ara durumdur.
+Turkcell'in program-düzeyi veri modeli sorusu (§20) da hâlâ açık.
+Uygulama ve test detayları: `docs/architecture.md`, "İzleme listesi ve
+taranamayan kaynaklar" bölümü.
+
 ### Faz 7 — Şirket kapsamını genişletme
 
 - birincil listedeki kalan şirketler
