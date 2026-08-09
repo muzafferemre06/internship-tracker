@@ -963,6 +963,13 @@ kalır. Açık lokasyon çelişkisi skordan bağımsız olarak birleşmeyi engel
 Çıkış kriteri: İki farklı kaynaktan gelen aynı ilan tek fırsat olarak gösterilir
 ve yalnız bir bildirim üretir.
 
+Tamamlanma kanıtı: `internal/acceptance/phase13_test.go` içindeki JSON
+fixture/fake analizci yolu iki farklı kaynak listing'ini gerçek migration ve
+SQLite üzerinden tek fırsat, tek üretim dashboard kartı ve fake göndericiye tek
+Web Push olarak doğrular. Eksik lokasyon kabul senaryosu iki kaydı ayrı tutar;
+repository testleri audit, startup reconciliation ve çelişkide split davranışını
+kapsar.
+
 Neden: Kaynak sayısı arttıkça per-source dedup yetmez; aksi hâlde daha çok kaynak
 = daha çok tekrar bildirim = kullanıcının bildirimleri kapatması.
 

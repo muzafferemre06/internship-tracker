@@ -216,6 +216,12 @@ Dashboard/outbox testi aynı fırsatın yalnız bir kart, fırsat düzeyli tek
 deep-link'inin kaynak listing'e çözülebilir kalırken Web Push `Topic` sınırına
 uyduğunu doğrular.
 
+`internal/acceptance/phase13_test.go`, iki kaynak gözlemini küçük JSON fixture'dan
+okur; fake kaynaklar ve fake analizciyi gerçek orchestrator, migration/SQLite,
+üretim dashboard HTTP handler'ı, outbox ve fake push göndericiyle birleştirir.
+Normal kabul ağı kullanmaz. Ana senaryo iki listing/tek fırsat/tek kart/tek push;
+eksik lokasyon senaryosu iki ayrı fırsat bekler.
+
 `internal/acceptance/phase4_test.go`, gerçek migration/SQLite ile analizli ilan
 oluşturur; üretim HTTP handler'ından detayı okur, RFC3339 tarihli başvuru kaydını
 günceller ve son dashboard yanıtında aktif başvuruyu, yaklaşan tarihi ve manuel

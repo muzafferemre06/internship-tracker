@@ -2,11 +2,12 @@
 
 ## Aktif faz
 
-Faz 12 tamamlandı. Öğrenilmiş selector reçeteleri kaynak bazında versionlanarak
-SQLite'ta tutuluyor; olağan taramalar reçeteyi AI'sız çalıştırıyor, kimlik/şema
-guard'ı veya tarihsel ilan sayısının sıfıra düşmesi reçeteyi yeniden üretip
-sürümünü artırıyor. Sıradaki geliştirme fazı kaynaklar arası dedup ve kanonik
-fırsat modeli olan Faz 13'tür.
+Faz 13 tamamlandı. Farklı kaynak URL'leri listing kanıtı olarak korunurken aynı
+şirket + güvenli normalize başlık + lokasyon kanıtı tek kanonik fırsata
+bağlanıyor. Dashboard fırsatı bir kez gösteriyor, Web Push dedup'ı fırsat
+düzeyinde çalışıyor; belirsiz eşleşmeler ayrı, kararlar audit edilebilir ve açık
+kanıt çelişkisi birleşmeyi veri silmeden geri alıyor. Sıradaki geliştirme fazı
+sosyal/manuel kaynaklar ve uyum politikalarını kapsayan Faz 14'tür.
 
 ## Tamamlananlar
 
@@ -14,6 +15,9 @@ fırsat modeli olan Faz 13'tür.
 - Go API ve React/Vite PWA iskeleti
 - Aday profili ve şirket kaynak yapılandırması için doğrulanan yükleyiciler
 - Transaction kullanan, tekrar uygulanmayan SQLite migration çalıştırıcısı
+- Kaynak listing'lerini koruyan kanonik fırsat üyelikleri ve startup uzlaştırması
+- `0.92` otomatik / `0.80` belirsiz fuzzy eşiği, lokasyon guard'ı ve split audit'i
+- Fırsat başına tek dashboard kartı ve fırsat düzeyli bildirim `dedup_key`'i
 - Meteksan profilinden ilan bağlantılarını normalize eden kariyer.net adapter'ı
 - ASELSAN/ASELSANNET çoklu profili ile STM, Baykar ve Samsung kaynak ayarları
 - Canonical URL, kararlı kimlik ve duplicate kontrolü yapan SQLite repository
@@ -146,13 +150,16 @@ fırsat modeli olan Faz 13'tür.
 - Gerçek geçici SQLite ve fake checker testleri `/ready` DB/migration
   doğrulamasını, `/health` bağımsız liveness'ini, hata ayrıntısı sızdırmayan
   `503` davranışını ve HTTP güvenlik/loglama middleware'ini kapsar.
+- Faz 13 fixture/fake kabulü iki kaynak listing'ini tek fırsat, tek dashboard
+  kartı ve tek push olarak doğruladı; güvenli kanıt
+  `docs/acceptance/phase-13-2026-08-09.md` içindedir.
 
 ## Sıradaki iş
 
-Faz 13: farklı kaynaklardan gelen aynı ilanı şirket + normalize başlık + konum
-üzerinden tek kanonik fırsata bağlamak; dashboard ve bildirim dedup'ını fırsat
-düzeyine taşımak. Başlamadan önce bulanık eşleme eşikleri ve yanlış birleşmeleri
-geri alma davranışı için ayrı test-first plan onayı alınmalıdır.
+Faz 14: LinkedIn/sosyal medya doğrudan scraping yapmadan manuel checklist veya
+kullanıcının kendi iş-uyarı e-postası yolunu modellemek; robots.txt, rate limit
+ve cooldown politikasını domain bazında birinci sınıf hâle getirmek. Faz 14 için
+ayrı plan ve açık onay alınmadan uygulamaya başlanmamalıdır.
 
 Faz 5'in production runbook'u geçerliliğini korur. Kullanıcı yerel Docker +
 Cloudflare Tunnel üzerinden telefon erişimini doğrulamıştır; off-host yedek ve

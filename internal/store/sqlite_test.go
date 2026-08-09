@@ -817,6 +817,38 @@ func TestSQLiteDashboardAndNotificationsDeduplicateCanonicalOpportunity(t *testi
 	}
 }
 
+func TestSQLiteRepositoryNeverMatchesAcrossCompanies(t *testing.T) {
+	repository, db := newTestRepository(t)
+	ctx := context.Background()
+	for _, registration := range []domain.SourceRegistration{
+		{Key: "company-a", Company: "Company A", PriorityGroup: "secondary", Type: "fixture", URL: "https://a.example.test", Adapter: "fixture", Enabled: true},
+		{Key: "company-b", Company: "Company B", PriorityGroup: "secondary", Type: "fixture", URL: "https://b.example.test", Adapter: "fixture", Enabled: true},
+	} {
+		if err := repository.RegisterSource(ctx, registration); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, listing := range []domain.RawListing{
+		{Company: "Company A", SourceID: "company-a", Title: "Backend Stajyeri", URL: "https://a.example.test/jobs/1", RawText: "Backend"},
+		{Company: "Company B", SourceID: "company-b", Title: "Backend Stajı", URL: "https://b.example.test/jobs/1", RawText: "Backend"},
+	} {
+		listingID, _, err := repository.UpsertRawListing(ctx, listing)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := repository.SaveAnalysis(ctx, listingID, domain.ListingAnalysis{Location: "Ankara", Eligibility: domain.EligibilitySuitable}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var active int
+	if err := db.QueryRow("SELECT COUNT(*) FROM opportunities WHERE status = 'active'").Scan(&active); err != nil {
+		t.Fatal(err)
+	}
+	if active != 2 {
+		t.Fatalf("company boundary must keep identical roles separate, active=%d", active)
+	}
+}
+
 func registerMeteksanSources(t *testing.T, repository *SQLiteRepository) {
 	t.Helper()
 	registerMeteksan(t, repository)

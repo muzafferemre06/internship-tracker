@@ -1,0 +1,18 @@
+{
+  "listings": [
+    {
+      "source_id": "meteksan-board",
+      "title": "Yazılım Geliştirme Stajyeri",
+      "url": "https://board.example.test/meteksan/jobs/42",
+      "raw_text": "Yazılım geliştirme ekibi için staj programı.",
+      "location": "İstanbul, Türkiye"
+    },
+    {
+      "source_id": "meteksan-careers",
+      "title": "YAZILIM GELISTIRME STAJI",
+      "url": "https://careers.example.test/meteksan/openings/99",
+      "raw_text": "Yazılım geliştirme ekibinde internship fırsatı.",
+      "location": "Istanbul"
+    }
+  ]
+}

@@ -36,6 +36,20 @@ func TestEvaluateUsesConservativeTitleAndLocationThresholds(t *testing.T) {
 			want:     AutoMerge, wantReason: "exact_title_locations_absent",
 		},
 		{
+			name:       "high confidence fuzzy title and same location merges",
+			incoming:   Identity{Title: "Yazılım Geliştirme Stajj", Location: "Ankara"},
+			existing:   Identity{Title: "Yazılım Geliştirme Staj", Location: "Ankara"},
+			want:       AutoMerge,
+			wantReason: "fuzzy_title_location_match",
+		},
+		{
+			name:       "middle confidence fuzzy title stays ambiguous",
+			incoming:   Identity{Title: "Yazılım Geliştirme Staj", Location: "Ankara"},
+			existing:   Identity{Title: "Yazılım Gelişme Staj", Location: "Ankara"},
+			want:       Ambiguous,
+			wantReason: "title_similarity_uncertain",
+		},
+		{
 			name:     "one missing location stays ambiguous",
 			incoming: Identity{Title: "Backend Stajı", Location: "Ankara"},
 			existing: Identity{Title: "Backend Stajyeri"},
