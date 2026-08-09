@@ -207,6 +207,11 @@ varyantlarını, `0.92` otomatik birleşme ve `0.80` belirsizlik sınırlarını
 lokasyonun belirsiz kalmasını ve çelişen lokasyonun birleşmeyi engellemesini
 tablo güdümlü ve ağsız olarak doğrular.
 
+SQLite Faz 13 testleri iki kayıtlı fake kaynakta farklı URL'li aynı ilanların
+tek fırsata bağlanmasını, eksik lokasyonun ayrı ve audit edilebilir kalmasını,
+sonraki analizdeki lokasyon çelişkisinin veri silmeden split üretmesini ve eski
+tekil backfill üyeliklerinin startup reconciliation ile birleşmesini sınar.
+
 `internal/acceptance/phase4_test.go`, gerçek migration/SQLite ile analizli ilan
 oluşturur; üretim HTTP handler'ından detayı okur, RFC3339 tarihli başvuru kaydını
 günceller ve son dashboard yanıtında aktif başvuruyu, yaklaşan tarihi ve manuel

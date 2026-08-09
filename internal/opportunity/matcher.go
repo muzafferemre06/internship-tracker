@@ -18,6 +18,7 @@ const (
 	AutoMerge Outcome = "auto_merge"
 	Ambiguous Outcome = "ambiguous"
 	Separate  Outcome = "separate"
+	Split     Outcome = "split"
 )
 
 type LocationRelation string
@@ -103,6 +104,10 @@ func normalizeLocation(value string) string {
 	}
 	sort.Strings(kept)
 	return strings.Join(kept, " ")
+}
+
+func NormalizeLocation(value string) string {
+	return normalizeLocation(value)
 }
 
 func normalizeTokens(value string, title bool) []string {

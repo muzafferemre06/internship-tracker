@@ -35,7 +35,9 @@ API varsayılan olarak `http://localhost:8080`, PWA ise
 API başlangıçta `DATABASE_PATH` altındaki SQLite dosyasını açar ve
 `MIGRATIONS_PATH` içindeki uygulanmamış `.sql` dosyalarını alfabetik sırayla,
 transaction içinde uygular. Uygulanan dosyalar `schema_migrations` tablosunda
-izlenir.
+izlenir. Kanonik fırsat migration'ı eski listing'leri veri kaybetmeden başlangıç
+fırsatlarına bağlar; API açılmadan önce analizli kayıtlar güncel deterministik
+eşleme kurallarıyla idempotent olarak uzlaştırılır.
 
 Uygulama aday profili ve kaynak dosyalarını katı bir JSON şemasıyla okur;
 bilinmeyen alanlar ve geçersiz şirket/kaynak değerleri başlangıç hatasıdır.

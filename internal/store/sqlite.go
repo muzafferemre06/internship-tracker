@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/muzaffer/internship-tracker/internal/domain"
+	"github.com/muzaffer/internship-tracker/internal/opportunity"
 )
 
 type SQLiteRepository struct {
@@ -29,6 +30,58 @@ func NewSQLiteRepository(db *sql.DB) (*SQLiteRepository, error) {
 		return nil, errors.New("database is required")
 	}
 	return &SQLiteRepository{db: db, now: time.Now}, nil
+}
+
+// ReconcileOpportunities applies the current deterministic matcher to analyzed
+// rows that may have been backfilled one-listing-per-opportunity by a migration.
+// It is safe to run on every startup: established compatible memberships stay
+// unchanged and match events are idempotent.
+func (r *SQLiteRepository) ReconcileOpportunities(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT listings.id, COALESCE(listing_analyses.location, '')
+		FROM listings
+		JOIN listing_analyses ON listing_analyses.listing_id = listings.id
+		WHERE listing_analyses.processing_status = 'processed'
+		ORDER BY listings.first_seen_at, listings.id
+	`)
+	if err != nil {
+		return fmt.Errorf("query analyzed opportunities for reconciliation: %w", err)
+	}
+	type analyzedListing struct {
+		id       string
+		location string
+	}
+	items := make([]analyzedListing, 0)
+	for rows.Next() {
+		var item analyzedListing
+		if err := rows.Scan(&item.id, &item.location); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan opportunity reconciliation listing: %w", err)
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return fmt.Errorf("read opportunity reconciliation listings: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("close opportunity reconciliation listings: %w", err)
+	}
+
+	for _, item := range items {
+		tx, err := r.db.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("begin opportunity reconciliation: %w", err)
+		}
+		if _, err := r.resolveOpportunity(ctx, tx, item.id, domain.ListingAnalysis{Location: item.location}); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("reconcile listing %q: %w", item.id, err)
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("commit opportunity reconciliation: %w", err)
+		}
+	}
+	return nil
 }
 
 func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.SourceRegistration) error {
@@ -321,6 +374,20 @@ func (r *SQLiteRepository) UpsertRawListing(ctx context.Context, listing domain.
 			contentHash, timestamp, timestamp); err != nil {
 			return "", false, fmt.Errorf("insert listing: %w", err)
 		}
+		opportunityID := stableOpportunityID(listingID)
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO opportunities(id, company_id, normalized_title, normalized_location)
+			VALUES (?, ?, ?, '')
+		`, opportunityID, companyID, opportunity.NormalizeTitle(listing.Title)); err != nil {
+			return "", false, fmt.Errorf("create listing opportunity: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO listing_opportunities(
+				listing_id, opportunity_id, match_method, title_score, match_reason
+			) VALUES (?, ?, 'new', 1, 'new_listing')
+		`, listingID, opportunityID); err != nil {
+			return "", false, fmt.Errorf("link new listing opportunity: %w", err)
+		}
 	} else {
 		listingID = existingID
 		if _, err := tx.ExecContext(ctx, `
@@ -412,11 +479,202 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 	if err != nil {
 		return fmt.Errorf("save listing analysis: %w", err)
 	}
+	if _, err := r.resolveOpportunity(ctx, tx, listingID, analysis); err != nil {
+		return err
+	}
 	if err := r.enqueueListingNotification(ctx, tx, listingID, analysis, firstSuccessfulAnalysis); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit listing analysis and notification: %w", err)
+	}
+	return nil
+}
+
+type opportunityCandidate struct {
+	id       string
+	decision opportunity.Decision
+}
+
+func (r *SQLiteRepository) resolveOpportunity(
+	ctx context.Context,
+	tx *sql.Tx,
+	listingID string,
+	analysis domain.ListingAnalysis,
+) (string, error) {
+	var currentID, title string
+	var companyID int64
+	if err := tx.QueryRowContext(ctx, `
+		SELECT listing_opportunities.opportunity_id, listings.company_id, listings.title
+		FROM listing_opportunities
+		JOIN listings ON listings.id = listing_opportunities.listing_id
+		WHERE listing_opportunities.listing_id = ?
+	`, listingID).Scan(&currentID, &companyID, &title); err != nil {
+		return "", fmt.Errorf("load listing opportunity: %w", err)
+	}
+
+	var memberCount int
+	if err := tx.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM listing_opportunities WHERE opportunity_id = ?
+	`, currentID).Scan(&memberCount); err != nil {
+		return "", fmt.Errorf("count opportunity members: %w", err)
+	}
+
+	identity := opportunity.Identity{Title: title, Location: analysis.Location}
+	if memberCount > 1 {
+		var otherTitle, otherLocation string
+		err := tx.QueryRowContext(ctx, `
+			SELECT listings.title, COALESCE(listing_analyses.location, '')
+			FROM listing_opportunities
+			JOIN listings ON listings.id = listing_opportunities.listing_id
+			LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
+			WHERE listing_opportunities.opportunity_id = ? AND listings.id != ?
+			ORDER BY listings.first_seen_at, listings.id
+			LIMIT 1
+		`, currentID, listingID).Scan(&otherTitle, &otherLocation)
+		if err != nil {
+			return "", fmt.Errorf("load opportunity comparison member: %w", err)
+		}
+		decision := opportunity.Evaluate(identity, opportunity.Identity{Title: otherTitle, Location: otherLocation})
+		if decision.Outcome == opportunity.Separate {
+			return r.splitOpportunity(ctx, tx, listingID, currentID, companyID, identity, decision)
+		}
+		return currentID, nil
+	}
+
+	normalizedTitle := opportunity.NormalizeTitle(title)
+	normalizedLocation := opportunity.NormalizeLocation(analysis.Location)
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE opportunities
+		SET normalized_title = ?, normalized_location = ?, status = 'active', updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+	`, normalizedTitle, normalizedLocation, currentID); err != nil {
+		return "", fmt.Errorf("update opportunity identity: %w", err)
+	}
+
+	rows, err := tx.QueryContext(ctx, `
+		SELECT id, normalized_title, normalized_location
+		FROM opportunities
+		WHERE company_id = ? AND status = 'active' AND id != ?
+		ORDER BY created_at, id
+	`, companyID, currentID)
+	if err != nil {
+		return "", fmt.Errorf("query opportunity candidates: %w", err)
+	}
+	defer rows.Close()
+
+	autoCandidates := make([]opportunityCandidate, 0, 1)
+	var ambiguousCandidate *opportunityCandidate
+	for rows.Next() {
+		var candidateID, candidateTitle, candidateLocation string
+		if err := rows.Scan(&candidateID, &candidateTitle, &candidateLocation); err != nil {
+			return "", fmt.Errorf("scan opportunity candidate: %w", err)
+		}
+		decision := opportunity.Evaluate(identity, opportunity.Identity{Title: candidateTitle, Location: candidateLocation})
+		candidate := opportunityCandidate{id: candidateID, decision: decision}
+		switch decision.Outcome {
+		case opportunity.AutoMerge:
+			autoCandidates = append(autoCandidates, candidate)
+		case opportunity.Ambiguous:
+			if ambiguousCandidate == nil || decision.Score > ambiguousCandidate.decision.Score {
+				copy := candidate
+				ambiguousCandidate = &copy
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return "", fmt.Errorf("read opportunity candidates: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return "", fmt.Errorf("close opportunity candidates: %w", err)
+	}
+
+	if len(autoCandidates) == 1 {
+		candidate := autoCandidates[0]
+		if err := r.recordOpportunityEvent(ctx, tx, listingID, currentID, candidate.id, opportunity.AutoMerge, candidate.decision.Score, candidate.decision.Reason); err != nil {
+			return "", err
+		}
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE listing_opportunities
+			SET opportunity_id = ?, match_method = 'auto', title_score = ?, match_reason = ?, updated_at = CURRENT_TIMESTAMP
+			WHERE listing_id = ?
+		`, candidate.id, candidate.decision.Score, candidate.decision.Reason, listingID); err != nil {
+			return "", fmt.Errorf("merge listing opportunity: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE notifications SET opportunity_id = ? WHERE listing_id = ?`, candidate.id, listingID); err != nil {
+			return "", fmt.Errorf("move listing notification opportunity: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE opportunities SET status = 'merged', updated_at = CURRENT_TIMESTAMP WHERE id = ?`, currentID); err != nil {
+			return "", fmt.Errorf("retire merged opportunity: %w", err)
+		}
+		return candidate.id, nil
+	}
+
+	if len(autoCandidates) > 1 {
+		if err := r.recordOpportunityEvent(ctx, tx, listingID, currentID, "", opportunity.Ambiguous, autoCandidates[0].decision.Score, "multiple_auto_candidates"); err != nil {
+			return "", err
+		}
+	} else if ambiguousCandidate != nil {
+		if err := r.recordOpportunityEvent(ctx, tx, listingID, currentID, ambiguousCandidate.id, opportunity.Ambiguous, ambiguousCandidate.decision.Score, ambiguousCandidate.decision.Reason); err != nil {
+			return "", err
+		}
+	}
+	return currentID, nil
+}
+
+func (r *SQLiteRepository) splitOpportunity(
+	ctx context.Context,
+	tx *sql.Tx,
+	listingID, currentID string,
+	companyID int64,
+	identity opportunity.Identity,
+	decision opportunity.Decision,
+) (string, error) {
+	targetID := stableOpportunityID(listingID)
+	if targetID == currentID {
+		targetID = stableSplitOpportunityID(listingID, opportunity.NormalizeTitle(identity.Title), opportunity.NormalizeLocation(identity.Location))
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO opportunities(id, company_id, normalized_title, normalized_location, status)
+		VALUES (?, ?, ?, ?, 'active')
+		ON CONFLICT(id) DO UPDATE SET
+			normalized_title = excluded.normalized_title,
+			normalized_location = excluded.normalized_location,
+			status = 'active', updated_at = CURRENT_TIMESTAMP
+	`, targetID, companyID, opportunity.NormalizeTitle(identity.Title), opportunity.NormalizeLocation(identity.Location)); err != nil {
+		return "", fmt.Errorf("create split opportunity: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE listing_opportunities
+		SET opportunity_id = ?, match_method = 'split', title_score = ?, match_reason = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE listing_id = ?
+	`, targetID, decision.Score, decision.Reason, listingID); err != nil {
+		return "", fmt.Errorf("split listing opportunity: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE notifications SET opportunity_id = ? WHERE listing_id = ?`, targetID, listingID); err != nil {
+		return "", fmt.Errorf("split listing notifications: %w", err)
+	}
+	if err := r.recordOpportunityEvent(ctx, tx, listingID, currentID, targetID, opportunity.Split, decision.Score, decision.Reason); err != nil {
+		return "", err
+	}
+	return targetID, nil
+}
+
+func (r *SQLiteRepository) recordOpportunityEvent(
+	ctx context.Context,
+	tx *sql.Tx,
+	listingID, fromID, candidateID string,
+	outcome opportunity.Outcome,
+	score float64,
+	reason string,
+) error {
+	_, err := tx.ExecContext(ctx, `
+		INSERT OR IGNORE INTO opportunity_match_events(
+			listing_id, from_opportunity_id, candidate_opportunity_id, outcome, title_score, reason
+		) VALUES (?, NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?)
+	`, listingID, fromID, candidateID, outcome, score, reason)
+	if err != nil {
+		return fmt.Errorf("record opportunity match event: %w", err)
 	}
 	return nil
 }
@@ -1696,6 +1954,15 @@ func isTrackingParameter(key string) bool {
 func stableListingID(company string, canonicalURL string) string {
 	hash := sha256.Sum256([]byte(strings.TrimSpace(company) + "\x00" + canonicalURL))
 	return hex.EncodeToString(hash[:])
+}
+
+func stableOpportunityID(listingID string) string {
+	return "opp-" + strings.TrimSpace(listingID)
+}
+
+func stableSplitOpportunityID(listingID, normalizedTitle, normalizedLocation string) string {
+	hash := sha256.Sum256([]byte(strings.TrimSpace(listingID) + "\x00" + normalizedTitle + "\x00" + normalizedLocation))
+	return "opp-split-" + hex.EncodeToString(hash[:])
 }
 
 func hashText(value string) string {

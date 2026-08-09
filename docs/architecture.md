@@ -76,9 +76,18 @@ backup timer ----------------'                              |
 notifications ---------------------------------------------> Web Push
 ```
 
+`listings` kaynak başına URL, ham içerik ve analiz kanıtını korur.
+`opportunities` kullanıcıya gösterilen kanonik kimliktir;
+`listing_opportunities` birden fazla listing'i bu kimliğe bağlar.
+`opportunity_match_events` otomatik birleşme, belirsizlik ve split kararlarını
+skor/gerekçesiyle append-only olarak saklar. Migration mevcut listing'leri önce
+tekil fırsatlara backfill eder; başlangıç reconciliation'ı yalnız analizli
+kayıtları aynı matcher ile güvenli biçimde yeniden değerlendirir.
+
 ## Web Push outbox ve teslimat semantiği
 
-`notifications`, ilan olayı başına tek ve versionlanmış dedup kaydıdır.
+`notifications`, versionlanmış dedup kaydında hem bildirimi doğuran kaynak
+listing'i hem de çözülmüş kanonik fırsatı taşır.
 `notification_payloads` kilit ekranına gidecek minimum başlık/gövde, aynı-origin
 PWA deep-link'i ve Web Push `Topic` değerini snapshot olarak tutar.
 `push_subscriptions` endpoint ile tarayıcının `p256dh`/`auth` sırlarını cihaz

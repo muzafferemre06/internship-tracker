@@ -656,6 +656,149 @@ func TestCanonicalURL(t *testing.T) {
 	}
 }
 
+func TestSQLiteRepositoryLinksCrossSourceListingsToOneOpportunity(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksanSources(t, repository)
+	ctx := context.Background()
+
+	firstID := insertOpportunityListing(t, repository, "meteksan-kariyer-net", "Yazılım Geliştirme Stajyeri", "https://example.test/kariyer/42")
+	secondID := insertOpportunityListing(t, repository, "meteksan-careers", "YAZILIM GELISTIRME STAJI", "https://careers.example.test/jobs/99")
+	analysis := domain.ListingAnalysis{Location: "İstanbul, Türkiye", Relevant: true, Eligibility: domain.EligibilitySuitable}
+	if err := repository.SaveAnalysis(ctx, firstID, analysis); err != nil {
+		t.Fatalf("analyze first listing: %v", err)
+	}
+	if err := repository.SaveAnalysis(ctx, secondID, analysis); err != nil {
+		t.Fatalf("analyze duplicate listing: %v", err)
+	}
+
+	var active, distinctLinks, merges int
+	if err := db.QueryRow("SELECT COUNT(*) FROM opportunities WHERE status = 'active'").Scan(&active); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT COUNT(DISTINCT opportunity_id) FROM listing_opportunities WHERE listing_id IN (?, ?)", firstID, secondID).Scan(&distinctLinks); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT COUNT(*) FROM opportunity_match_events WHERE listing_id = ? AND outcome = 'auto_merge'", secondID).Scan(&merges); err != nil {
+		t.Fatal(err)
+	}
+	if active != 1 || distinctLinks != 1 || merges != 1 {
+		t.Fatalf("cross-source listings were not canonically linked: active=%d links=%d merges=%d", active, distinctLinks, merges)
+	}
+}
+
+func TestSQLiteRepositoryKeepsAmbiguousMatchSeparateAndAuditable(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksanSources(t, repository)
+	ctx := context.Background()
+
+	firstID := insertOpportunityListing(t, repository, "meteksan-kariyer-net", "Backend Stajyeri", "https://example.test/jobs/one")
+	secondID := insertOpportunityListing(t, repository, "meteksan-careers", "Backend Stajı", "https://careers.example.test/jobs/two")
+	if err := repository.SaveAnalysis(ctx, firstID, domain.ListingAnalysis{Location: "Ankara", Relevant: true, Eligibility: domain.EligibilitySuitable}); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.SaveAnalysis(ctx, secondID, domain.ListingAnalysis{Relevant: true, Eligibility: domain.EligibilitySuitable}); err != nil {
+		t.Fatal(err)
+	}
+
+	var active, ambiguous int
+	if err := db.QueryRow("SELECT COUNT(*) FROM opportunities WHERE status = 'active'").Scan(&active); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT COUNT(*) FROM opportunity_match_events WHERE listing_id = ? AND outcome = 'ambiguous' AND reason = 'location_missing'", secondID).Scan(&ambiguous); err != nil {
+		t.Fatal(err)
+	}
+	if active != 2 || ambiguous != 1 {
+		t.Fatalf("ambiguous evidence must remain separate and auditable: active=%d ambiguous=%d", active, ambiguous)
+	}
+}
+
+func TestSQLiteRepositorySplitsMergedListingWhenEvidenceConflicts(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksanSources(t, repository)
+	ctx := context.Background()
+
+	firstID := insertOpportunityListing(t, repository, "meteksan-kariyer-net", "Backend Stajyeri", "https://example.test/jobs/same")
+	secondID := insertOpportunityListing(t, repository, "meteksan-careers", "Backend Stajı", "https://careers.example.test/jobs/same")
+	for _, listingID := range []string{firstID, secondID} {
+		if err := repository.SaveAnalysis(ctx, listingID, domain.ListingAnalysis{Location: "Ankara", Relevant: true, Eligibility: domain.EligibilitySuitable}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := repository.SaveAnalysis(ctx, secondID, domain.ListingAnalysis{Location: "İstanbul", Relevant: true, Eligibility: domain.EligibilitySuitable}); err != nil {
+		t.Fatal(err)
+	}
+
+	var active, distinctLinks, splits int
+	if err := db.QueryRow("SELECT COUNT(*) FROM opportunities WHERE status = 'active'").Scan(&active); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT COUNT(DISTINCT opportunity_id) FROM listing_opportunities WHERE listing_id IN (?, ?)", firstID, secondID).Scan(&distinctLinks); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT COUNT(*) FROM opportunity_match_events WHERE listing_id = ? AND outcome = 'split' AND reason = 'location_conflict'", secondID).Scan(&splits); err != nil {
+		t.Fatal(err)
+	}
+	if active != 2 || distinctLinks != 2 || splits != 1 {
+		t.Fatalf("conflicting evidence did not reverse merge: active=%d links=%d splits=%d", active, distinctLinks, splits)
+	}
+}
+
+func TestSQLiteRepositoryReconcilesBackfilledAnalyzedListings(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksanSources(t, repository)
+	ctx := context.Background()
+	firstID := insertOpportunityListing(t, repository, "meteksan-kariyer-net", "Yazılım Stajyeri", "https://example.test/legacy/one")
+	secondID := insertOpportunityListing(t, repository, "meteksan-careers", "Yazılım Stajı", "https://careers.example.test/legacy/two")
+	analysis := domain.ListingAnalysis{Location: "Ankara", Relevant: true, Eligibility: domain.EligibilitySuitable}
+	for _, listingID := range []string{firstID, secondID} {
+		if err := repository.SaveAnalysis(ctx, listingID, analysis); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	secondOpportunityID := stableOpportunityID(secondID)
+	if _, err := db.Exec("UPDATE opportunities SET status = 'active', normalized_title = '', normalized_location = '' WHERE id = ?", secondOpportunityID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("UPDATE listing_opportunities SET opportunity_id = ?, match_method = 'backfill' WHERE listing_id = ?", secondOpportunityID, secondID); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.ReconcileOpportunities(ctx); err != nil {
+		t.Fatalf("reconcile backfilled opportunities: %v", err)
+	}
+
+	var distinctLinks int
+	if err := db.QueryRow("SELECT COUNT(DISTINCT opportunity_id) FROM listing_opportunities WHERE listing_id IN (?, ?)", firstID, secondID).Scan(&distinctLinks); err != nil {
+		t.Fatal(err)
+	}
+	if distinctLinks != 1 {
+		t.Fatalf("expected analyzed backfill to reconcile to one opportunity, got %d", distinctLinks)
+	}
+}
+
+func registerMeteksanSources(t *testing.T, repository *SQLiteRepository) {
+	t.Helper()
+	registerMeteksan(t, repository)
+	if err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
+		Key: "meteksan-careers", Company: "Meteksan Savunma", PriorityGroup: "primary",
+		Type: "career_page", URL: "https://careers.example.test/meteksan", Adapter: "json_ld", Enabled: true,
+	}); err != nil {
+		t.Fatalf("register second source: %v", err)
+	}
+}
+
+func insertOpportunityListing(t *testing.T, repository *SQLiteRepository, source, title, listingURL string) string {
+	t.Helper()
+	listingID, _, err := repository.UpsertRawListing(context.Background(), domain.RawListing{
+		Company: "Meteksan Savunma", SourceID: source, Title: title,
+		URL: listingURL, RawText: title,
+	})
+	if err != nil {
+		t.Fatalf("insert opportunity listing: %v", err)
+	}
+	return listingID
+}
+
 func newTestRepository(t *testing.T) (*SQLiteRepository, queryDB) {
 	t.Helper()
 	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "tracker.db"), os.DirFS("../../migrations"))

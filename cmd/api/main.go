@@ -63,6 +63,10 @@ func main() {
 		logger.Error("repository initialization failed", "error", err)
 		os.Exit(1)
 	}
+	if err := repository.ReconcileOpportunities(context.Background()); err != nil {
+		logger.Error("canonical opportunity reconciliation failed", "error", err)
+		os.Exit(1)
+	}
 	modelProvider, err := configureModelProvider(cfg)
 	if err != nil {
 		logger.Error("model provider initialization failed", "error", err)
