@@ -210,6 +210,20 @@ silinir; API anahtarı ve canlı sayfa gövdesi kaydedilmez.
 Başarılı 3 Ağustos 2026 çalışmasının kısa ve güvenli çıktısı
 [Faz 3.5 kabul kanıtında](./docs/acceptance/phase-3.5-2026-08-03.md) kayıtlıdır.
 
+Faz 12 learned-selector canlı kabulü yerel fixture'larla ayrıca çalıştırılabilir:
+
+```bash
+RUN_PHASE12_LIVE_ACCEPTANCE=1 \
+GEMINI_API_KEY_FILE=/gizli/yol/gemini_api_key \
+go test -tags=integration ./internal/acceptance \
+  -run TestPhase12LiveGeminiLearnsPersistsAndRepairsRecipe -count=1 -v
+```
+
+Bu test ilk reçete öğrenimini, restart sonrası AI'sız taramayı ve değiştirilmiş
+DOM fixture'ında otomatik onarımı gerçek Gemini ile doğrular. 9 Ağustos 2026
+başarılı çalışmasının güvenli özeti
+[Faz 12 kabul kanıtındadır](./docs/acceptance/phase-12-2026-08-09.md).
+
 ## Docker ile çalıştırma
 
 ```bash

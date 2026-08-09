@@ -936,6 +936,8 @@ tetikler; yeni reçete aynı sayfada geçerli ilan üretmeden saklanmaz. Faz 11 
 cache'i de SQLite'a taşınarak restart sonrasında model çağrısı engellendi.
 Fixture/fake kabulü ilk öğrenme, AI'sız restart ve layout değişiminde v2 onarımını
 doğruladı.
+Gerçek `gemini-3.1-flash-lite` opt-in kabulü de aynı üç aşamayı doğruladı;
+güvenli canlı kanıt `docs/acceptance/phase-12-2026-08-09.md` içindedir.
 
 Neden: Bu "ajan scraper'ı yazar/onarır, deterministik motor çalıştırır" kalıbıdır.
 AI'yı her taramanın sıcak yolundan çıkarır; hem maliyeti hem de sessiz başarısızlık

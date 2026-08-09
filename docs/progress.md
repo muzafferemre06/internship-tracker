@@ -137,6 +137,10 @@ fırsat modeli olan Faz 13'tür.
   instance'ında ek model çağrısı olmadan iki ilanın bulunduğunu ve değişen DOM'da
   sessiz sıfır yerine reçete v2 onarımı + bir yeni ilan oluştuğunu gerçek SQLite
   ve orchestrator üzerinden doğrular.
+- Faz 12 opt-in canlı kabulü gerçek `gemini-3.1-flash-lite` ile yerel iki fixture
+  layout'unda geçti (2026-08-09: first_new=2, second_new=0, repair_new=1,
+  recipe_version=2, recipe_calls=2); güvenli kanıt
+  `docs/acceptance/phase-12-2026-08-09.md` içindedir.
 - PWA push/navigation helper testleri, TypeScript typecheck ve production build
   geçer; service worker yalnız aynı-origin hedefi açar.
 - Gerçek geçici SQLite ve fake checker testleri `/ready` DB/migration

@@ -64,6 +64,20 @@ ilk öğrenme (2 yeni), yeni source instance'ı (0 yeni, 0 ek recipe çağrısı
 değişen layout onarımı (reçete v2, 1 yeni). Normal suite yalnız fake provider
 kullanır.
 
+Gerçek Gemini kabulü açıkça opt-in'dir ve yalnız yerel fixture sunucusunu dış
+Google API ile birleştirir:
+
+```bash
+RUN_PHASE12_LIVE_ACCEPTANCE=1 \
+GEMINI_API_KEY_FILE=/gizli/yol/gemini_api_key \
+go test -tags=integration ./internal/acceptance \
+  -run TestPhase12LiveGeminiLearnsPersistsAndRepairsRecipe -count=1 -v
+```
+
+Anahtar doğrudan `GEMINI_API_KEY` ile de verilebilir. Model varsayılan olarak
+`gemini-3.1-flash-lite`; `PHASE12_LIVE_TEST_MODEL` ile değiştirilebilir. Test
+gerçek kota kullanır, anahtarı/fixture gövdesini/SQLite dosyasını kaydetmez.
+
 Profil minimizasyon testi model input'unda yalnızca bölüm/alan, sınıf, GPA, odak,
 deneyim alanı ve konum tercihlerinin bulunduğunu doğrular. Üniversite ve deneyim
 kurumu adları `analyzerProfile` dönüşümünde atılır.
