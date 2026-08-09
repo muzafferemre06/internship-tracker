@@ -63,19 +63,29 @@ func main() {
 		logger.Error("repository initialization failed", "error", err)
 		os.Exit(1)
 	}
-	listingExtractor, err := configureExtractor(cfg)
+	modelProvider, err := configureModelProvider(cfg)
+	if err != nil {
+		logger.Error("model provider initialization failed", "error", err)
+		os.Exit(1)
+	}
+	listingExtractor, err := configureExtractorFromProvider(modelProvider, cfg)
 	if err != nil {
 		logger.Error("listing extractor initialization failed", "error", err)
 		os.Exit(1)
 	}
+	recipeLearner, err := configureRecipeLearnerFromProvider(modelProvider, cfg)
+	if err != nil {
+		logger.Error("recipe learner initialization failed", "error", err)
+		os.Exit(1)
+	}
 	sources, err := configureSources(context.Background(), sourcesConfig, repository, scraper.SourceDeps{
-		Extractor: listingExtractor,
+		Extractor: listingExtractor, RecipeStore: repository, RecipeLearner: recipeLearner, BlockCache: repository,
 	})
 	if err != nil {
 		logger.Error("source initialization failed", "error", err)
 		os.Exit(1)
 	}
-	listingAnalyzer, err := configureAnalyzer(cfg)
+	listingAnalyzer, err := configureAnalyzerFromProvider(modelProvider, cfg)
 	if err != nil {
 		logger.Error("listing analyzer initialization failed", "error", err)
 		os.Exit(1)
@@ -272,6 +282,10 @@ func configureAnalyzer(cfg config.Config) (analyzer.ListingAnalyzer, error) {
 	if err != nil {
 		return nil, err
 	}
+	return configureAnalyzerFromProvider(provider, cfg)
+}
+
+func configureAnalyzerFromProvider(provider analyzer.ModelProvider, cfg config.Config) (analyzer.ListingAnalyzer, error) {
 	if provider == nil {
 		return analyzer.NewDeterministicAnalyzer(), nil
 	}
@@ -286,10 +300,29 @@ func configureExtractor(cfg config.Config) (scraper.ListingExtractor, error) {
 	if err != nil {
 		return nil, err
 	}
+	return configureExtractorFromProvider(provider, cfg)
+}
+
+func configureExtractorFromProvider(provider analyzer.ModelProvider, cfg config.Config) (scraper.ListingExtractor, error) {
 	if provider == nil {
 		return nil, nil
 	}
 	return extractor.NewGeminiExtractor(provider, cfg.LLMModel)
+}
+
+func configureRecipeLearner(cfg config.Config) (scraper.RecipeLearner, error) {
+	provider, err := configureModelProvider(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return configureRecipeLearnerFromProvider(provider, cfg)
+}
+
+func configureRecipeLearnerFromProvider(provider analyzer.ModelProvider, cfg config.Config) (scraper.RecipeLearner, error) {
+	if provider == nil {
+		return nil, nil
+	}
+	return extractor.NewGeminiRecipeLearner(provider, cfg.LLMModel)
 }
 
 func newConfiguredModelAnalyzer(provider analyzer.ModelProvider, cfg config.Config) (analyzer.ListingAnalyzer, error) {

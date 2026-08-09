@@ -2,11 +2,11 @@
 
 ## Aktif faz
 
-Faz 5 başladı. Responsive PWA; ilan inceleme, başvuru durumu, manuel tarihler,
-yaklaşan tarihler ve manuel kaynak kontrolünü kalıcı API akışıyla sunuyor. Faz
-3.5'in resmî Commencis Lever ilanı da zaman damgalı aktiflik kanıtıyla standart
-ingestion, canlı Google Gemini analizi, SQLite kullanım kalıcılığı, dashboard
-karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
+Faz 12 tamamlandı. Öğrenilmiş selector reçeteleri kaynak bazında versionlanarak
+SQLite'ta tutuluyor; olağan taramalar reçeteyi AI'sız çalıştırıyor, kimlik/şema
+guard'ı veya tarihsel ilan sayısının sıfıra düşmesi reçeteyi yeniden üretip
+sürümünü artırıyor. Sıradaki geliştirme fazı kaynaklar arası dedup ve kanonik
+fırsat modeli olan Faz 13'tür.
 
 ## Tamamlananlar
 
@@ -74,6 +74,13 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
   kapısı + blok diff (değişmeyen taramada sıfır model çağrısı), enjekte
   `ListingExtractor` portu ve strict doğrulama; Gemini extractor ayrı pakette
 - Faz 9 dispatch'inin `SourceDeps` ile genişletilmesi (shared extractor enjeksiyonu)
+- Faz 12 `learned_selector` adapter'ı, strict ve sınırlı selector dili,
+  kaynak kimliği/şema/golden-count onarım guard'ları ve versionlanmış SQLite
+  reçete geçmişi
+- Kaynak sağlık snapshot'ında strateji sürümü, son ilan sayısı ve ilan parmak izi
+- Faz 11 blok-hash cache'inin restart'ı aşan SQLite kalıcılığı
+- Analiz, generic extraction ve reçete öğreniminin aynı yapılandırılmış model
+  provider örneğini paylaşan production wiring'i
 
 ## Doğrulanan çıkış kriterleri
 
@@ -126,6 +133,10 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 - Faz 11 opt-in canlı integration testi gerçek `gemini-3.1-flash-lite` ile yerel
   sunulan bespoke sayfadan uçtan uca çıkarma + analiz + dedup'ı doğrular
   (2026-08-08: found=2, first_new=2, second_new=0, 475 token).
+- Faz 12 fixture kabulü ilk taramada reçete v1 üretildiğini, yeni source
+  instance'ında ek model çağrısı olmadan iki ilanın bulunduğunu ve değişen DOM'da
+  sessiz sıfır yerine reçete v2 onarımı + bir yeni ilan oluştuğunu gerçek SQLite
+  ve orchestrator üzerinden doğrular.
 - PWA push/navigation helper testleri, TypeScript typecheck ve production build
   geçer; service worker yalnız aynı-origin hedefi açar.
 - Gerçek geçici SQLite ve fake checker testleri `/ready` DB/migration
@@ -134,10 +145,11 @@ karar kuyruğu ve ikinci tarama dedup kapılarından geçti.
 
 ## Sıradaki iş
 
-Faz 5'in repository içinde tamamlanabilen runtime, scheduler, Web Push, health,
-secret, local backup/restore ve digest deployment otomasyonu hazırdır. Faz henüz
-kapanmadı: GitHub/hosting/Cloudflare hesapları, production hostname, kalıcı VAPID
-anahtarı ve off-host backup hedefi kullanıcı tarafında hazırlanmalı; ardından gerçek
-HTTPS ortamında scheduled scan, cihaz push deep-link'i, Access reddi, deploy
-rollback ve restore provası kanıtlanmalıdır. Kısa yönlendirme
-`docs/production-inputs.md` içindedir.
+Faz 13: farklı kaynaklardan gelen aynı ilanı şirket + normalize başlık + konum
+üzerinden tek kanonik fırsata bağlamak; dashboard ve bildirim dedup'ını fırsat
+düzeyine taşımak. Başlamadan önce bulanık eşleme eşikleri ve yanlış birleşmeleri
+geri alma davranışı için ayrı test-first plan onayı alınmalıdır.
+
+Faz 5'in production runbook'u geçerliliğini korur. Kullanıcı yerel Docker +
+Cloudflare Tunnel üzerinden telefon erişimini doğrulamıştır; off-host yedek ve
+gerçek hosting'e özgü operasyon kanıtları seçilen ortamda ayrıca tutulmalıdır.

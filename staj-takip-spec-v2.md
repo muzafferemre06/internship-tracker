@@ -926,6 +926,17 @@ taramada ucuza çalıştırır.
 taramalar AI'sız çalışır; yapısı değiştirilen bir fixture'da golden-snapshot
 guard'ı sessiz "sıfır ilan" yerine yeniden-türetmeyi tetikler.
 
+Uygulama durumu (2026-08-09): Tamamlandı. `learned_selector` adapter'ı ilk
+tarama/onarımda strict JSON Schema kullanan `RecipeLearner` portundan sınırlı
+selector reçetesi alır; normal taramalarda reçeteyi deterministik ve AI'sız
+çalıştırır. Reçeteler SQLite'ta versionlanır, tek aktif sürüm ile golden ilan
+sayısı/parmak izi kaynak sağlık snapshot'ına atomik bağlanır. Kimlik kontrolü,
+kart şeması veya tarihsel pozitif sayıdan sıfıra düşüş bir defalık onarımı
+tetikler; yeni reçete aynı sayfada geçerli ilan üretmeden saklanmaz. Faz 11 blok
+cache'i de SQLite'a taşınarak restart sonrasında model çağrısı engellendi.
+Fixture/fake kabulü ilk öğrenme, AI'sız restart ve layout değişiminde v2 onarımını
+doğruladı.
+
 Neden: Bu "ajan scraper'ı yazar/onarır, deterministik motor çalıştırır" kalıbıdır.
 AI'yı her taramanın sıcak yolundan çıkarır; hem maliyeti hem de sessiz başarısızlık
 riskini düşürür.

@@ -18,7 +18,10 @@ type SourceSpec struct {
 // not per-source configuration (e.g. the LLM extractor the Faz 11 "llm_generic"
 // adapter depends on). Deterministic adapters ignore it.
 type SourceDeps struct {
-	Extractor ListingExtractor
+	Extractor     ListingExtractor
+	RecipeStore   RecipeStore
+	RecipeLearner RecipeLearner
+	BlockCache    ExtractionBlockStore
 }
 
 // SourceFactory builds a Source from a SourceSpec and shared dependencies.
@@ -52,7 +55,13 @@ var adapterFactories = map[string]SourceFactory{
 		if deps.Extractor == nil {
 			return nil, fmt.Errorf("adapter %q requires a configured listing extractor", "llm_generic")
 		}
-		return NewLLMGenericSource(spec.ID, spec.Company, spec.URL, deps.Extractor, nil)
+		return NewLLMGenericSource(spec.ID, spec.Company, spec.URL, deps.Extractor, nil, deps.BlockCache)
+	},
+	"learned_selector": func(spec SourceSpec, deps SourceDeps) (Source, error) {
+		if deps.RecipeStore == nil || deps.RecipeLearner == nil {
+			return nil, fmt.Errorf("adapter %q requires a recipe store and learner", "learned_selector")
+		}
+		return NewLearnedSelectorSource(spec.ID, spec.Company, spec.URL, deps.RecipeStore, deps.RecipeLearner, nil)
 	},
 }
 

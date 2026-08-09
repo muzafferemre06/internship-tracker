@@ -73,6 +73,77 @@ func TestSQLiteRepositoryRequiresRegisteredSource(t *testing.T) {
 	}
 }
 
+func TestSQLiteRepositoryVersionsSourceRecipesAndPersistsGoldenSnapshot(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksan(t, repository)
+	ctx := context.Background()
+
+	first, err := repository.SaveSourceRecipe(ctx, domain.SourceRecipe{
+		SourceKey: "meteksan-kariyer-net", IdentitySelector: "#careers", IdentityText: "Meteksan",
+		ListingSelector: ".opening", TitleSelector: ".title", LinkSelector: "a.apply",
+		GoldenListingCount: 2, GoldenFingerprint: "first-fingerprint",
+	})
+	if err != nil {
+		t.Fatalf("save first source recipe: %v", err)
+	}
+	second, err := repository.SaveSourceRecipe(ctx, domain.SourceRecipe{
+		SourceKey: "meteksan-kariyer-net", IdentitySelector: ".jobs", IdentityText: "Meteksan",
+		ListingSelector: ".position", TitleSelector: "h3", LinkSelector: "a",
+		GoldenListingCount: 3, GoldenFingerprint: "second-fingerprint",
+	})
+	if err != nil {
+		t.Fatalf("save repaired source recipe: %v", err)
+	}
+	if first.Version != 1 || second.Version != 2 {
+		t.Fatalf("recipe versions must increase monotonically: first=%d second=%d", first.Version, second.Version)
+	}
+
+	loaded, ok, err := repository.LoadSourceRecipe(ctx, "meteksan-kariyer-net")
+	if err != nil {
+		t.Fatalf("load active source recipe: %v", err)
+	}
+	if !ok || loaded.Version != 2 || loaded.ListingSelector != ".position" || loaded.GoldenListingCount != 3 {
+		t.Fatalf("unexpected active recipe: ok=%v recipe=%#v", ok, loaded)
+	}
+	if err := repository.UpdateSourceRecipeSnapshot(ctx, loaded.SourceKey, loaded.Version, 4, "updated-fingerprint"); err != nil {
+		t.Fatalf("update source recipe snapshot: %v", err)
+	}
+	loaded, _, err = repository.LoadSourceRecipe(ctx, "meteksan-kariyer-net")
+	if err != nil {
+		t.Fatalf("reload source recipe: %v", err)
+	}
+	if loaded.GoldenListingCount != 4 || loaded.GoldenFingerprint != "updated-fingerprint" {
+		t.Fatalf("golden snapshot did not persist: %#v", loaded)
+	}
+
+	var versions, active int
+	if err := db.QueryRow(`SELECT COUNT(*), SUM(active) FROM source_extraction_recipes WHERE source_id = (SELECT id FROM company_sources WHERE source_key = ?)`, "meteksan-kariyer-net").Scan(&versions, &active); err != nil {
+		t.Fatalf("inspect recipe history: %v", err)
+	}
+	if versions != 2 || active != 1 {
+		t.Fatalf("recipe history must retain two versions and one active row: versions=%d active=%d", versions, active)
+	}
+}
+
+func TestSQLiteRepositoryPersistsGenericExtractionBlocksAcrossRestart(t *testing.T) {
+	repository, _ := newTestRepository(t)
+	registerMeteksan(t, repository)
+	ctx := context.Background()
+	want := map[string][]domain.RawListing{
+		"block-hash": {{Company: "Meteksan Savunma", SourceID: "meteksan-kariyer-net", Title: "Backend Staj", URL: "https://example.test/jobs/1", RawText: "Go stajı"}},
+	}
+	if err := repository.SaveExtractionBlocks(ctx, "meteksan-kariyer-net", want); err != nil {
+		t.Fatalf("save extraction block cache: %v", err)
+	}
+	got, err := repository.LoadExtractionBlocks(ctx, "meteksan-kariyer-net", []string{"block-hash", "missing"})
+	if err != nil {
+		t.Fatalf("load extraction block cache: %v", err)
+	}
+	if len(got) != 1 || len(got["block-hash"]) != 1 || got["block-hash"][0].Title != "Backend Staj" {
+		t.Fatalf("unexpected persisted block cache: %#v", got)
+	}
+}
+
 func TestSQLiteRepositorySavesAnalysis(t *testing.T) {
 	repository, db := newTestRepository(t)
 	registerMeteksan(t, repository)

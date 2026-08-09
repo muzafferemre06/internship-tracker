@@ -84,6 +84,18 @@ func TestNewSourceLLMGenericRequiresExtractor(t *testing.T) {
 	}
 }
 
+func TestNewSourceLearnedSelectorRequiresRecipeDependencies(t *testing.T) {
+	spec := SourceSpec{ID: "x", Company: "X", URL: "https://careers.example/"}
+	if _, err := NewSource("learned_selector", spec, SourceDeps{}); err == nil {
+		t.Fatal("learned_selector without recipe store and learner must fail")
+	}
+	store := &memoryRecipeStore{}
+	learner := &scriptedRecipeLearner{}
+	if _, err := NewSource("learned_selector", spec, SourceDeps{RecipeStore: store, RecipeLearner: learner}); err != nil {
+		t.Fatalf("learned_selector with dependencies must be registered: %v", err)
+	}
+}
+
 func TestNewSourceRejectsUnknownAdapter(t *testing.T) {
 	if SupportsAdapter("does_not_exist") {
 		t.Fatalf("expected unknown adapter to be unsupported")

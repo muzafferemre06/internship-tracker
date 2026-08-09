@@ -15,3 +15,9 @@ doğrular.
 
 `access-challenge.html`, HTTP 200 dönse bile Cloudflare challenge işaretlerinin
 geçerli bir şirket sayfası gibi işlenmemesini doğrular.
+
+`learnedselector/layout-v1.html` ve `layout-v2.html`, aynı kurgusal kariyer
+sayfasının iki farklı DOM sürümüdür. İlk fixture başlangıç reçetesini ve restart
+sonrası AI'sız çalışmayı; ikinci fixture eski selector'ların sıfır ilana düşmesini
+ve golden-snapshot guard üzerinden reçete onarımını doğrular. Canlı bir sitenin
+kopyası değildir ve kişisel veri içermez.

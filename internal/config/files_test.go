@@ -86,6 +86,22 @@ func TestLoadSourcesRejectsUnknownStrategy(t *testing.T) {
 	}
 }
 
+func TestLoadSourcesInfersLearnedSelectorStrategy(t *testing.T) {
+	path := writeConfigTestFile(t, `{
+		"companies":[{
+			"name":"Test", "priority_group":"candidate",
+			"sources":[{"id":"test", "type":"career_page", "url":"https://example.test/careers", "adapter":"learned_selector", "enabled":true}]
+		}]
+	}`)
+	sources, err := LoadSources(path)
+	if err != nil {
+		t.Fatalf("load learned selector source: %v", err)
+	}
+	if got := sources.Companies[0].Sources[0].EffectiveStrategy(); got != "learned_selector" {
+		t.Fatalf("expected learned_selector strategy, got %q", got)
+	}
+}
+
 func TestLoadSourcesInfersActiveTrackingStatus(t *testing.T) {
 	sources, err := LoadSources("../../configs/sources.example.json")
 	if err != nil {

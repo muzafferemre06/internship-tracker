@@ -19,3 +19,18 @@ type SourceRegistration struct {
 	TrackingStatus string
 	Enabled        bool
 }
+
+// SourceRecipe is a versioned deterministic extraction rule learned for one
+// source. The model proposes selectors only during setup/repair; ordinary scans
+// execute the stored recipe without a model call.
+type SourceRecipe struct {
+	SourceKey          string
+	Version            int
+	IdentitySelector   string
+	IdentityText       string
+	ListingSelector    string
+	TitleSelector      string
+	LinkSelector       string
+	GoldenListingCount int
+	GoldenFingerprint  string
+}

@@ -89,6 +89,31 @@ Gerçek model fiyatları değişebildiği için milyon input ve output token ba�
 oranlar seçilen modelin güncel fiyatıyla kullanıcı tarafından ayarlanır. Anahtar
 ve yerel `.env` repoya eklenmez.
 
+## Öğrenilmiş kaynak reçeteleri
+
+Kararlı API/JSON-LD sunmayan fakat DOM yapısı deterministik çalıştırılabilecek
+bir kariyer sayfası `adapter: "learned_selector"` ile tanımlanabilir. Strateji
+otomatik olarak `learned_selector` olur. Bu adapter ilk taramada yapılandırılmış
+LLM sağlayıcısıyla selector reçetesi üretir; reçete ve golden ilan snapshot'ı
+SQLite'ta versionlanır. Sonraki taramalar, process restart'ından sonra da AI
+çağrısı olmadan aynı reçeteyi çalıştırır. Sayfa kimliği/ilan şeması bozulur veya
+önceden pozitif ilan sayısı sıfıra düşerse bir onarım çağrısı yapılır.
+
+```json
+{
+  "id": "ornek-kariyer",
+  "type": "career_page",
+  "url": "https://example.com/careers",
+  "adapter": "learned_selector",
+  "enabled": true
+}
+```
+
+Etkin `learned_selector` ve `llm_generic` kaynakları model provider gerektirir;
+`LLM_PROVIDER=deterministic` ile uygulama bu kaynakları sessizce atlamak yerine
+başlangıçta açık hata verir. Model provider tek kez oluşturulur ve analiz,
+generic ilan extraction'ı ve reçete öğrenimi arasında paylaşılır.
+
 ## Production yapılandırması ve secret'lar
 
 `APP_ENV=production` başlangıçta güvenlik kapılarını zorunlu kılar:

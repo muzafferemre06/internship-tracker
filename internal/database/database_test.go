@@ -18,7 +18,7 @@ func TestOpenAppliesMigrationsOnlyOnce(t *testing.T) {
 		t.Fatalf("open database: %v", err)
 	}
 	assertTableExists(t, db, "listings")
-	assertMigrationCount(t, db, 7)
+	assertMigrationCount(t, db, 8)
 	if err := db.Close(); err != nil {
 		t.Fatalf("close database: %v", err)
 	}
@@ -28,7 +28,7 @@ func TestOpenAppliesMigrationsOnlyOnce(t *testing.T) {
 		t.Fatalf("reopen database: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	assertMigrationCount(t, db, 7)
+	assertMigrationCount(t, db, 8)
 }
 
 func TestOpenRejectsMissingMigrations(t *testing.T) {

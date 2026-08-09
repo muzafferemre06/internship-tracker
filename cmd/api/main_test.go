@@ -42,6 +42,18 @@ func TestConfigureAnalyzerSelectsProviderAndValidatesOpenRouterSettings(t *testi
 	}
 }
 
+func TestConfigureRecipeLearnerUsesConfiguredModelProvider(t *testing.T) {
+	if learner, err := configureRecipeLearner(config.Config{LLMProvider: "deterministic"}); err != nil || learner != nil {
+		t.Fatalf("deterministic mode must not create recipe learner: learner=%#v err=%v", learner, err)
+	}
+	learner, err := configureRecipeLearner(config.Config{
+		LLMProvider: "google", LLMModel: "gemini-3.1-flash-lite", GeminiAPIKey: "secret", LLMThinkingLevel: "minimal",
+	})
+	if err != nil || learner == nil {
+		t.Fatalf("Google mode must create recipe learner: learner=%#v err=%v", learner, err)
+	}
+}
+
 func TestAnalyzerProfileRemovesInstitutionNames(t *testing.T) {
 	profile := analyzerProfile(config.CandidateProfile{
 		Education:  config.EducationProfile{University: "Private University", Department: "CTIS", ClassYear: 2},

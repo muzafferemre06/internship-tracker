@@ -88,6 +88,182 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 	return nil
 }
 
+// LoadSourceRecipe returns the one active learned recipe for a source.
+func (r *SQLiteRepository) LoadSourceRecipe(ctx context.Context, sourceKey string) (domain.SourceRecipe, bool, error) {
+	var recipe domain.SourceRecipe
+	err := r.db.QueryRowContext(ctx, `
+		SELECT cs.source_key, r.version, r.identity_selector, r.identity_text,
+		       r.listing_selector, r.title_selector, r.link_selector,
+		       r.golden_listing_count, r.golden_fingerprint
+		FROM source_extraction_recipes r
+		JOIN company_sources cs ON cs.id = r.source_id
+		WHERE cs.source_key = ? AND r.active = 1
+	`, strings.TrimSpace(sourceKey)).Scan(
+		&recipe.SourceKey, &recipe.Version, &recipe.IdentitySelector, &recipe.IdentityText,
+		&recipe.ListingSelector, &recipe.TitleSelector, &recipe.LinkSelector,
+		&recipe.GoldenListingCount, &recipe.GoldenFingerprint,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.SourceRecipe{}, false, nil
+	}
+	if err != nil {
+		return domain.SourceRecipe{}, false, fmt.Errorf("load source recipe %q: %w", sourceKey, err)
+	}
+	return recipe, true, nil
+}
+
+// SaveSourceRecipe atomically retires the active recipe and inserts its next
+// immutable version, retaining history for diagnosis and rollback decisions.
+func (r *SQLiteRepository) SaveSourceRecipe(ctx context.Context, recipe domain.SourceRecipe) (domain.SourceRecipe, error) {
+	if strings.TrimSpace(recipe.SourceKey) == "" {
+		return domain.SourceRecipe{}, errors.New("recipe source key is required")
+	}
+	if recipe.GoldenListingCount < 0 {
+		return domain.SourceRecipe{}, errors.New("recipe golden listing count cannot be negative")
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.SourceRecipe{}, fmt.Errorf("begin source recipe save: %w", err)
+	}
+	defer tx.Rollback()
+
+	var sourceID int64
+	if err := tx.QueryRowContext(ctx, "SELECT id FROM company_sources WHERE source_key = ?", strings.TrimSpace(recipe.SourceKey)).Scan(&sourceID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.SourceRecipe{}, ErrSourceNotFound
+		}
+		return domain.SourceRecipe{}, fmt.Errorf("find recipe source %q: %w", recipe.SourceKey, err)
+	}
+	var version int
+	if err := tx.QueryRowContext(ctx, "SELECT COALESCE(MAX(version), 0) + 1 FROM source_extraction_recipes WHERE source_id = ?", sourceID).Scan(&version); err != nil {
+		return domain.SourceRecipe{}, fmt.Errorf("select next recipe version: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, "UPDATE source_extraction_recipes SET active = 0, updated_at = CURRENT_TIMESTAMP WHERE source_id = ? AND active = 1", sourceID); err != nil {
+		return domain.SourceRecipe{}, fmt.Errorf("retire active source recipe: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO source_extraction_recipes(
+			source_id, version, active, identity_selector, identity_text,
+			listing_selector, title_selector, link_selector,
+			golden_listing_count, golden_fingerprint
+		) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?)
+	`, sourceID, version, strings.TrimSpace(recipe.IdentitySelector), strings.TrimSpace(recipe.IdentityText),
+		strings.TrimSpace(recipe.ListingSelector), strings.TrimSpace(recipe.TitleSelector), strings.TrimSpace(recipe.LinkSelector),
+		recipe.GoldenListingCount, strings.TrimSpace(recipe.GoldenFingerprint)); err != nil {
+		return domain.SourceRecipe{}, fmt.Errorf("insert source recipe version: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE company_sources SET strategy_version = ?, last_listing_count = ?,
+			last_listing_fingerprint = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+	`, version, recipe.GoldenListingCount, strings.TrimSpace(recipe.GoldenFingerprint), sourceID); err != nil {
+		return domain.SourceRecipe{}, fmt.Errorf("update source recipe health: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return domain.SourceRecipe{}, fmt.Errorf("commit source recipe save: %w", err)
+	}
+	recipe.SourceKey = strings.TrimSpace(recipe.SourceKey)
+	recipe.Version = version
+	return recipe, nil
+}
+
+func (r *SQLiteRepository) UpdateSourceRecipeSnapshot(ctx context.Context, sourceKey string, version, count int, fingerprint string) error {
+	if version < 1 || count < 0 {
+		return errors.New("recipe version must be positive and listing count cannot be negative")
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin source recipe snapshot update: %w", err)
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, `
+		UPDATE source_extraction_recipes
+		SET golden_listing_count = ?, golden_fingerprint = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE source_id = (SELECT id FROM company_sources WHERE source_key = ?)
+		  AND version = ? AND active = 1
+	`, count, strings.TrimSpace(fingerprint), strings.TrimSpace(sourceKey), version)
+	if err != nil {
+		return fmt.Errorf("update source recipe snapshot: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read source recipe snapshot result: %w", err)
+	}
+	if changed != 1 {
+		return ErrSourceNotFound
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE company_sources SET strategy_version = ?, last_listing_count = ?,
+			last_listing_fingerprint = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE source_key = ?
+	`, version, count, strings.TrimSpace(fingerprint), strings.TrimSpace(sourceKey)); err != nil {
+		return fmt.Errorf("update source health snapshot: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit source recipe snapshot update: %w", err)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) LoadExtractionBlocks(ctx context.Context, sourceKey string, hashes []string) (map[string][]domain.RawListing, error) {
+	result := make(map[string][]domain.RawListing)
+	for _, hash := range hashes {
+		var encoded string
+		err := r.db.QueryRowContext(ctx, `
+			SELECT c.listings_json FROM source_extraction_block_cache c
+			JOIN company_sources s ON s.id = c.source_id
+			WHERE s.source_key = ? AND c.block_hash = ?
+		`, strings.TrimSpace(sourceKey), strings.TrimSpace(hash)).Scan(&encoded)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("load extraction block %q: %w", hash, err)
+		}
+		var listings []domain.RawListing
+		if err := json.Unmarshal([]byte(encoded), &listings); err != nil {
+			return nil, fmt.Errorf("decode extraction block %q: %w", hash, err)
+		}
+		result[hash] = listings
+	}
+	return result, nil
+}
+
+func (r *SQLiteRepository) SaveExtractionBlocks(ctx context.Context, sourceKey string, entries map[string][]domain.RawListing) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin extraction block save: %w", err)
+	}
+	defer tx.Rollback()
+	var sourceID int64
+	if err := tx.QueryRowContext(ctx, "SELECT id FROM company_sources WHERE source_key = ?", strings.TrimSpace(sourceKey)).Scan(&sourceID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrSourceNotFound
+		}
+		return fmt.Errorf("find extraction cache source: %w", err)
+	}
+	for hash, listings := range entries {
+		encoded, err := json.Marshal(listings)
+		if err != nil {
+			return fmt.Errorf("encode extraction block %q: %w", hash, err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO source_extraction_block_cache(source_id, block_hash, listings_json)
+			VALUES (?, ?, ?)
+			ON CONFLICT(source_id, block_hash) DO UPDATE SET
+				listings_json = excluded.listings_json, updated_at = CURRENT_TIMESTAMP
+		`, sourceID, strings.TrimSpace(hash), string(encoded)); err != nil {
+			return fmt.Errorf("upsert extraction block %q: %w", hash, err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit extraction block save: %w", err)
+	}
+	return nil
+}
+
 func (r *SQLiteRepository) UpsertRawListing(ctx context.Context, listing domain.RawListing) (string, bool, error) {
 	canonicalURL, err := CanonicalURL(listing.URL)
 	if err != nil {

@@ -77,22 +77,28 @@ type ListingExtractor interface {
 	Extract(ctx context.Context, request ExtractionRequest) (ExtractionResult, error)
 }
 
+type ExtractionBlockStore interface {
+	LoadExtractionBlocks(context.Context, string, []string) (map[string][]domain.RawListing, error)
+	SaveExtractionBlocks(context.Context, string, map[string][]domain.RawListing) error
+}
+
 // LLMGenericSource implements the Faz 11 "llm_generic" strategy for chaotic,
 // bespoke career pages that offer neither an API nor stable structure. It keeps
 // the model off the hot path: a deterministic reduce stage windows candidate
 // blocks, a content-hash gate skips the model entirely on unchanged rescans, and
 // only new/changed blocks are ever sent for extraction.
 type LLMGenericSource struct {
-	name      string
-	company   string
-	pageURL   *url.URL
-	client    *http.Client
-	extractor ListingExtractor
-	now       func() time.Time
-	cache     map[string][]domain.RawListing // block hash -> listings extracted from it
+	name       string
+	company    string
+	pageURL    *url.URL
+	client     *http.Client
+	extractor  ListingExtractor
+	now        func() time.Time
+	cache      map[string][]domain.RawListing // block hash -> listings extracted from it
+	blockCache ExtractionBlockStore
 }
 
-func NewLLMGenericSource(name, company, pageURL string, extractor ListingExtractor, client *http.Client) (*LLMGenericSource, error) {
+func NewLLMGenericSource(name, company, pageURL string, extractor ListingExtractor, client *http.Client, persistentCache ...ExtractionBlockStore) (*LLMGenericSource, error) {
 	name = strings.TrimSpace(name)
 	company = strings.TrimSpace(company)
 	if name == "" {
@@ -111,10 +117,14 @@ func NewLLMGenericSource(name, company, pageURL string, extractor ListingExtract
 	if client == nil {
 		client = &http.Client{Timeout: 30 * time.Second}
 	}
-	return &LLMGenericSource{
+	source := &LLMGenericSource{
 		name: name, company: company, pageURL: parsedURL, client: client,
 		extractor: extractor, now: time.Now, cache: make(map[string][]domain.RawListing),
-	}, nil
+	}
+	if len(persistentCache) > 0 {
+		source.blockCache = persistentCache[0]
+	}
+	return source, nil
 }
 
 func (s *LLMGenericSource) Name() string { return s.name }
@@ -248,10 +258,23 @@ func (s *LLMGenericSource) blockText(node *html.Node) string {
 // extractor. Results are attributed back to blocks by index and cached by hash.
 func (s *LLMGenericSource) extract(ctx context.Context, blocks []ExtractionBlock) ([]domain.RawListing, error) {
 	hashes := make([]string, len(blocks))
-	changed := make([]ExtractionBlock, 0)
 	for i, block := range blocks {
 		hash := blockHash(block.Text)
 		hashes[i] = hash
+	}
+	if s.blockCache != nil {
+		persisted, err := s.blockCache.LoadExtractionBlocks(ctx, s.name, hashes)
+		if err != nil {
+			return nil, fmt.Errorf("load persistent extraction blocks: %w", err)
+		}
+		for hash, listings := range persisted {
+			s.cache[hash] = listings
+		}
+	}
+
+	changed := make([]ExtractionBlock, 0)
+	for i, block := range blocks {
+		hash := hashes[i]
 		if _, cached := s.cache[hash]; !cached {
 			changed = append(changed, ExtractionBlock{Index: i, Text: block.Text})
 		}
@@ -282,19 +305,29 @@ func (s *LLMGenericSource) extract(ctx context.Context, blocks []ExtractionBlock
 		}
 		// Cache every changed block, including those that yielded nothing, so an
 		// unchanged rescan never re-consults the model for them.
+		persist := make(map[string][]domain.RawListing, len(changed))
 		for _, block := range changed {
-			s.cache[blockHash(block.Text)] = fresh[block.Index]
+			hash := blockHash(block.Text)
+			s.cache[hash] = fresh[block.Index]
+			persist[hash] = fresh[block.Index]
+		}
+		if s.blockCache != nil {
+			if err := s.blockCache.SaveExtractionBlocks(ctx, s.name, persist); err != nil {
+				return nil, fmt.Errorf("save persistent extraction blocks: %w", err)
+			}
 		}
 	}
 
 	listings := make([]domain.RawListing, 0)
 	seenURL := make(map[string]struct{})
+	fetchedAt := s.now().UTC()
 	for _, hash := range hashes {
 		for _, listing := range s.cache[hash] {
 			if _, dup := seenURL[listing.URL]; dup {
 				continue
 			}
 			seenURL[listing.URL] = struct{}{}
+			listing.FetchedAt = fetchedAt
 			listings = append(listings, listing)
 		}
 	}

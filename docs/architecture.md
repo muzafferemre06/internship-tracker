@@ -236,8 +236,9 @@ yolundan çıkarır:
    sessiz sıfır yerine `ErrUnexpectedPage`.
 2. **Content-hash kapısı + blok diff:** Her blok metninin SHA-256'sı alınır;
    yalnız önbellekte olmayan (yeni/değişen) bloklar modele gönderilir. Değişmeyen
-   taramada hiç model çağrısı yapılmaz — adapter, blok-hash → çıkarılan ilan
-   eşlemesini süreç-içi tutar. (Restart'ı aşan kalıcı önbellek Faz 12'ye bırakıldı.)
+   taramada hiç model çağrısı yapılmaz. Blok-hash → çıkarılan ilan eşlemesi
+   `source_extraction_block_cache` tablosunda saklandığı için process restart'ı
+   sonrasında da model çağrısı yapılmaz.
 3. **Extraction portu:** `scraper.ListingExtractor` enjekte edilir; model çıktısı
    `source_block` index'iyle bloğa geri bağlanır. Üretimde
    `internal/extractor.GeminiExtractor` bu portu `analyzer.ModelProvider` üzerinden
@@ -249,12 +250,43 @@ yolundan çıkarır:
    dedup/analiz yoluna girer.
 
 Adapter'ı istemek shared bir bağımlılık gerektirdiği için Faz 9 dispatch'i
-`SourceDeps{Extractor}` ile genişletildi (`scraper.NewSource(adapter, spec, deps)`);
-`cmd/api` extractor'ı yapılandırılmış LLM sağlayıcısından kurar, deterministik
-modda extractor `nil` olur ve etkin bir `llm_generic` kaynağı açık hatayla durur.
+`SourceDeps` ile genişletildi (`scraper.NewSource(adapter, spec, deps)`); `cmd/api`
+extractor'ı yapılandırılmış LLM sağlayıcısından, kalıcı cache'i SQLite
+repository'den kurar. Deterministik modda extractor `nil` olur ve etkin bir
+`llm_generic` kaynağı açık hatayla durur.
 Kabul kanıtı: `phase11_test.go` (fake) tam ingestion + dedup'ı; `phase11_live_test.go`
 (opt-in, gerçek Gemini) yerel sunulan bespoke sayfada uçtan uca çıkarma+analizi
 doğrular.
+
+### Öğrenilmiş selector reçeteleri (Faz 12)
+
+`learned_selector`, ilk taramada veya mevcut reçete guard'dan geçemediğinde
+`RecipeLearner` portunu çağırır. Modele tam ham response yerine script/style/nav/
+footer gibi çalıştırılabilir ve gürültülü alt ağaçları çıkarılmış, 120.000 rune
+ile sınırlı yapısal HTML görünümü gider. Üretimde `GeminiRecipeLearner`, analiz ve
+Faz 11 extractor'ıyla aynı `analyzer.ModelProvider` örneğini strict JSON Schema
+üzerinden kullanır; normal testler scripted fake learner kullanır.
+
+Reçete yalnız boşlukla ayrılan basit descendant selector bileşenlerini kabul
+eder: `tag`, `#id`, `.class` ve bunların birleşimleri. Attribute/pseudo selector,
+virgül, `>` ve konuma bağlı `nth-child` desteklenmez. Reçete; sayfa kimliği için
+selector + beklenen metin, ilan kartı, başlık ve link selector'larını taşır.
+Deterministik yürütücü her kartta tam bir başlık ve `href` bağlantısı zorunlu
+kılar; mutlak HTTP(S) URL'ye çözülemeyen çıktı kaynak hatasıdır.
+
+`source_extraction_recipes` bütün sürümleri saklar ve kaynak başına yalnız bir
+aktif sürüme izin verir. Aktif reçete başarıyla çalışınca ilan sayısı ve
+başlık+URL parmak izi hem reçetede hem `company_sources` sağlık snapshot'ında
+atomik güncellenir. Kimlik metni bulunamazsa, kart şeması bozulursa veya önceki
+pozitif ilan sayısı sıfıra düşerse learner bir kez onarım yapar. Yeni reçete aynı
+sayfada başarıyla en az bir ilan üretmeden aktifleşmez; böylece bozuk model çıktısı
+eski kurumsal bilgiyi ezmez ve sessiz sıfır sonuç başarı sayılmaz.
+
+`migrations/008_learned_recipes.sql`, reçete geçmişinin yanında kaynak sağlık
+alanlarını ve Faz 11'in kalıcı blok cache tablosunu oluşturur. API başlangıcında
+tek provider örneği listing analyzer, generic extractor ve recipe learner
+arasında paylaşılır. `LLM_PROVIDER=deterministic` iken etkin `learned_selector`
+kaynağı, learner bulunmadığını belirten fail-fast başlangıç hatası verir.
 
 ### İzleme listesi ve taranamayan kaynaklar (Faz 6 ön hazırlığı)
 

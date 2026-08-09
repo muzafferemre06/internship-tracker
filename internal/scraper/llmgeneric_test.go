@@ -118,6 +118,52 @@ func TestLLMGenericExtractsJobsAndSkipsNoise(t *testing.T) {
 	}
 }
 
+func TestLLMGenericPersistentCacheSkipsModelAfterSourceRestart(t *testing.T) {
+	extractor := &recordingExtractor{}
+	cache := &memoryBlockCache{entries: map[string][]domain.RawListing{}}
+	first := newBespokeSource(t, extractor)
+	first.blockCache = cache
+	if _, err := first.FetchListings(context.Background()); err != nil {
+		t.Fatalf("first fetch: %v", err)
+	}
+	if extractor.calls != 1 || cache.saves == 0 {
+		t.Fatalf("first fetch did not persist extracted blocks: calls=%d saves=%d", extractor.calls, cache.saves)
+	}
+
+	second := newBespokeSource(t, extractor)
+	second.blockCache = cache
+	listings, err := second.FetchListings(context.Background())
+	if err != nil {
+		t.Fatalf("restart fetch: %v", err)
+	}
+	if len(listings) != 2 || extractor.calls != 1 {
+		t.Fatalf("restart must use persistent cache without model: listings=%d calls=%d", len(listings), extractor.calls)
+	}
+}
+
+type memoryBlockCache struct {
+	entries map[string][]domain.RawListing
+	saves   int
+}
+
+func (c *memoryBlockCache) LoadExtractionBlocks(_ context.Context, _ string, hashes []string) (map[string][]domain.RawListing, error) {
+	result := make(map[string][]domain.RawListing)
+	for _, hash := range hashes {
+		if listings, ok := c.entries[hash]; ok {
+			result[hash] = listings
+		}
+	}
+	return result, nil
+}
+
+func (c *memoryBlockCache) SaveExtractionBlocks(_ context.Context, _ string, entries map[string][]domain.RawListing) error {
+	c.saves++
+	for hash, listings := range entries {
+		c.entries[hash] = listings
+	}
+	return nil
+}
+
 func TestLLMGenericHashGateSkipsUnchangedRescan(t *testing.T) {
 	extractor := &recordingExtractor{}
 	source := newBespokeSource(t, extractor)

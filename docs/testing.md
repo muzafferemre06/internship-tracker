@@ -51,6 +51,19 @@ kapsar. `google_live_test.go` yalnızca `integration` build tag'i ve ortamdan
 `GEMINI_API_KEY` ile açıkça çağrıldığında gerçek Gemini API'ye gider; normal
 `go test ./...` canlı veya ücretli API çağrısı yapmaz.
 
+Faz 12 birim testleri iki küçültülmüş DOM fixture'ı kullanır. İlk layout fake
+learner ile reçete üretip store'a yazar; yeni bir source instance'ı aynı reçeteyi
+model çağrısı olmadan çalıştırır. İkinci layout eski reçetenin kimlik/golden
+guard'ını kırar, yeni reçetenin sürümünü artırır; geçersiz onarım sessiz sıfır
+yerine kaynak hatasıdır. SQLite testleri iki sürüm geçmişi + tek aktif reçete,
+atomik golden snapshot ve restart'ı aşan blok-hash cache'ini doğrular.
+
+`internal/acceptance/phase12_test.go`, learned selector'ı gerçek migration,
+SQLite repository, orchestrator, dedup ve analiz hattında üç taramayla sınar:
+ilk öğrenme (2 yeni), yeni source instance'ı (0 yeni, 0 ek recipe çağrısı) ve
+değişen layout onarımı (reçete v2, 1 yeni). Normal suite yalnız fake provider
+kullanır.
+
 Profil minimizasyon testi model input'unda yalnızca bölüm/alan, sınıf, GPA, odak,
 deneyim alanı ve konum tercihlerinin bulunduğunu doğrular. Üniversite ve deneyim
 kurumu adları `analyzerProfile` dönüşümünde atılır.
