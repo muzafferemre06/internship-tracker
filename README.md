@@ -166,10 +166,11 @@ key PWA bundle'ına veya API yanıtına girmez; production'da `.env` yerine depl
 secret sistemi kullanılmalıdır.
 
 İlk başarılı analizde yalnızca birincil şirkete ait, başvurusu açık, ilgili ve
-`uygun` ilan için versionlanmış tek bildirim olayı oluşur. Analiz ile olay/outbox
-aynı SQLite transaction'ındadır. Olay mevcut cihaz aboneliklerine ayrı delivery
-kayıtlarıyla dağıtılır; ikinci analiz/tarama aynı `dedup_key` nedeniyle yeni olay
-oluşturmaz. Gönderici geçici ağ/408/425/429/5xx hatalarını en fazla beş toplam
+`uygun` fırsat için versionlanmış tek bildirim olayı oluşur. Analiz, fırsat
+çözümleme ve olay/outbox aynı SQLite transaction'ındadır. Olay mevcut cihaz
+aboneliklerine ayrı delivery kayıtlarıyla dağıtılır; aynı fırsatın başka
+kaynaktaki listing'i `opportunity:<id>:new-primary-suitable:v1` anahtarı nedeniyle
+yeni olay oluşturmaz. Gönderici geçici ağ/408/425/429/5xx hatalarını en fazla beş toplam
 denemeyle erteler, `Retry-After` değerini en fazla 24 saatle sınırlar ve 404/410
 dönen aboneliği diğer cihazlara dokunmadan kaldırır.
 

@@ -686,27 +686,40 @@ func (r *SQLiteRepository) enqueueListingNotification(
 	analysis domain.ListingAnalysis,
 	firstSuccessfulAnalysis bool,
 ) error {
-	var company, title, priorityGroup string
+	var opportunityID, company, title, priorityGroup string
 	if err := tx.QueryRowContext(ctx, `
-		SELECT companies.name, listings.title, companies.priority_group
+		SELECT listing_opportunities.opportunity_id, companies.name, listings.title, companies.priority_group
 		FROM listings
 		JOIN companies ON companies.id = listings.company_id
+		JOIN listing_opportunities ON listing_opportunities.listing_id = listings.id
 		WHERE listings.id = ?
-	`, listingID).Scan(&company, &title, &priorityGroup); err != nil {
+	`, listingID).Scan(&opportunityID, &company, &title, &priorityGroup); err != nil {
 		return fmt.Errorf("load notification listing: %w", err)
 	}
 	notification, eligible := domain.NewListingNotification(
-		listingID, company, title, priorityGroup, analysis, firstSuccessfulAnalysis,
+		opportunityID, listingID, company, title, priorityGroup, analysis, firstSuccessfulAnalysis,
 	)
 	if !eligible {
 		return nil
 	}
+	var alreadyNotified bool
+	if err := tx.QueryRowContext(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM notifications
+			WHERE opportunity_id = ? AND event_type = ?
+		)
+	`, opportunityID, notification.EventType).Scan(&alreadyNotified); err != nil {
+		return fmt.Errorf("check opportunity notification history: %w", err)
+	}
+	if alreadyNotified {
+		return nil
+	}
 
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO notifications(listing_id, event_type, channel, status, dedup_key)
-		VALUES (?, ?, 'web_push', 'pending', ?)
+		INSERT INTO notifications(listing_id, opportunity_id, event_type, channel, status, dedup_key)
+		VALUES (?, ?, ?, 'web_push', 'pending', ?)
 		ON CONFLICT(dedup_key) DO NOTHING
-	`, listingID, notification.EventType, notification.DedupKey)
+	`, listingID, opportunityID, notification.EventType, notification.DedupKey)
 	if err != nil {
 		return fmt.Errorf("enqueue notification event: %w", err)
 	}
@@ -1331,17 +1344,35 @@ func (r *SQLiteRepository) lastScan(ctx context.Context) (*ScanSummary, error) {
 
 func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string) ([]DashboardListing, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT listings.id, companies.name, listings.title, listings.canonical_url,
-			companies.priority_group, COALESCE(listing_analyses.eligibility_status, ''),
-			COALESCE(listing_analyses.summary, ''), listing_analyses.application_deadline,
-			COALESCE(application_tracking.status, ''), application_tracking.deadline,
-			application_tracking.interview_at
-		FROM listings
-		JOIN companies ON companies.id = listings.company_id
-		LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
-		LEFT JOIN application_tracking ON application_tracking.listing_id = listings.id
+		SELECT id, opportunity_id, company, title, canonical_url, priority_group,
+			eligibility_status, summary, application_deadline, application_status,
+			tracking_deadline, interview_at
+		FROM (
+			SELECT listings.id AS id,
+				listing_opportunities.opportunity_id AS opportunity_id,
+				companies.name AS company, listings.title AS title,
+				listings.canonical_url AS canonical_url,
+				companies.priority_group AS priority_group,
+				COALESCE(listing_analyses.eligibility_status, '') AS eligibility_status,
+				COALESCE(listing_analyses.summary, '') AS summary,
+				listing_analyses.application_deadline AS application_deadline,
+				COALESCE(application_tracking.status, '') AS application_status,
+				application_tracking.deadline AS tracking_deadline,
+				application_tracking.interview_at AS interview_at,
+				listings.first_seen_at AS first_seen_at,
+				ROW_NUMBER() OVER (
+					PARTITION BY listing_opportunities.opportunity_id
+					ORDER BY listings.first_seen_at, listings.id
+				) AS opportunity_rank
+			FROM listings
+			JOIN companies ON companies.id = listings.company_id
+			JOIN listing_opportunities ON listing_opportunities.listing_id = listings.id
+			LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
+			LEFT JOIN application_tracking ON application_tracking.listing_id = listings.id
 	`+clause+`
-		ORDER BY listings.first_seen_at DESC, listings.id
+		)
+		WHERE opportunity_rank = 1
+		ORDER BY first_seen_at DESC, id
 	`)
 	if err != nil {
 		return nil, err
@@ -1354,6 +1385,7 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 		var applicationDue, trackingDeadline, interviewAt sql.NullString
 		if err := rows.Scan(
 			&listing.ID,
+			&listing.OpportunityID,
 			&listing.Company,
 			&listing.Title,
 			&listing.URL,
@@ -1399,7 +1431,8 @@ func (r *SQLiteRepository) ListingDetail(ctx context.Context, listingID string) 
 	var trackingStatus, trackingDeadline, interviewAt, notes sql.NullString
 	var applicationOpen, relevant, needsDecision int
 	err := r.db.QueryRowContext(ctx, `
-		SELECT listings.id, companies.name, listings.title, listings.canonical_url,
+		SELECT listings.id, listing_opportunities.opportunity_id,
+			companies.name, listings.title, listings.canonical_url,
 			companies.priority_group, COALESCE(listing_analyses.eligibility_status, ''),
 			COALESCE(listing_analyses.summary, ''), listing_analyses.application_deadline,
 			COALESCE(listing_analyses.opportunity_type, ''),
@@ -1416,11 +1449,12 @@ func (r *SQLiteRepository) ListingDetail(ctx context.Context, listingID string) 
 			application_tracking.interview_at, application_tracking.notes
 		FROM listings
 		JOIN companies ON companies.id = listings.company_id
+		JOIN listing_opportunities ON listing_opportunities.listing_id = listings.id
 		LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
 		LEFT JOIN application_tracking ON application_tracking.listing_id = listings.id
 		WHERE listings.id = ?
 	`, listingID).Scan(
-		&detail.ID, &detail.Company, &detail.Title, &detail.URL, &detail.Priority,
+		&detail.ID, &detail.OpportunityID, &detail.Company, &detail.Title, &detail.URL, &detail.Priority,
 		&detail.Eligibility, &detail.Summary, &applicationDue, &detail.OpportunityType,
 		&applicationOpen, &relevant, &matchingAreas, &detail.ClassRequirement,
 		&detail.GPARequirement, &detail.Location, &detail.WorkModel, &detail.Confidence,

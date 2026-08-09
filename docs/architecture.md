@@ -95,10 +95,12 @@ bazında saklar; `notification_deliveries` ise olayın her cihaz için bağıms�
 pending/sending/sent/failed/cancelled durumunu, lease'i ve deneme sayısını taşır.
 
 `SQLiteRepository.SaveAnalysis`, ilk başarılı analiz bilgisini
-`first_processed_at` ile kalıcılaştırır. Birincil şirket + açık başvuru + ilgili +
-`uygun` koşulu sağlanırsa analiz upsert'i, kararlı
-`listing:<id>:new-primary-suitable:v1` olayı, güvenli payload ve mevcut cihazlara
-fan-out tek transaction'da commit edilir. Hiç abonelik yoksa olay `cancelled`
+`first_processed_at` ile kalıcılaştırır ve listing'i kanonik fırsata çözümler.
+Birincil şirket + açık başvuru + ilgili + `uygun` koşulu sağlanırsa analiz
+upsert'i, kararlı `opportunity:<id>:new-primary-suitable:v1` olayı, güvenli
+payload ve mevcut cihazlara fan-out tek transaction'da commit edilir. Bildirim
+listing deep-link'ini korurken dedup ve Web Push `Topic` fırsat kimliğine bağlıdır.
+Hiç abonelik yoksa olay `cancelled`
 kapanır ve sonradan abone olan cihaza geçmiş bildirim gönderilmez. Böylece analiz
 commit edilip outbox'ın kaybolduğu bir ara durum oluşmaz; unique event ve
 event/device anahtarları tekrar taramada çoğalmayı önler.

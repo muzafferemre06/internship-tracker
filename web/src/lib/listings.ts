@@ -1,5 +1,6 @@
 export type Listing = {
   id: string;
+  opportunity_id?: string;
   company: string;
   title: string;
   url: string;

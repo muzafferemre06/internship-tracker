@@ -776,6 +776,47 @@ func TestSQLiteRepositoryReconcilesBackfilledAnalyzedListings(t *testing.T) {
 	}
 }
 
+func TestSQLiteDashboardAndNotificationsDeduplicateCanonicalOpportunity(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksanSources(t, repository)
+	ctx := context.Background()
+	if _, err := repository.UpsertPushSubscription(ctx, PushSubscriptionInput{
+		Endpoint: "https://push.example.test/phase13", P256DH: "test-public", Auth: "test-auth",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	firstID := insertOpportunityListing(t, repository, "meteksan-kariyer-net", "Backend Stajyeri", "https://example.test/dashboard/one")
+	secondID := insertOpportunityListing(t, repository, "meteksan-careers", "Backend Stajı", "https://careers.example.test/dashboard/two")
+	analysis := domain.ListingAnalysis{
+		OpportunityType: "staj", ApplicationOpen: true, Relevant: true,
+		Location: "Ankara", Eligibility: domain.EligibilitySuitable, Summary: "Uygun backend stajı",
+	}
+	for _, listingID := range []string{firstID, secondID} {
+		if err := repository.SaveAnalysis(ctx, listingID, analysis); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	dashboard, err := repository.Dashboard(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(dashboard.NewListings) != 1 || dashboard.NewListings[0].OpportunityID == "" {
+		t.Fatalf("dashboard must expose one canonical opportunity: %#v", dashboard.NewListings)
+	}
+	var notifications, deliveries int
+	var dedupKey string
+	if err := db.QueryRow("SELECT COUNT(*), MIN(dedup_key) FROM notifications").Scan(&notifications, &dedupKey); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT COUNT(*) FROM notification_deliveries").Scan(&deliveries); err != nil {
+		t.Fatal(err)
+	}
+	if notifications != 1 || deliveries != 1 || !strings.HasPrefix(dedupKey, "opportunity:") {
+		t.Fatalf("expected one opportunity event/delivery, got notifications=%d deliveries=%d key=%q", notifications, deliveries, dedupKey)
+	}
+}
+
 func registerMeteksanSources(t *testing.T, repository *SQLiteRepository) {
 	t.Helper()
 	registerMeteksan(t, repository)

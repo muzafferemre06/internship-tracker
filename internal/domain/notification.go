@@ -19,6 +19,7 @@ type Notification struct {
 }
 
 func NewListingNotification(
+	opportunityID string,
 	listingID string,
 	company string,
 	title string,
@@ -31,7 +32,7 @@ func NewListingNotification(
 		return Notification{}, false
 	}
 
-	dedupKey := "listing:" + listingID + ":new-primary-suitable:v1"
+	dedupKey := "opportunity:" + opportunityID + ":new-primary-suitable:v1"
 	topicHash := sha256.Sum256([]byte(dedupKey))
 	body := truncateRunes(strings.TrimSpace(company)+" — "+strings.TrimSpace(title), 240)
 	return Notification{
@@ -40,7 +41,7 @@ func NewListingNotification(
 		Title:     "Yeni uygun staj ilanı",
 		Body:      body,
 		TargetURL: "/?listing=" + url.QueryEscape(listingID),
-		Topic:     "listing-" + base64.RawURLEncoding.EncodeToString(topicHash[:18]),
+		Topic:     "opp-" + base64.RawURLEncoding.EncodeToString(topicHash[:18]),
 	}, true
 }
 

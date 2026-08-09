@@ -211,6 +211,10 @@ SQLite Faz 13 testleri iki kayıtlı fake kaynakta farklı URL'li aynı ilanlar�
 tek fırsata bağlanmasını, eksik lokasyonun ayrı ve audit edilebilir kalmasını,
 sonraki analizdeki lokasyon çelişkisinin veri silmeden split üretmesini ve eski
 tekil backfill üyeliklerinin startup reconciliation ile birleşmesini sınar.
+Dashboard/outbox testi aynı fırsatın yalnız bir kart, fırsat düzeyli tek
+`dedup_key` ve abonelik başına tek delivery ürettiğini; domain testi ise payload
+deep-link'inin kaynak listing'e çözülebilir kalırken Web Push `Topic` sınırına
+uyduğunu doğrular.
 
 `internal/acceptance/phase4_test.go`, gerçek migration/SQLite ile analizli ilan
 oluşturur; üretim HTTP handler'ından detayı okur, RFC3339 tarihli başvuru kaydını

@@ -9,6 +9,7 @@ import (
 
 type DashboardListing struct {
 	ID                string                   `json:"id"`
+	OpportunityID     string                   `json:"opportunity_id"`
 	Company           string                   `json:"company"`
 	Title             string                   `json:"title"`
 	URL               string                   `json:"url"`
