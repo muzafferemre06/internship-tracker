@@ -953,6 +953,13 @@ göründüğünde tek fırsat = tek bildirim.
 - Birden çok listing tek fırsata bağlanır; bildirim `dedup_key` fırsat düzeyinde
   uygulanır (§8/§13 ile tutarlı).
 
+Eşleme muhafazakârdır: şirket kimliği birebir aynı olmalıdır. Normalize başlığı
+birebir aynı olan kayıtlar lokasyonları uyumluysa (veya ikisi de lokasyonsuzsa),
+bulanık başlık skoru en az `0.92` olan kayıtlar ise iki lokasyon da mevcut ve
+uyumluysa otomatik birleşir. `0.80 <= skor < 0.92`, tek tarafı eksik lokasyon ve
+diğer yetersiz kanıtlar belirsiz karar olarak saklanır ama ayrı fırsatlarda
+kalır. Açık lokasyon çelişkisi skordan bağımsız olarak birleşmeyi engeller.
+
 Çıkış kriteri: İki farklı kaynaktan gelen aynı ilan tek fırsat olarak gösterilir
 ve yalnız bir bildirim üretir.
 

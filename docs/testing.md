@@ -202,6 +202,11 @@ ekleme/temizleme davranışını mock runtime/fetch ile doğrular. Service worke
 ayrıca `node --check` ile sözdizimi kontrolünden geçer; gerçek push servisi veya
 tarayıcı notification ağı normal testlerde kullanılmaz.
 
+Faz 13 eşleyici testleri Türkçe başlık normalizasyonunu, staj/intern
+varyantlarını, `0.92` otomatik birleşme ve `0.80` belirsizlik sınırlarını, eksik
+lokasyonun belirsiz kalmasını ve çelişen lokasyonun birleşmeyi engellemesini
+tablo güdümlü ve ağsız olarak doğrular.
+
 `internal/acceptance/phase4_test.go`, gerçek migration/SQLite ile analizli ilan
 oluşturur; üretim HTTP handler'ından detayı okur, RFC3339 tarihli başvuru kaydını
 günceller ve son dashboard yanıtında aktif başvuruyu, yaklaşan tarihi ve manuel

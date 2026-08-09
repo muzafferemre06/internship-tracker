@@ -319,6 +319,13 @@ bağlar. İlan kimliği şirket adı ve canonical URL'nin SHA-256 özetidir. Can
 URL'den fragment, UTM ve bilinen reklam takip parametreleri çıkarılır; sorgu
 parametreleri kararlı sıraya getirilir.
 
+Faz 13 fırsat eşleyicisi şirket kimliğini kesin sınır olarak kullanır. Başlıklar
+Türkçe karakter, noktalama, boşluk ve staj/intern varyantları bakımından
+deterministik normalize edilir; karakter ve token benzerliğinin yüksek olanı
+başlık skoru olur. Otomatik fuzzy birleşme eşiği `0.92`, belirsizlik alt sınırı
+`0.80`'dir. Eksik lokasyon otomatik fuzzy birleşmeyi durdurur, açık lokasyon
+çelişkisi ise başlık skorundan bağımsız olarak kayıtları ayrı tutar.
+
 Deterministik analizci API anahtarı gerektirmeyen varsayılan seçenektir. Sağlayıcı
 tabanlı akış aynı `ListingAnalyzer` portunun arkasındaki `ModelAnalyzer` ile
 kurulur. `ModelProvider` yalnızca model isteğini ve ham cevabı taşır; OpenRouter
