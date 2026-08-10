@@ -3,8 +3,9 @@
 Kişisel staj ilanı takip ve başvuru hatırlatma uygulaması. Backend Go,
 istemci ise React/Vite tabanlı bir PWA olarak yapılandırılmıştır.
 
-Ürün kararları için [v2 spec](./staj-takip-spec-v2.md), ilk fikir belgesi için
-[ilk spec](./staj-takip-spec-initial.md) kullanılmalıdır.
+Ürün kararları için [v2 spec](./staj-takip-spec-v2.md), Faz 14 sonrasındaki sıra
+ve karar kapıları için [ürün yol haritası](./docs/roadmap.md), ilk fikir belgesi
+için [ilk spec](./staj-takip-spec-initial.md) kullanılmalıdır.
 
 ## Gereksinimler
 

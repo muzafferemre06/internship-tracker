@@ -2,12 +2,13 @@
 
 ## Aktif faz
 
-Faz 14 tamamlandı. Domain erişim modu config'ten çözülüp SQLite ve runtime
-policy'sine taşınıyor; `robots` kaynaklar fetch öncesi RFC 9309 kararı ve kalıcı
-minimum aralık/cooldown bütçesinden geçiyor, `public_api` robots kontrolünü
-atlıyor. LinkedIn/Havelsan gibi `manual_only` sosyal kaynaklar hiçbir scraper
-kurulmadan gerekçeli watchlist kaydı oluyor. Sıradaki geliştirme fazı ikincil
-kaynaklar ve zengin başvuru bilgisini kapsayan Faz 15'tir.
+Faz 14 tamamlandı. Sıradaki çalışma, Faz 15 öncesindeki engelleyici Faz 14.1'dir:
+dashboard'da geçmiş fırsatların görünmemesi ve scan sırasında JSON olmayan
+yanıtın parse edilmesi kanıtla teşhis edilecek; kalıcı geçmiş/arşiv ve
+restart/deployment veri sözleşmesi tamamlanacaktır. Ardından birincil şirketler Faz 15,
+ikincil şirketler Faz 16, teknokent araştırması/aktivasyonu Faz 17–18 ve genel
+fırsat + RSS/e-posta akışları Faz 19–21 sırasıyla gelecektir. Otoritatif sıra ve
+karar kapıları `docs/roadmap.md` içindedir.
 
 ## Tamamlananlar
 
@@ -166,11 +167,17 @@ kaynaklar ve zengin başvuru bilgisini kapsayan Faz 15'tir.
 
 ## Sıradaki iş
 
-Faz 15: İkincil kaynakları ve kaynak/güncellik kanıtlı zengin başvuru süreci
-bilgisini mevcut uyum sınırları içinde modellemek. LinkedIn/sosyal medya doğrudan
-scrape edilmez; e-posta/OAuth gibi kişisel veri yolları ayrıca rıza ve güvenlik
-tasarımı gerektirir. Faz 15 için ayrı plan ve açık onay alınmadan uygulamaya
-başlanmamalıdır.
+Faz 14.1: Kullanıcının mevcut runtime'da bildirdiği geçmiş fırsat görünürlüğü ve
+`JSON.parse: unexpected character at line 1 column 1` scan hatasını kanıtla
+teşhis etmek; veri gerçekten silinmeden arşiv/geçmiş görünümü, aynı DB/volume ile
+restart-deployment kabulü ve JSON olmayan hata yanıtında güvenli frontend mesajı
+sağlamak. Kök neden kanıtı ve somut test/commit planı kullanıcıya sunulup açık
+onay alınmadan davranış kodu değiştirilmeyecektir.
+
+Faz 14.1 sonrasında sıra Faz 15 birincil şirketler, Faz 16 ikincil şirketler,
+Faz 17 yalnız üçüncül şirket araştırması ve Faz 18 onaylanan üçüncül şirketlerin
+eklenmesidir. RSS/e-posta ve geniş fırsat türleri Faz 19–21'de, analitik/öğrenme
+ise Faz 23'te ele alınır; ayrıntılar `docs/roadmap.md` içindedir.
 
 Faz 5'in production runbook'u geçerliliğini korur. Kullanıcı yerel Docker +
 Cloudflare Tunnel üzerinden telefon erişimini doğrulamıştır; off-host yedek ve

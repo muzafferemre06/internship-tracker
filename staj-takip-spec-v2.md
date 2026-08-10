@@ -1017,23 +1017,86 @@ Neden: Anti-bot sistemleriyle savaşmak sürdürülemez ve risklidir; yasal
 erişilebilen içeriğe AI uygulanır, gerisi manuel listeye yönlendirilir (§18
 kapsam-dışı ilkeleriyle tutarlı).
 
-### Faz 15 — İkincil kaynaklar ve zengin başvuru bilgisi (eski Faz 8, ertelendi)
+### Faz 14.1–23 — Kapsama ve kalıcı fırsat hafızası yol haritası
 
-- LinkedIn/kariyer platformları/sosyal medya kaynak değerlendirmesi
-- şirket başvuru süreci özetleri
-- kaynak ve güncellik bilgisi
-- cevaplardan tercih öğrenme
-- daha gelişmiş kişiselleştirme
+10 Ağustos 2026 ürün kararıyla Faz 14 sonrası sıra yeniden düzenlendi. Öncelik
+gelişmiş analitik değil; önce kalıcı ve görünür fırsat geçmişi, ardından
+spec'teki birincil/ikincil şirketlerin tamamı, onay kapılı teknokent şirketleri
+ve şirket sitesi dışındaki izinli RSS/e-posta akışlarıdır. Ayrıntılı kapsam,
+değişmez sınırlar, karar kapıları ve çıkış kriterleri
+`docs/roadmap.md` dosyasındadır.
 
-Bu faz MVP sonrasıdır ve 2026-08-08'de bilinçli olarak sona alındı: bu faz
-Faz 9–14'ün inşa edeceği altyapıya bağımlıdır — LinkedIn/sosyal medya
-değerlendirmesi Faz 14'ün "scraping yapılmaz, e-posta/manuel'e yönlendir"
-sınırını önceden gerektirir; süreç özetleri ve zengin başvuru bilgisi Faz 11'in
-reduce-then-LLM çıkarım motorunu kullanabilir. Bu fazı Faz 9–14'ten önce
-çalışmak, henüz var olmayan bir uyum sınırına ve çıkarım motoruna dayanmak
-anlamına gelirdi; bu yüzden sona alındı. (Faz numarası korunmuştur; Faz 9–14
-zaten uygulanmış/dokümante edilmiş referanslarla eşleşsin diye yeniden
-numaralandırılmamıştır.)
+#### Faz 14.1 — Kalıcılık, geçmiş ve scan hata sözleşmesi
+
+Dashboard'da geçmiş fırsatların görünmemesi ve scan sırasında görülen JSON parse
+hatası, yeni kaynak eklenmeden önce kanıtla teşhis edilir. DB/volume kimliği,
+restart/deployment/restore kalıcılığı, tüm fırsatlar arşivi ve JSON olmayan proxy
+hatalarında güvenli frontend davranışı doğrulanır. Arşiv silme değildir;
+normalize fırsat ve kullanıcı başvuru geçmişi süresiz tutulur.
+
+#### Faz 15 — Birincil şirketlerin tamamlanması
+
+§5.1'deki on iki şirket kanonik kimlik, doğrulanmış resmî kaynak, erişim
+politikası ve dürüst `otomatik | akış | manuel | araştırılıyor | bozuk` kapsama
+durumuyla uygulamaya alınır. Commensis/Commencis kimliği ve program-düzeyi
+kaynak modeli kullanıcı onayı gerektiren açık kararlardır. Manuel kaynaklar
+otomatik kapsama yüzdesine dahil edilmez.
+
+#### Faz 16 — İkincil şirketlerin tamamlanması
+
+§5.2'deki on dört şirket aynı kaynak doğrulama ve kapsama sözleşmesiyle eklenir.
+ÜşüSebit, AI Studio ve Bilishim'in kesin kimliği/domain'i kullanıcı onayı olmadan
+aktive edilmez. İkincil kaynak da güçlü profil eşleşmesi ve yüksek güven birlikte
+sağlandığında bildirim üretebilir; sayısal eşik fixture eval ile kararlaştırılır.
+
+#### Faz 17 — Üçüncül şirket araştırması
+
+Bilkent Cyberpark, ODTÜ Teknokent ve Hacettepe Teknokent için aday şirket,
+kaynak, faaliyet alanı ve geçmiş fırsat sinyali raporu hazırlanır. Bu faz hiçbir
+adayı production config'ine veya bildirim sistemine otomatik eklemez; aktivasyon
+listesi kullanıcı tarafından açıkça onaylanır.
+
+#### Faz 18 — Onaylanan üçüncül şirketlerin eklenmesi
+
+Faz 17'de onaylanan şirketler küçük, ayrı onaylanan batch'lerle eklenir. Her
+batch erişim politikası, fixture/fake kabulü, kaynak sağlığı ve yanlış bildirim
+guard'larıyla tamamlanır; doğrulanmamış URL kullanılmaz.
+
+#### Faz 19 — Genel fırsat modeli ve bildirim katmanları
+
+Staj, uzun dönem staj, part-time öğrenci pozisyonu, yeni mezun programı,
+bootcamp, hackathon, yarışma, burs, üniversite–şirket programı ve teknik
+etkinlik/eğitim ortak kaynak/güncellik kanıtlı modele alınır. Güçlü profil
+eşleşmesi + yüksek kaynak/çıkarım güveni `bildirim`, diğer makul adaylar
+`firsatlar`, eksik kanıt `incelenecek` katmanına gider. Belirsiz aday fırsat
+kaçırmamak için silinmez. Taksonomi, program-window şeması ve sayısal eşikler
+uygulamadan önce fixture eval kanıtıyla onaylanır.
+
+#### Faz 20 — RSS/Atom ve açık akışlar
+
+RSS 2.0/Atom, kalıcı checkpoint ve web sinyalleriyle dedup üzerinden ortak
+fırsat modeline bağlanır. JSON Feed yalnız gerçek kaynak ihtiyacı kanıtlanırsa
+eklenir; tam feed gövdesi süresiz saklanmaz.
+
+#### Faz 21 — Ayrı posta kutusuyla güvenli e-posta fırsat akışı
+
+Bu proje için ayrı posta kutusu ve yalnız seçili fırsat bülteni/alarm klasörüne
+salt okunur OAuth erişimi kullanılır. Sağlayıcı (Gmail API, Outlook Graph veya
+IMAP OAuth) bakım/kota/en dar yetki araştırmasıyla kullanıcıya sunulur. Ham
+e-posta varsayılan olarak saklanmaz; normalize fırsat ve minimum kaynak kanıtı
+kalır. Başvuru sonucu/kişisel yazışma yorumlanmaz, uygulama e-posta göndermez
+ve kullanıcı adına bültene abone olmaz.
+
+#### Faz 22 — Sürekli kaynak keşfi ve kapsama sağlığı
+
+Kayıtlı/otomatik/akış/manuel/bozuk/araştırılıyor sayıları görünür olur; yeni
+şirket ve kaynaklar kullanıcı onayı olmadan production'a girmez.
+
+#### Faz 23 — Ertelenmiş analitik ve kişiselleştirme
+
+Yeterli gerçek başvuru geçmişi oluşmadan başlanmaz. Kullanılacak sinyaller,
+açıklanabilirlik, düzeltme/silme ve retention ayrı bir kullanıcı kararıdır;
+otomatik ve geri alınamaz tercih öğrenme varsayılan değildir.
 
 ## 17. Aşamalı DevOps öğrenme planı
 
@@ -1058,6 +1121,9 @@ DevOps çalışmaları üründen kopuk örnekler yerine proje ilerledikçe eklen
 - Bütün sosyal medya kaynaklarını tarama
 - Gelişmiş CRM ve analitik
 - E-posta cevaplarından otomatik başvuru durumu çıkarma
+
+Faz 21'deki fırsat bülteni/alarm okuma, başvuru cevaplarını yorumlamaktan
+farklıdır: yalnız ayrı posta kutusundaki seçilmiş fırsat akışını normalize eder.
 
 ## 19. MVP başarı ölçütleri
 
@@ -1090,3 +1156,7 @@ DevOps çalışmaları üründen kopuk örnekler yerine proje ilerledikçe eklen
   render mimarisi ve varsa arkasındaki JSON API henüz doğrulanmadı; headless
   render veya ağ isteği incelemesi gerektiriyor (bkz. Faz 6 kaynak keşif
   notları)
+- Faz 14.1 runtime teşhisinde dashboard kaybının farklı SQLite yolu/volume,
+  gerçek veri silinmesi veya yalnız görünürlük filtresi olup olmadığı
+- Faz 19 fixture eval setine göre bildirim/fırsatlar/incelenecek eşikleri
+- Faz 21 için ayrı posta kutusu sağlayıcısı ve en dar salt okunur OAuth yöntemi
