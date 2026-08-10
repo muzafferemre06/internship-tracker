@@ -120,6 +120,7 @@ func openPhase141Repository(t *testing.T, path string) (*sql.DB, *store.SQLiteRe
 		_ = db.Close()
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { _ = db.Close() })
 	return db, repository
 }
 
@@ -129,7 +130,8 @@ func assertPhase141UserData(t *testing.T, repository *store.SQLiteRepository, li
 	if err != nil {
 		t.Fatal(err)
 	}
-	if detail.OpportunityID != opportunityID || detail.Lifecycle != domain.OpportunityArchived || detail.Application == nil ||
+	if detail.OpportunityID != opportunityID || detail.Summary != "Dashboard kovaları dışında kalan kanıt." ||
+		detail.Lifecycle != domain.OpportunityArchived || detail.Application == nil ||
 		detail.Application.Status != domain.ApplicationSubmitted || detail.Application.Notes != "Kalıcı kullanıcı notu." ||
 		detail.Application.Deadline == nil || !detail.Application.Deadline.Equal(deadline) ||
 		detail.Application.InterviewAt == nil || !detail.Application.InterviewAt.Equal(interview) {
