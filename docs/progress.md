@@ -2,13 +2,10 @@
 
 ## Aktif faz
 
-Faz 14 tamamlandı. Sıradaki çalışma, Faz 15 öncesindeki engelleyici Faz 14.1'dir:
-dashboard'da geçmiş fırsatların görünmemesi ve scan sırasında JSON olmayan
-yanıtın parse edilmesi kanıtla teşhis edilecek; kalıcı geçmiş/arşiv ve
-restart/deployment veri sözleşmesi tamamlanacaktır. Ardından birincil şirketler Faz 15,
-ikincil şirketler Faz 16, teknokent araştırması/aktivasyonu Faz 17–18 ve genel
-fırsat + RSS/e-posta akışları Faz 19–21 sırasıyla gelecektir. Otoritatif sıra ve
-karar kapıları `docs/roadmap.md` içindedir.
+Faz 14.1 tamamlandı. Sıradaki çalışma Faz 15'tir: spec'teki birincil şirketlerin
+kanonik kimlik, resmî kaynak, erişim politikası, fixture ve dürüst otomatik/manuel
+kapsama durumuyla tamamlanması. Faz 15'in somut batch/test/commit planı kullanıcıya
+sunulup açık onay alınmadan davranış veya production kaynak config'i değişmez.
 
 ## Tamamlananlar
 
@@ -92,6 +89,14 @@ karar kapıları `docs/roadmap.md` içindedir.
   `*`/`$`, 24 saat cache ve 512 KiB sınırı uygulayan fail-closed robots checker
 - Robots izni öncesi hiç fetch yapmayan orchestrator kapısı; otomatik kaynaklarda
   kalıcı minimum aralık ve cooldown, manuel sosyal kaynaklarda açıklamalı watchlist
+- Dashboard kovalarından bağımsız, filtreli/sayfalı tüm fırsat geçmişi ve
+  başvuru takibinden ayrı yedi durumlu kalıcı fırsat yaşam döngüsü
+- JSON olmayan proxy/scan yanıtını parse exception veya gövde sızıntısı olmadan
+  güvenli mesaja çeviren PWA yanıt sözleşmesi
+- Aynı SQLite dosyasında restart ve snapshot restore boyunca fırsat üyeliği,
+  analiz, lifecycle, başvuru tarihleri ve notları koruyan Faz 14.1 kabulü
+- Production DB yolunu ve yalnız güvenli tablo sayılarını read-only raporlayan
+  `dbinspect` aracı ile volume/DB kimliği operasyon akışı
 
 ## Doğrulanan çıkış kriterleri
 
@@ -164,17 +169,14 @@ karar kapıları `docs/roadmap.md` içindedir.
   manuel watchlist'e girdiğini; izinli/yasaklı iki robots yolunu ve restart'ı
   aşan domain aralığını gerçek SQLite/orchestrator ile doğruladı. Güvenli kanıt
   `docs/acceptance/phase-14-2026-08-10.md` içindedir.
+- Faz 14.1 kabulü dashboard dışındaki fırsatı geçmişte buldu; aynı SQLite'ın
+  yeniden açılması ve snapshot restore sonrasında kimlik/üyelik/analiz/lifecycle/
+  başvuru verilerini korudu; scan JSON/JSON-olmayan istemci yollarını güvenli
+  sözleşmeyle doğruladı. Kanıt `docs/acceptance/phase-14.1-2026-08-10.md` içindedir.
 
 ## Sıradaki iş
 
-Faz 14.1: Kullanıcının mevcut runtime'da bildirdiği geçmiş fırsat görünürlüğü ve
-`JSON.parse: unexpected character at line 1 column 1` scan hatasını kanıtla
-teşhis etmek; veri gerçekten silinmeden arşiv/geçmiş görünümü, aynı DB/volume ile
-restart-deployment kabulü ve JSON olmayan hata yanıtında güvenli frontend mesajı
-sağlamak. Kök neden kanıtı ve somut test/commit planı kullanıcıya sunulup açık
-onay alınmadan davranış kodu değiştirilmeyecektir.
-
-Faz 14.1 sonrasında sıra Faz 15 birincil şirketler, Faz 16 ikincil şirketler,
+Faz 15 birincil şirketler, Faz 16 ikincil şirketler,
 Faz 17 yalnız üçüncül şirket araştırması ve Faz 18 onaylanan üçüncül şirketlerin
 eklenmesidir. RSS/e-posta ve geniş fırsat türleri Faz 19–21'de, analitik/öğrenme
 ise Faz 23'te ele alınır; ayrıntılar `docs/roadmap.md` içindedir.

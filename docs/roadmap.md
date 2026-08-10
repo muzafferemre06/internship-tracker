@@ -108,6 +108,15 @@ Faz 15'in şirket kapsamını büyütmesinden önce tamamlanır.
 deployment provasında kimliği ile kullanıcı verileri değişmez. Scan'in JSON ve
 JSON olmayan hata senaryoları parse exception yerine anlaşılır hata gösterir.
 
+### Tamamlanma (10 Ağustos 2026)
+
+Repository/PWA davranışı, aynı SQLite dosyasını yeniden açma, snapshot restore,
+scan JSON sözleşmesi ve production Compose volume/config kontratı Faz 14.1 kabul
+testleriyle tamamlandı. Güvenli kanıt `docs/acceptance/phase-14.1-2026-08-10.md`
+içindedir. Hosted sağlayıcı henüz seçilmediğinden sağlayıcıya özgü gerçek volume
+kimliği ve off-host restore kaydı deployment sırasında operasyon kanıtı olarak
+ayrıca tutulacaktır.
+
 ## Faz 15 — Birincil şirketlerin tamamlanması
 
 ### Kapsam

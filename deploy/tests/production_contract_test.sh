@@ -13,6 +13,12 @@ touch "$TEMPORARY_DIRECTORY/candidate.json" \
 mkdir "$TEMPORARY_DIRECTORY/api-secrets"
 touch "$TEMPORARY_DIRECTORY/api-secrets/web_push_private_key"
 
+grep -F 'name: internship-tracker' "$REPOSITORY_ROOT/deploy/compose.production.yml" >/dev/null
+grep -F 'source: tracker_data' "$REPOSITORY_ROOT/deploy/compose.production.yml" >/dev/null
+grep -F 'target: /app/data' "$REPOSITORY_ROOT/deploy/compose.production.yml" >/dev/null
+grep -F '/out/dbinspect ./cmd/dbinspect' "$REPOSITORY_ROOT/deploy/backend.Dockerfile" >/dev/null
+grep -F 'COPY --from=builder /out/dbinspect /app/dbinspect' "$REPOSITORY_ROOT/deploy/backend.Dockerfile" >/dev/null
+
 cat >"$TEMPORARY_DIRECTORY/runtime.env" <<EOF
 ALLOWED_ORIGIN=https://tracker.example.test
 CANDIDATE_PROFILE_FILE=$TEMPORARY_DIRECTORY/candidate.json

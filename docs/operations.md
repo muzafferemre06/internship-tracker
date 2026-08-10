@@ -5,6 +5,41 @@ restore prova akışını tanımlar. Otomatik günlük snapshot uygulama içinde
 tek seferlik `cmd/backup` ise deployment başlamadan önce aynı tutarlı snapshot'ı
 üretir.
 
+## Kalıcılık ve görünürlük teşhisi
+
+Veri kaybı şüphesinde migration veya dashboard sorgusu değiştirmeden önce çalışan
+release'in gerçek DB yolu ve volume'u kaydedilir. API başlangıç logu
+`database_path` alanını yazar. Container içindeki güvenli read-only sayım:
+
+```bash
+current_revision=$(awk -F= '$1 == "DEPLOY_REVISION" {print $2}' state/current.env)
+docker compose \
+  --project-directory "deploy/releases/$current_revision" \
+  --env-file runtime.env --env-file state/current.env \
+  -f "deploy/releases/$current_revision/compose.production.yml" \
+  exec --no-TTY api \
+  /app/dbinspect -database /app/data/internship-tracker.db
+```
+
+Çıktı mutlak DB yolu, dosya boyutu/değişim zamanı ve yalnız tablo satır sayılarını
+verir; ilan metni, başvuru notu veya secret yazmaz. Aynı komutu restart/redeploy
+öncesi ve sonrası çalıştırıp `database_path`, `listings`, `opportunities`,
+`memberships`, `analyses` ve `applications` değerlerini karşılaştırın. API
+container'ının `/app/data` mount kimliğini ayrıca kaydedin:
+
+```bash
+container_id=$(docker compose \
+  --project-directory "deploy/releases/$current_revision" \
+  --env-file runtime.env --env-file state/current.env \
+  -f "deploy/releases/$current_revision/compose.production.yml" ps -q api)
+docker inspect --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Name}} {{.Source}}{{end}}{{end}}' "$container_id"
+```
+
+Farklı mount adı/yolu farklı SQLite açıldığını kanıtlar. Sayılar aynıyken kayıt
+yalnız dashboard'da görünmüyorsa `GET /api/v1/opportunities` ile geçmiş sorgusu
+kontrol edilir. Scan hatasında status ve `Content-Type` header'ı kaydedilir;
+HTML/plain-text gövde secret içerebileceğinden işletim kaydına kopyalanmaz.
+
 ## Snapshot alma
 
 Çalışan production release'i için `/srv/internship-tracker` dizininde çalıştırın:

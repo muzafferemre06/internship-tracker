@@ -30,6 +30,13 @@ yayımlar; var olan commit etiketini ezmez. BuildKit provenance/SBOM ve GitHub
 artifact attestation image digest'ine bağlanır. Artifact içindeki API/web digest
 kayıtları, seçilmiş `cloudflared` digest'i eklenmeden production manifesti değildir.
 
+Compose proje adı sabit `internship-tracker` olduğu için `tracker_data` ve
+`tracker_backups` named volume'ları release dizini değişse de aynı kimlikle
+yeniden bağlanır. Normal deploy yalnız `up --remove-orphans` kullanır; `down -v`,
+volume silme veya farklı Compose proje adı bu runbook'un parçası değildir.
+Restart/redeploy öncesi ve sonrası volume/DB kimliği ile güvenli satır sayımı
+[operasyon rehberindeki](./operations.md) `dbinspect` akışıyla kaydedilir.
+
 ## Önkoşullar
 
 - Desteklenen 64-bit Linux sunucusu ve güncel güvenlik yamaları

@@ -158,6 +158,7 @@ func main() {
 
 	go func() {
 		logger.Info("api starting", "address", cfg.HTTPAddr, "environment", cfg.AppEnv,
+			"database_path", cfg.DatabasePath,
 			"scan_schedule", cfg.ScanSchedule, "scan_timezone", cfg.ScanTimezone,
 			"backup_enabled", cfg.BackupEnabled, "backup_time", cfg.BackupTime,
 			"backup_timezone", cfg.BackupTimezone, "backup_retention", cfg.BackupRetention,
