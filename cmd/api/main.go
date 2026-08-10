@@ -224,6 +224,13 @@ func configureSources(
 				TrackingStatus: company.EffectiveTrackingStatus(),
 				Enabled:        sourceConfig.Enabled,
 			}
+			if policy, found := configured.ResolveAccessPolicy(sourceConfig.URL); found {
+				registration.AccessMode = policy.Mode
+				registration.AccessScope = policy.Domain
+				registration.MinimumInterval = time.Duration(policy.MinimumIntervalSeconds) * time.Second
+				registration.BaseCooldown = time.Duration(policy.BaseCooldownSeconds) * time.Second
+				registration.MaximumCooldown = time.Duration(policy.MaximumCooldownSeconds) * time.Second
+			}
 			if err := repository.RegisterSource(ctx, registration); err != nil {
 				return nil, err
 			}

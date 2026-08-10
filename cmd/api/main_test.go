@@ -1,9 +1,15 @@
 package main
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/muzaffer/internship-tracker/internal/config"
+	"github.com/muzaffer/internship-tracker/internal/database"
+	"github.com/muzaffer/internship-tracker/internal/scraper"
+	"github.com/muzaffer/internship-tracker/internal/store"
 )
 
 func TestConfigureAnalyzerSelectsProviderAndValidatesOpenRouterSettings(t *testing.T) {
@@ -39,6 +45,43 @@ func TestConfigureAnalyzerSelectsProviderAndValidatesOpenRouterSettings(t *testi
 	})
 	if err != nil || configured == nil {
 		t.Fatalf("configure Google analyzer: analyzer=%#v err=%v", configured, err)
+	}
+}
+
+func TestConfigureSourcesRegistersManualOnlySocialSourceWithoutBuildingScraper(t *testing.T) {
+	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "tracker.db"), os.DirFS("../../migrations"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	repository, err := store.NewSQLiteRepository(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configured := config.SourcesConfig{
+		AccessPolicies: []config.DomainAccessPolicy{{Domain: "linkedin.com", Mode: "manual_only"}},
+		Companies: []config.CompanyConfig{{
+			Name: "Havelsan", PriorityGroup: "primary", TrackingStatus: "manual",
+			Sources: []config.SourceConfig{{
+				ID: "havelsan-linkedin", Type: "social_profile",
+				URL:     "https://www.linkedin.com/company/havelsan/jobs/",
+				Adapter: "manual", Strategy: "manual", Enabled: false,
+			}},
+		}},
+	}
+	sources, err := configureSources(context.Background(), configured, repository, scraper.SourceDeps{})
+	if err != nil {
+		t.Fatalf("configure manual-only source: %v", err)
+	}
+	if len(sources) != 0 {
+		t.Fatalf("manual-only social source must not build a scraper: %#v", sources)
+	}
+	var mode string
+	if err := db.QueryRow("SELECT access_mode FROM company_sources WHERE source_key = ?", "havelsan-linkedin").Scan(&mode); err != nil {
+		t.Fatal(err)
+	}
+	if mode != "manual_only" {
+		t.Fatalf("manual-only policy was not registered: %q", mode)
 	}
 }
 

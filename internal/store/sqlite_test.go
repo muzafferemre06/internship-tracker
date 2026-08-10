@@ -507,6 +507,40 @@ func TestSQLiteRepositoryWatchlistIsSeparateFromManualChecks(t *testing.T) {
 	}
 }
 
+func TestSQLiteRepositoryPersistsManualOnlyAccessPolicyOnWatchlist(t *testing.T) {
+	repository, db := newTestRepository(t)
+	if err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
+		Key: "havelsan-linkedin", Company: "Havelsan", PriorityGroup: "primary",
+		Type: "social_profile", URL: "https://www.linkedin.com/company/havelsan/jobs/",
+		Adapter: "manual", Strategy: "manual", TrackingStatus: "manual", Enabled: false,
+		AccessMode: "manual_only", AccessScope: "linkedin.com",
+	}); err != nil {
+		t.Fatalf("register manual-only social source: %v", err)
+	}
+
+	dashboard, err := repository.Dashboard(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(dashboard.Watchlist) != 1 || dashboard.Watchlist[0].AccessMode != "manual_only" ||
+		!strings.Contains(dashboard.Watchlist[0].Reason, "otomatik erişim") {
+		t.Fatalf("manual-only reason is not visible on watchlist: %#v", dashboard.Watchlist)
+	}
+
+	var mode, scope string
+	var minimum, base, maximum int
+	if err := db.QueryRow(`
+		SELECT access_mode, access_scope, minimum_interval_seconds,
+			base_cooldown_seconds, maximum_cooldown_seconds
+		FROM company_sources WHERE source_key = ?
+	`, "havelsan-linkedin").Scan(&mode, &scope, &minimum, &base, &maximum); err != nil {
+		t.Fatal(err)
+	}
+	if mode != "manual_only" || scope != "linkedin.com" || minimum != 0 || base != 0 || maximum != 0 {
+		t.Fatalf("unexpected persisted access policy: mode=%q scope=%q min=%d base=%d max=%d", mode, scope, minimum, base, maximum)
+	}
+}
+
 func TestSQLiteRepositoryManagesApplicationTrackingAndListingDetail(t *testing.T) {
 	repository, _ := newTestRepository(t)
 	registerMeteksan(t, repository)

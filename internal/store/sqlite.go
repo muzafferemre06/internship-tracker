@@ -119,10 +119,16 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 	if strategy == "" {
 		strategy = "legacy_html"
 	}
+	accessMode := strings.TrimSpace(source.AccessMode)
+	if accessMode == "" {
+		accessMode = "legacy"
+	}
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO company_sources(
-			company_id, source_key, source_type, url, adapter_type, strategy, enabled
-		) VALUES (?, ?, ?, ?, ?, ?, ?)
+			company_id, source_key, source_type, url, adapter_type, strategy, enabled,
+			access_mode, access_scope, minimum_interval_seconds,
+			base_cooldown_seconds, maximum_cooldown_seconds
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(source_key) DO UPDATE SET
 			company_id = excluded.company_id,
 			source_type = excluded.source_type,
@@ -130,8 +136,15 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 			adapter_type = excluded.adapter_type,
 			strategy = excluded.strategy,
 			enabled = excluded.enabled,
+			access_mode = excluded.access_mode,
+			access_scope = excluded.access_scope,
+			minimum_interval_seconds = excluded.minimum_interval_seconds,
+			base_cooldown_seconds = excluded.base_cooldown_seconds,
+			maximum_cooldown_seconds = excluded.maximum_cooldown_seconds,
 			updated_at = CURRENT_TIMESTAMP
-	`, companyID, source.Key, source.Type, source.URL, source.Adapter, strategy, boolInt(source.Enabled)); err != nil {
+	`, companyID, source.Key, source.Type, source.URL, source.Adapter, strategy, boolInt(source.Enabled),
+		accessMode, strings.ToLower(strings.TrimSpace(source.AccessScope)), durationSeconds(source.MinimumInterval),
+		durationSeconds(source.BaseCooldown), durationSeconds(source.MaximumCooldown)); err != nil {
 		return fmt.Errorf("upsert source %q: %w", source.Key, err)
 	}
 
@@ -1264,7 +1277,7 @@ func (r *SQLiteRepository) manualChecks(ctx context.Context) ([]ManualCheck, err
 func (r *SQLiteRepository) watchlist(ctx context.Context) ([]WatchlistEntry, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT company_sources.source_key, companies.name, company_sources.url,
-			company_sources.last_manual_check_at
+			company_sources.access_mode, company_sources.last_manual_check_at
 		FROM company_sources
 		JOIN companies ON companies.id = company_sources.company_id
 		WHERE companies.tracking_status = 'manual'
@@ -1279,8 +1292,14 @@ func (r *SQLiteRepository) watchlist(ctx context.Context) ([]WatchlistEntry, err
 	for rows.Next() {
 		var entry WatchlistEntry
 		var lastChecked sql.NullString
-		if err := rows.Scan(&entry.SourceID, &entry.Company, &entry.URL, &lastChecked); err != nil {
+		if err := rows.Scan(&entry.SourceID, &entry.Company, &entry.URL, &entry.AccessMode, &lastChecked); err != nil {
 			return nil, err
+		}
+		switch entry.AccessMode {
+		case "manual_only":
+			entry.Reason = "Uyum politikası nedeniyle otomatik erişim kapalı."
+		default:
+			entry.Reason = "Bu kaynak elle takip ediliyor."
 		}
 		entry.LastCheckedAt, err = parseStoredTime(lastChecked)
 		if err != nil {
@@ -2018,6 +2037,13 @@ func boolInt(value bool) int {
 	return 0
 }
 
+func durationSeconds(value time.Duration) int64 {
+	if value <= 0 {
+		return 0
+	}
+	return int64(value / time.Second)
+}
+
 func validateSourceRegistration(source domain.SourceRegistration) error {
 	if strings.TrimSpace(source.Key) == "" || strings.TrimSpace(source.Company) == "" {
 		return errors.New("source key and company are required")
@@ -2032,6 +2058,24 @@ func validateSourceRegistration(source domain.SourceRegistration) error {
 	}
 	if _, err := CanonicalURL(source.URL); err != nil {
 		return fmt.Errorf("invalid source URL: %w", err)
+	}
+	mode := strings.TrimSpace(source.AccessMode)
+	if mode == "" {
+		mode = "legacy"
+	}
+	switch mode {
+	case "legacy":
+	case "robots", "public_api":
+		if strings.TrimSpace(source.AccessScope) == "" || source.MinimumInterval <= 0 ||
+			source.BaseCooldown <= 0 || source.MaximumCooldown < source.BaseCooldown {
+			return fmt.Errorf("invalid %s source access policy", mode)
+		}
+	case "manual_only":
+		if source.Enabled || source.Adapter != "manual" || source.Strategy != "manual" || source.TrackingStatus != "manual" {
+			return errors.New("manual_only source must be disabled and use manual adapter, strategy and tracking")
+		}
+	default:
+		return fmt.Errorf("invalid source access mode %q", mode)
 	}
 	return nil
 }

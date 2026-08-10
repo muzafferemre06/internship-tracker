@@ -1,4 +1,24 @@
 {
+  "access_policies": [
+    {
+      "domain": "jobs.lever.co",
+      "mode": "robots",
+      "minimum_interval_seconds": 1,
+      "base_cooldown_seconds": 60,
+      "maximum_cooldown_seconds": 3600
+    },
+    {
+      "domain": "kariyer.net",
+      "mode": "robots",
+      "minimum_interval_seconds": 86400,
+      "base_cooldown_seconds": 21600,
+      "maximum_cooldown_seconds": 86400
+    },
+    { "domain": "akdogan.tech", "mode": "manual_only" },
+    { "domain": "kariyerim.turkcell.com.tr", "mode": "manual_only" },
+    { "domain": "kariyer.havelsan.com.tr", "mode": "manual_only" },
+    { "domain": "linkedin.com", "mode": "manual_only" }
+  ],
   "companies": [
     {
       "name": "Commencis",
@@ -126,6 +146,14 @@
           "id": "havelsan-kovan",
           "type": "career_page",
           "url": "https://kariyer.havelsan.com.tr/",
+          "adapter": "manual",
+          "strategy": "manual",
+          "enabled": false
+        },
+        {
+          "id": "havelsan-linkedin",
+          "type": "social_profile",
+          "url": "https://www.linkedin.com/company/havelsan/",
           "adapter": "manual",
           "strategy": "manual",
           "enabled": false

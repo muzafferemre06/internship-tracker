@@ -205,6 +205,15 @@ aynı tabloya yeni fabrika kayıtları eklenerek bağlanır; downstream (dedup,
 analiz, bildirim) değişmez. Ayrıntılı gerekçe için
 `staj-takip-spec-v2.md` §16, Faz 9-14.
 
+Faz 14 `SourcesConfig.access_policies[]` ile erişim kararını adapter'dan ayırır.
+Politikalar en uzun domain suffix'iyle çözülür ve `robots`, `public_api`,
+`manual_only` modlarından birini taşır. Migration 010 çözülmüş mode/scope ve
+minimum aralık/cooldown değerlerini `company_sources` üzerinde saklar.
+`manual_only` invariant'ı kaynağın devre dışı, adapter/strategy'nin `manual` ve
+şirket takibinin manuel olmasını zorunlu kılar; `configureSources` kaydı SQLite'a
+yazar fakat scraper factory çağırmaz. Havelsan'ın doğrulanmış resmî LinkedIn
+profili bu yolla watchlist'te açık bir uyum gerekçesiyle temsil edilir.
+
 ### Yapılandırılmış-veri adapter'ları (Faz 10)
 
 Faz 10, ucuz ve deterministik (AI'sız) iki adapter'ı aynı `adapterFactories`

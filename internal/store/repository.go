@@ -63,6 +63,8 @@ type WatchlistEntry struct {
 	SourceID      string     `json:"source_id"`
 	Company       string     `json:"company"`
 	URL           string     `json:"url"`
+	AccessMode    string     `json:"access_mode"`
+	Reason        string     `json:"reason"`
 	LastCheckedAt *time.Time `json:"last_checked_at,omitempty"`
 }
 

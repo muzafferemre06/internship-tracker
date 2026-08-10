@@ -1,4 +1,34 @@
 {
+  "access_policies": [
+    {
+      "domain": "jobs.lever.co",
+      "mode": "robots",
+      "minimum_interval_seconds": 1,
+      "base_cooldown_seconds": 60,
+      "maximum_cooldown_seconds": 3600
+    },
+    {
+      "domain": "kariyer.net",
+      "mode": "robots",
+      "minimum_interval_seconds": 86400,
+      "base_cooldown_seconds": 21600,
+      "maximum_cooldown_seconds": 86400
+    },
+    {
+      "domain": "careers.example.com",
+      "mode": "robots",
+      "minimum_interval_seconds": 2,
+      "base_cooldown_seconds": 60,
+      "maximum_cooldown_seconds": 3600
+    },
+    {
+      "domain": "boards-api.greenhouse.io",
+      "mode": "public_api",
+      "minimum_interval_seconds": 1,
+      "base_cooldown_seconds": 60,
+      "maximum_cooldown_seconds": 3600
+    }
+  ],
   "companies": [
     {
       "name": "Commencis",

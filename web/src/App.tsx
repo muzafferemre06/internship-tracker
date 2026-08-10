@@ -24,6 +24,8 @@ type WatchlistEntry = {
   source_id: string;
   company: string;
   url: string;
+  access_mode: "legacy" | "robots" | "public_api" | "manual_only";
+  reason: string;
   last_checked_at?: string;
 };
 
@@ -368,6 +370,7 @@ export default function App() {
                 <li key={entry.source_id}>
                   <div>
                     <strong>{entry.company}</strong>
+                    <p>{entry.reason}</p>
                     <p>{entry.last_checked_at ? `Son kontrol: ${formatDate(entry.last_checked_at)}` : "Henüz kontrol edilmedi."}</p>
                   </div>
                   <div className="watchlist-actions">

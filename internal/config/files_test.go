@@ -159,6 +159,93 @@ func TestLoadSourcesRejectsInvalidURL(t *testing.T) {
 	}
 }
 
+func TestLoadSourcesResolvesMostSpecificDomainAccessPolicy(t *testing.T) {
+	path := writeConfigTestFile(t, `{
+		"access_policies":[
+			{"domain":"example.test","mode":"robots","minimum_interval_seconds":10,"base_cooldown_seconds":60,"maximum_cooldown_seconds":3600},
+			{"domain":"careers.example.test","mode":"robots","minimum_interval_seconds":2,"base_cooldown_seconds":30,"maximum_cooldown_seconds":300}
+		],
+		"companies":[{
+			"name":"Test", "priority_group":"candidate",
+			"sources":[{"id":"test","type":"career_page","url":"https://jobs.careers.example.test/openings","adapter":"json_ld","enabled":true}]
+		}]
+	}`)
+
+	sources, err := LoadSources(path)
+	if err != nil {
+		t.Fatalf("load domain access policies: %v", err)
+	}
+	policy, found := sources.ResolveAccessPolicy("https://jobs.careers.example.test/openings")
+	if !found || policy.Domain != "careers.example.test" || policy.Mode != "robots" ||
+		policy.MinimumIntervalSeconds != 2 || policy.BaseCooldownSeconds != 30 || policy.MaximumCooldownSeconds != 300 {
+		t.Fatalf("unexpected resolved policy: found=%v policy=%#v", found, policy)
+	}
+}
+
+func TestLoadSourcesValidatesManualOnlySocialPolicy(t *testing.T) {
+	valid := writeConfigTestFile(t, `{
+		"access_policies":[{"domain":"linkedin.com","mode":"manual_only"}],
+		"companies":[{
+			"name":"Havelsan", "priority_group":"primary", "tracking_status":"manual",
+			"sources":[{"id":"havelsan-linkedin","type":"social_profile","url":"https://www.linkedin.com/company/havelsan/jobs/","adapter":"manual","strategy":"manual","enabled":false}]
+		}]
+	}`)
+	if _, err := LoadSources(valid); err != nil {
+		t.Fatalf("valid manual-only social source was rejected: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		company string
+		source  string
+		want    string
+	}{
+		{name: "enabled", company: `"tracking_status":"manual",`, source: `"adapter":"manual","strategy":"manual","enabled":true`, want: "must be disabled"},
+		{name: "automatic adapter", company: `"tracking_status":"manual",`, source: `"adapter":"json_ld","strategy":"manual","enabled":false`, want: "manual adapter"},
+		{name: "active company", company: ``, source: `"adapter":"manual","strategy":"manual","enabled":false`, want: "manual tracking"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			path := writeConfigTestFile(t, `{
+				"access_policies":[{"domain":"linkedin.com","mode":"manual_only"}],
+				"companies":[{
+					"name":"Test", "priority_group":"primary", `+test.company+`
+					"sources":[{"id":"social","type":"social_profile","url":"https://linkedin.com/company/test/jobs/",`+test.source+`}]
+				}]
+			}`)
+			_, err := LoadSources(path)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("expected %q validation error, got %v", test.want, err)
+			}
+		})
+	}
+}
+
+func TestLoadSourcesRejectsInvalidDomainAccessPolicies(t *testing.T) {
+	tests := []struct {
+		name     string
+		policies string
+		want     string
+	}{
+		{name: "duplicate", policies: `[{"domain":"example.test","mode":"robots","minimum_interval_seconds":1,"base_cooldown_seconds":1,"maximum_cooldown_seconds":2},{"domain":"EXAMPLE.TEST","mode":"robots","minimum_interval_seconds":1,"base_cooldown_seconds":1,"maximum_cooldown_seconds":2}]`, want: "defined more than once"},
+		{name: "unknown mode", policies: `[{"domain":"example.test","mode":"bypass","minimum_interval_seconds":1,"base_cooldown_seconds":1,"maximum_cooldown_seconds":2}]`, want: "invalid mode"},
+		{name: "bad durations", policies: `[{"domain":"example.test","mode":"robots","minimum_interval_seconds":0,"base_cooldown_seconds":60,"maximum_cooldown_seconds":30}]`, want: "durations"},
+		{name: "url instead of domain", policies: `[{"domain":"https://example.test","mode":"manual_only"}]`, want: "domain"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			path := writeConfigTestFile(t, `{
+				"access_policies":`+test.policies+`,
+				"companies":[{"name":"Test","priority_group":"candidate","sources":[{"id":"test","type":"career_page","url":"https://other.test/jobs","adapter":"json_ld","enabled":false}]}]
+			}`)
+			_, err := LoadSources(path)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("expected %q validation error, got %v", test.want, err)
+			}
+		})
+	}
+}
+
 func writeConfigTestFile(t *testing.T, contents string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "config.json")

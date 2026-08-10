@@ -47,6 +47,13 @@ Her kaynak, taramalar ve veritabanı kayıtları arasında değişmeyen benzersi
 izlenebilir. İştirak profilinin sayfa başlığı ana şirket adından farklıysa
 selector doğrulaması için kaynakta `page_name` belirtilir.
 
+`access_policies[]` domain bazında `robots`, `public_api` veya `manual_only`
+erişim modunu ve otomatik modlar için minimum aralık/cooldown saniyelerini
+tanımlar. En uzun domain suffix'i kazanır. `manual_only` kaynak devre dışı,
+`manual` adapter/strategy ve manuel şirket takibiyle tanımlanmalıdır; bu kaynak
+için scraper kurulmaz. Çözülmüş politika startup'ta SQLite kaynak kaydına
+yazılır ve watchlist gerekçesinde görünür.
+
 `lever` adapter'ı herkese açık resmî `https://jobs.lever.co/<şirket>/<ilan>`
 sayfasındaki tek ilanı izler. Yalnızca aktif başvuru bağlantısı bulunan sayfaları
 kabul eder; takip parametrelerini kaynak URL'sinden çıkarır ve başlık, ilan

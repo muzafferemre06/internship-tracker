@@ -36,7 +36,43 @@ type LocationPreferences struct {
 }
 
 type SourcesConfig struct {
-	Companies []CompanyConfig `json:"companies"`
+	AccessPolicies []DomainAccessPolicy `json:"access_policies,omitempty"`
+	Companies      []CompanyConfig      `json:"companies"`
+}
+
+type DomainAccessPolicy struct {
+	Domain                 string `json:"domain"`
+	Mode                   string `json:"mode"`
+	MinimumIntervalSeconds int    `json:"minimum_interval_seconds,omitempty"`
+	BaseCooldownSeconds    int    `json:"base_cooldown_seconds,omitempty"`
+	MaximumCooldownSeconds int    `json:"maximum_cooldown_seconds,omitempty"`
+}
+
+func (c SourcesConfig) ResolveAccessPolicy(rawURL string) (DomainAccessPolicy, bool) {
+	parsed, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil {
+		return DomainAccessPolicy{}, false
+	}
+	hostname := normalizePolicyDomain(parsed.Hostname())
+	bestIndex := -1
+	bestLength := -1
+	for index, policy := range c.AccessPolicies {
+		domain := normalizePolicyDomain(policy.Domain)
+		if hostname != domain && !strings.HasSuffix(hostname, "."+domain) {
+			continue
+		}
+		if len(domain) > bestLength {
+			bestIndex = index
+			bestLength = len(domain)
+		}
+	}
+	if bestIndex < 0 {
+		return DomainAccessPolicy{}, false
+	}
+	policy := c.AccessPolicies[bestIndex]
+	policy.Domain = normalizePolicyDomain(policy.Domain)
+	policy.Mode = strings.ToLower(strings.TrimSpace(policy.Mode))
+	return policy, true
 }
 
 type CompanyConfig struct {
@@ -173,6 +209,32 @@ func (p CandidateProfile) validate() error {
 }
 
 func (c SourcesConfig) validate() error {
+	policyDomains := make(map[string]struct{}, len(c.AccessPolicies))
+	for index, policy := range c.AccessPolicies {
+		domain := normalizePolicyDomain(policy.Domain)
+		if !validPolicyDomain(policy.Domain, domain) {
+			return fmt.Errorf("access_policies[%d] has invalid domain %q", index, policy.Domain)
+		}
+		if _, exists := policyDomains[domain]; exists {
+			return fmt.Errorf("access policy domain %q is defined more than once", domain)
+		}
+		policyDomains[domain] = struct{}{}
+		mode := strings.ToLower(strings.TrimSpace(policy.Mode))
+		switch mode {
+		case "robots", "public_api":
+			if policy.MinimumIntervalSeconds <= 0 || policy.BaseCooldownSeconds <= 0 ||
+				policy.MaximumCooldownSeconds < policy.BaseCooldownSeconds {
+				return fmt.Errorf("access policy %q durations are invalid", domain)
+			}
+		case "manual_only":
+			if policy.MinimumIntervalSeconds != 0 || policy.BaseCooldownSeconds != 0 || policy.MaximumCooldownSeconds != 0 {
+				return fmt.Errorf("manual_only access policy %q durations must be zero", domain)
+			}
+		default:
+			return fmt.Errorf("access policy %q has invalid mode %q", domain, policy.Mode)
+		}
+	}
+
 	if len(c.Companies) == 0 {
 		return errors.New("companies must not be empty")
 	}
@@ -209,9 +271,32 @@ func (c SourcesConfig) validate() error {
 				return fmt.Errorf("source id %q is defined more than once", source.ID)
 			}
 			sourceIDs[source.ID] = struct{}{}
+			if policy, found := c.ResolveAccessPolicy(source.URL); found && policy.Mode == "manual_only" {
+				if source.Enabled {
+					return fmt.Errorf("company %q source %q with manual_only access policy must be disabled", name, source.ID)
+				}
+				if source.Adapter != "manual" || source.EffectiveStrategy() != "manual" {
+					return fmt.Errorf("company %q source %q with manual_only access policy must use the manual adapter and strategy", name, source.ID)
+				}
+				if company.EffectiveTrackingStatus() != "manual" {
+					return fmt.Errorf("company %q source %q with manual_only access policy requires manual tracking", name, source.ID)
+				}
+			}
 		}
 	}
 	return nil
+}
+
+func normalizePolicyDomain(value string) string {
+	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(value)), ".")
+}
+
+func validPolicyDomain(raw, normalized string) bool {
+	if normalized == "" || raw != strings.TrimSpace(raw) || strings.ContainsAny(raw, "/:@") {
+		return false
+	}
+	parsed, err := url.Parse("https://" + normalized)
+	return err == nil && parsed.Hostname() == normalized && parsed.Port() == "" && parsed.Path == ""
 }
 
 func (s SourceConfig) validate() error {

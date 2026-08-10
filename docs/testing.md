@@ -51,6 +51,12 @@ kapsar. `google_live_test.go` yalnızca `integration` build tag'i ve ortamdan
 `GEMINI_API_KEY` ile açıkça çağrıldığında gerçek Gemini API'ye gider; normal
 `go test ./...` canlı veya ücretli API çağrısı yapmaz.
 
+Faz 14 config testleri en uzun domain suffix'iyle politika çözümünü, duplicate
+domain/mod/süre doğrulamasını ve `manual_only` kaynağın disabled + manual
+adapter/strategy/tracking invariant'ını sınar. SQLite testi çözülmüş policy'nin
+kalıcı kaynak alanlarına ve watchlist gerekçesine taşındığını; API wiring testi
+manuel sosyal kaydın scraper oluşturmadan kaydedildiğini doğrular.
+
 Faz 12 birim testleri iki küçültülmüş DOM fixture'ı kullanır. İlk layout fake
 learner ile reçete üretip store'a yazar; yeni bir source instance'ı aynı reçeteyi
 model çağrısı olmadan çalıştırır. İkinci layout eski reçetenin kimlik/golden

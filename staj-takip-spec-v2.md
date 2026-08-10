@@ -987,6 +987,13 @@ doğru araçtır; ama bazı kaynaklarda sorun *parsing* değil *erişim*tir.
 - Otomatik erişilemeyen her kaynak sessizce geçilmez; manuel kontrol listesine
   düşer (§6 ile tutarlı).
 
+Domain politikası config'te `robots | public_api | manual_only` modlarından biri
+ve otomatik modlarda minimum aralık/temel-maksimum cooldown ile tanımlanır; en
+uzun domain suffix'i uygulanır ve çözülmüş değerler SQLite kaynak kaydında
+saklanır. `manual_only` sosyal kaynak hiçbir scraper/HTTP istemcisi kurmadan
+kalıcı watchlist'e girer. Faz 14 e-posta/IMAP/OAuth entegrasyonu eklemez; kişisel
+veri ve rıza tasarımı gerektiren bu alternatif ayrı faza bırakılır.
+
 Çıkış kriteri: LinkedIn benzeri bir kaynak, scraping denemeden manuel-checklist
 veya e-posta-ayrıştırma stratejisiyle temsil edilir; robots/rate-limit politikası
 per-domain uygulanır.
