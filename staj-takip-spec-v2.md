@@ -1026,6 +1026,23 @@ ve şirket sitesi dışındaki izinli RSS/e-posta akışlarıdır. Ayrıntılı 
 değişmez sınırlar, karar kapıları ve çıkış kriterleri
 `docs/roadmap.md` dosyasındadır.
 
+10 Ağustos 2026 plan gözden geçirmesinde netleşen kararlar (ayrıntı
+`docs/roadmap.md`):
+
+- Faz 14.1 dashboard kaybı yalnız deployed örnekte görüldü → önce runtime teşhis
+  (DB yolu/volume, satır sayıları, status, `Content-Type`), sonra düzeltme;
+  kalıcı disk destekli barındırma sağlayıcısı henüz seçilmedi ve kalıcılık kanıtı
+  buna bağlı.
+- Fırsat yaşam döngüsü ile kullanıcı başvuru durumu (`application_tracking`) ayrı
+  iki kavram olarak tutulur; birleştirilmez.
+- Kapsama raporu Faz 15'te minimal başlar, Faz 22'de zenginleşir.
+- Turkcell program-penceresi (sentetik listing vs `program_window`) kararı Faz
+  15'te verilir.
+- Faz 17 teknokent araştırması dar: teknokent başına yazılım/BT + staj sinyali,
+  üst sınır ~15-20 aday.
+- "Güçlü eşleşme"/bildirim eşiği Faz 16'da basit kalır (boolean `focus_areas` +
+  sabit güven); skaler skor ve fixture eval altın kümesi Faz 19'a ertelendi.
+
 #### Faz 14.1 — Kalıcılık, geçmiş ve scan hata sözleşmesi
 
 Dashboard'da geçmiş fırsatların görünmemesi ve scan sırasında görülen JSON parse
@@ -1150,13 +1167,18 @@ farklıdır: yalnız ayrı posta kutusundaki seçilmiş fırsat akışını norm
   için veri modeli: mevcut `RawListing`/`listings` şeması (başlık + canonical
   URL başına bir kayıt) "program açık/kapalı + tarih aralığı" sinyaline tam
   oturmuyor; ayrı bir `program_window` kavramı mı gerekiyor yoksa program
-  açılışı tek bir sentetik "ilan" olarak mı modellenmeli, karara bağlanmalı
-  (bkz. Faz 6 kaynak keşif notları, 2026-08-08)
+  açılışı tek bir sentetik "ilan" olarak mı modellenmeli (bkz. Faz 6 kaynak keşif
+  notları, 2026-08-08). **Yön (10 Ağustos 2026):** bu karar Faz 15'te, Turkcell
+  birincil grubu tamamlanırken verilecek.
 - Havelsan'ın "Kovan" portalının (`kariyer.havelsan.com.tr`) istemci tarafı
   render mimarisi ve varsa arkasındaki JSON API henüz doğrulanmadı; headless
   render veya ağ isteği incelemesi gerektiriyor (bkz. Faz 6 kaynak keşif
   notları)
 - Faz 14.1 runtime teşhisinde dashboard kaybının farklı SQLite yolu/volume,
-  gerçek veri silinmesi veya yalnız görünürlük filtresi olup olmadığı
-- Faz 19 fixture eval setine göre bildirim/fırsatlar/incelenecek eşikleri
+  gerçek veri silinmesi veya yalnız görünürlük filtresi olup olmadığı **(Yön, 10
+  Ağustos 2026: kayıp yalnız deployed örnekte; ilk şüphe farklı yol/volume,
+  teşhis-önce yaklaşımı benimsendi)**
+- Faz 19 fixture eval setine göre bildirim/fırsatlar/incelenecek eşikleri **(Yön,
+  10 Ağustos 2026: skaler skor + eval Faz 19'a ertelendi; Faz 16'ya kadar basit
+  boolean eşleşme + sabit güven kullanılır)**
 - Faz 21 için ayrı posta kutusu sağlayıcısı ve en dar salt okunur OAuth yöntemi

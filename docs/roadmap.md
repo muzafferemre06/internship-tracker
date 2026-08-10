@@ -60,6 +60,21 @@ geçilmez.
 Bu çalışma yeni özellik fazından önce gelen engelleyici stabilizasyon dilimidir;
 Faz 15'in şirket kapsamını büyütmesinden önce tamamlanır.
 
+### Gözlem ve karar (10 Ağustos 2026)
+
+- Kayıp yalnız **deployed/canlı** örnekte gözlemlendi; yerelde önceki taramaların
+  verisi duruyor. İlk şüphe deployment'ta **farklı SQLite yolu/volume**dir.
+  Yaklaşım: migration veya sorgu değiştirmeden önce **runtime teşhis** (DB
+  yolu/volume, satır sayıları, API status, `Content-Type`, güvenli yanıt örneği)
+  kanıtla toplanır; düzeltme yolu ona göre netleşir.
+- Kalıcı disk destekli **barındırma sağlayıcısı henüz seçilmedi**; 14.1'in
+  redeploy/restore kalıcılık kanıtı bu seçime bağlıdır ve teşhis sonrası verilir.
+- Fırsat **yaşam döngüsü** (`yeni/açık/incelendi/başvuruldu/süresi_doldu/
+  kapatıldı/arşivlendi`) ile mevcut `application_tracking.status`
+  (`incelenecek/basvuruldu/sinav_mulakat`) **ayrı iki kavram** olarak modellenir:
+  biri sistem/kaynak durumu, biri kullanıcının başvuru tarafı; tek durum
+  makinesinde birleştirilmez.
+
 ### Kapsam
 
 - Kullanıcının “önceki gün taranan kaynak/fırsatlar görünmüyor” gözleminin DB,
@@ -112,15 +127,19 @@ ASELSAN.
   adapter/reçeteyle etkinleştirilmesi.
 - Otomatik erişilemeyen şirketlerin sessizce “tamamlandı” sayılmadan manuel
   watchlist ve açık gerekçeyle gösterilmesi.
-- Şirket/kaynak kapsama durumunun dashboard veya ayrı kapsama raporunda görünmesi.
+- Şirket/kaynak kapsama durumunun **bu fazda minimal bir kapsama raporu/
+  endpoint** ile görünür olması (otomatik/akış/manuel/araştırılıyor/bozuk ayrı
+  sayılır); tam kapsama dashboard'u Faz 22'de zenginleştirilir (karar 10 Ağustos
+  2026, 22'ye kadar beklenmez).
 
 ### Karar kapıları
 
 - **Şirket kimliği:** Spec'teki “Commensis” ile mevcut “Commencis” kaydının aynı
   şirket olup olmadığı doğrulanır; kullanıcı onayı olmadan iki şirket birleştirilmez.
 - **Program modeli:** Turkcell gibi tekil ilan yerine dönemsel program açan
-  kaynak için sentetik listing mi, ayrı program penceresi mi kullanılacağı Faz
-  19'u bekleyemeyecekse bu fazda kullanıcıya seçenekleriyle sunulur.
+  kaynak için sentetik listing mi, ayrı program penceresi mi kullanılacağı **bu
+  fazda karara bağlanır** (Faz 19'a ertelenmez; karar 10 Ağustos 2026). Turkcell
+  birincil grupta olduğundan tamamlanması bu şema seçimine bağlıdır.
 - **Kapsama kabulü:** Manuel kaynak katalog kapsamına dahil olabilir, fakat
   otomatik kapsama yüzdesine dahil edilmez.
 - **Canlı doğrulama:** Normal testler fixture/fake kalır. Resmî kaynağa opt-in
@@ -150,6 +169,11 @@ aynı kaynak doğrulama, erişim sınıflandırma, fixture ve kapsama raporu uyg
 - İkincil fırsatlar varsayılan olarak anlık push üretmez. Ancak güçlü profil
   eşleşmesi ve yüksek kaynak güveni birlikte sağlanırsa aynı bildirim kuralına
   girebilir; sayısal eşik bu fazın fixture sonuçlarıyla onaylanır.
+- **Eşleşme modeli (karar 10 Ağustos 2026):** Bu faz için "güçlü eşleşme"
+  ölçütü **basit tutulur** — mevcut boolean `focus_areas` eşleşmesi + sabit
+  güven (`internal/analyzer/deterministic.go`). Skaler eşleşme skoru ve
+  kullanıcının gerçek ilgisini temsil eden fixture eval altın kümesi işi **Faz
+  19'a ertelenir**; sayısal eşik gevşetme kararı orada verilir.
 
 ### Çıkış kriteri
 
@@ -162,6 +186,10 @@ kapsama durumuyla uygulamadadır; otomatik ve manuel oranları ayrı raporlanır
 
 - Bilkent Cyberpark, ODTÜ Teknokent ve Hacettepe Teknokent şirketlerinin
   araştırılması.
+- **Dar kapsam (karar 10 Ağustos 2026):** Teknokent başına yalnız **yazılım/BT
+  odaklı** ve **geçmişte staj/açık pozisyon sinyali** olan şirketler; her
+  teknokent için **üst sınır ≈ 15-20 aday**. Amaç sonlu, tekrarlanabilir bir
+  rapor; tüm teknokent firmalarını tarayan geniş bir liste hedeflenmez.
 - Şirket kimliği, resmî domain, faaliyet alanı, teknoloji sinyalleri, geçmiş
   staj/fırsat izi, kaynak türü ve erişim uygunluğundan aday katalog üretilmesi.
 - Adayların `önerilen`, `düşük_sinyal`, `kimlik_belirsiz`, `erişim_manuel`
@@ -223,7 +251,10 @@ dedup, domain bütçesi veya diğer şirketlerin hata izolasyonunu bozmaz.
   olmayacağı şema yazılmadan önce onaylanır.
 - Bildirim/eşik değerleri gerçek kullanıcı ilgilerini temsil eden fixture eval
   setiyle ölçülür. Yalnız modelin kendi confidence alanı karar için yeterli
-  kabul edilmez.
+  kabul edilmez. **Skaler eşleşme skoru ve fixture eval altın kümesi bu fazda
+  hayata geçer** (Faz 16'da basit boolean eşleşmeden bilinçli olarak ertelendi;
+  karar 10 Ağustos 2026). Altın kümenin nasıl/kimden üretileceği bu faz başında
+  ayrıca kararlaştırılır.
 - Kaçırmayı azaltmak için belirsiz adaylar silinmez; `incelenecek` kuyruğuna
   düşer. False-positive oranı raporlanmadan eşik gevşetilmez.
 
