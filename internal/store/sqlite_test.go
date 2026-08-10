@@ -600,6 +600,71 @@ func TestSQLiteRepositoryRejectsInvalidApplicationTracking(t *testing.T) {
 	}
 }
 
+func TestSQLiteRepositoryListsAllOpportunityHistoryWithLifecycleFiltersAndPagination(t *testing.T) {
+	repository, _ := newTestRepository(t)
+	registerMeteksan(t, repository)
+	ctx := context.Background()
+	fetchedAt := time.Date(2026, 8, 9, 9, 0, 0, 0, time.UTC)
+
+	insert := func(title, suffix string, analysis *domain.ListingAnalysis) (string, string) {
+		t.Helper()
+		listingID, _, err := repository.UpsertRawListing(ctx, domain.RawListing{
+			Company: "Meteksan Savunma", SourceID: "meteksan-kariyer-net", Title: title,
+			URL: "https://example.test/history/" + suffix, RawText: title, FetchedAt: fetchedAt,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if analysis != nil {
+			if err := repository.SaveAnalysis(ctx, listingID, *analysis); err != nil {
+				t.Fatal(err)
+			}
+		}
+		detail, err := repository.ListingDetail(ctx, listingID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return listingID, detail.OpportunityID
+	}
+
+	_, firstOpportunity := insert("Uygun Staj", "suitable", &domain.ListingAnalysis{
+		ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable,
+	})
+	insert("Uygun Olmayan Rol", "unsuitable", &domain.ListingAnalysis{
+		ApplicationOpen: false, Relevant: false, Eligibility: domain.EligibilityUnsuitable,
+	})
+	insert("Henüz Analiz Edilmedi", "pending", nil)
+
+	firstPage, err := repository.OpportunityHistory(ctx, OpportunityHistoryQuery{Page: 1, PageSize: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if firstPage.Total != 3 || firstPage.Page != 1 || firstPage.PageSize != 2 || len(firstPage.Items) != 2 {
+		t.Fatalf("all opportunities must remain discoverable with stable pagination: %#v", firstPage)
+	}
+
+	if err := repository.UpdateOpportunityLifecycle(ctx, firstOpportunity, domain.OpportunityArchived); err != nil {
+		t.Fatalf("archive opportunity: %v", err)
+	}
+	archived, err := repository.OpportunityHistory(ctx, OpportunityHistoryQuery{
+		Page: 1, PageSize: 20, Lifecycle: domain.OpportunityArchived, Company: "meteksan", Query: "uygun staj",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if archived.Total != 1 || len(archived.Items) != 1 || archived.Items[0].OpportunityID != firstOpportunity ||
+		archived.Items[0].Lifecycle != domain.OpportunityArchived {
+		t.Fatalf("archived opportunity must remain visible through filters: %#v", archived)
+	}
+
+	if err := repository.UpdateOpportunityLifecycle(ctx, firstOpportunity, domain.OpportunityLifecycle("deleted")); err == nil {
+		t.Fatal("unsupported lifecycle must be rejected")
+	}
+	if err := repository.UpdateOpportunityLifecycle(ctx, "missing", domain.OpportunityOpen); !errors.Is(err, ErrOpportunityNotFound) {
+		t.Fatalf("missing opportunity must return ErrOpportunityNotFound, got %v", err)
+	}
+}
+
 func intPointer(value int) *int { return &value }
 
 func floatPointer(value float64) *float64 { return &value }

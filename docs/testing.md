@@ -138,6 +138,18 @@ raporu testinin parçasıdır. HTTP testleri ilan ayrıntısı ile RFC3339 tarih
 başvuru güncellemesini ve bozuk tarih için `400` yanıtını fake repository ile
 kapsar.
 
+Faz 14.1 repository testi dashboard uygunluk kovalarına girmeyen analizli ve
+analizsiz fırsatların tamamını sayfalı geçmişte tutar; yaşam döngüsü, şirket ve
+metin filtrelerini, arşivin silme olmadığını ve geçersiz durumların reddini
+doğrular. `internal/acceptance/phase141_test.go` aynı SQLite dosyasını kapatıp
+yeniden açar, ardından tutarlı snapshot'tan restore eder; listing kimliği,
+kanonik üyelik, analiz, lifecycle, başvuru durumu, iki tarih ve kullanıcı notunun
+değişmediğini denetler. Aynı kabul scan başarı/409/500 yollarının geçerli JSON
+ve doğru içerik türü taşıdığını doğrular. Frontend `api.test.ts`, JSON API
+hatasını korurken HTML/plain-text proxy gövdesini ayrıştırmadığını veya
+göstermediğini kapsar. `cmd/dbinspect` testleri read-only runtime kanıtının yalnız
+DB yolu/metadata ve tablo sayıları içerdiğini doğrular.
+
 Orchestrator yeniden işleme testleri duplicate pending ilanın sonraki taramada
 yeniden analiz edilip yeni ilan sayılmadığını ve ayrı retry API akışının kaynak
 fetch'i yapmadan saklanan ham metni işlediğini doğrular. HTTP testi kısmi yeniden

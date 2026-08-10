@@ -24,6 +24,7 @@ type SQLiteRepository struct {
 
 var ErrListingNotFound = errors.New("listing not found")
 var ErrSourceNotFound = errors.New("source not found")
+var ErrOpportunityNotFound = errors.New("opportunity not found")
 
 func NewSQLiteRepository(db *sql.DB) (*SQLiteRepository, error) {
 	if db == nil {
@@ -1365,7 +1366,7 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, opportunity_id, company, title, canonical_url, priority_group,
 			eligibility_status, summary, application_deadline, application_status,
-			tracking_deadline, interview_at
+			tracking_deadline, interview_at, lifecycle_status
 		FROM (
 			SELECT listings.id AS id,
 				listing_opportunities.opportunity_id AS opportunity_id,
@@ -1378,6 +1379,7 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 				COALESCE(application_tracking.status, '') AS application_status,
 				application_tracking.deadline AS tracking_deadline,
 				application_tracking.interview_at AS interview_at,
+				opportunities.lifecycle_status AS lifecycle_status,
 				listings.first_seen_at AS first_seen_at,
 				ROW_NUMBER() OVER (
 					PARTITION BY listing_opportunities.opportunity_id
@@ -1386,6 +1388,7 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 			FROM listings
 			JOIN companies ON companies.id = listings.company_id
 			JOIN listing_opportunities ON listing_opportunities.listing_id = listings.id
+			JOIN opportunities ON opportunities.id = listing_opportunities.opportunity_id
 			LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
 			LEFT JOIN application_tracking ON application_tracking.listing_id = listings.id
 	`+clause+`
@@ -1415,6 +1418,7 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 			&listing.ApplicationStatus,
 			&trackingDeadline,
 			&interviewAt,
+			&listing.Lifecycle,
 		); err != nil {
 			return nil, err
 		}
@@ -1436,6 +1440,123 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 		return nil, err
 	}
 	return listings, nil
+}
+
+func (r *SQLiteRepository) OpportunityHistory(ctx context.Context, query OpportunityHistoryQuery) (OpportunityHistoryPage, error) {
+	if query.Page < 1 {
+		query.Page = 1
+	}
+	if query.PageSize < 1 {
+		query.PageSize = 20
+	}
+	if query.PageSize > 100 {
+		query.PageSize = 100
+	}
+	if query.Lifecycle != "" && !query.Lifecycle.Valid() {
+		return OpportunityHistoryPage{}, fmt.Errorf("invalid opportunity lifecycle %q", query.Lifecycle)
+	}
+	company := strings.ToLower(strings.TrimSpace(query.Company))
+	search := strings.ToLower(strings.TrimSpace(query.Query))
+	lifecycle := string(query.Lifecycle)
+	where := `WHERE opportunities.status = 'active'
+		AND (? = '' OR opportunities.lifecycle_status = ?)
+		AND (? = '' OR INSTR(LOWER(companies.name), ?) > 0)
+		AND (? = '' OR INSTR(LOWER(listings.title), ?) > 0 OR INSTR(LOWER(COALESCE(listing_analyses.summary, '')), ?) > 0)`
+	args := []any{lifecycle, lifecycle, company, company, search, search, search}
+
+	var total int
+	if err := r.db.QueryRowContext(ctx, `
+		SELECT COUNT(DISTINCT opportunities.id)
+		FROM opportunities
+		JOIN listing_opportunities ON listing_opportunities.opportunity_id = opportunities.id
+		JOIN listings ON listings.id = listing_opportunities.listing_id
+		JOIN companies ON companies.id = listings.company_id
+		LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
+		`+where, args...).Scan(&total); err != nil {
+		return OpportunityHistoryPage{}, fmt.Errorf("count opportunity history: %w", err)
+	}
+
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, opportunity_id, company, title, canonical_url, priority_group,
+			eligibility_status, summary, application_deadline, application_status,
+			tracking_deadline, interview_at, lifecycle_status
+		FROM (
+			SELECT listings.id, opportunities.id AS opportunity_id, companies.name AS company,
+				listings.title, listings.canonical_url, companies.priority_group,
+				COALESCE(listing_analyses.eligibility_status, '') AS eligibility_status,
+				COALESCE(listing_analyses.summary, '') AS summary,
+				listing_analyses.application_deadline,
+				COALESCE(application_tracking.status, '') AS application_status,
+				application_tracking.deadline AS tracking_deadline,
+				application_tracking.interview_at,
+				opportunities.lifecycle_status,
+				listings.last_seen_at,
+				ROW_NUMBER() OVER (PARTITION BY opportunities.id ORDER BY listings.last_seen_at DESC, listings.id) AS opportunity_rank
+			FROM opportunities
+			JOIN listing_opportunities ON listing_opportunities.opportunity_id = opportunities.id
+			JOIN listings ON listings.id = listing_opportunities.listing_id
+			JOIN companies ON companies.id = listings.company_id
+			LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
+			LEFT JOIN application_tracking ON application_tracking.listing_id = listings.id
+			`+where+`
+		)
+		WHERE opportunity_rank = 1
+		ORDER BY last_seen_at DESC, opportunity_id
+		LIMIT ? OFFSET ?
+	`, append(args, query.PageSize, (query.Page-1)*query.PageSize)...)
+	if err != nil {
+		return OpportunityHistoryPage{}, fmt.Errorf("query opportunity history: %w", err)
+	}
+	defer rows.Close()
+	items := make([]DashboardListing, 0)
+	for rows.Next() {
+		var item DashboardListing
+		var applicationDue, trackingDeadline, interviewAt sql.NullString
+		if err := rows.Scan(&item.ID, &item.OpportunityID, &item.Company, &item.Title, &item.URL,
+			&item.Priority, &item.Eligibility, &item.Summary, &applicationDue, &item.ApplicationStatus,
+			&trackingDeadline, &interviewAt, &item.Lifecycle); err != nil {
+			return OpportunityHistoryPage{}, err
+		}
+		if item.ApplicationDueAt, err = parseStoredTime(applicationDue); err != nil {
+			return OpportunityHistoryPage{}, err
+		}
+		if item.TrackingDeadline, err = parseStoredTime(trackingDeadline); err != nil {
+			return OpportunityHistoryPage{}, err
+		}
+		if item.InterviewAt, err = parseStoredTime(interviewAt); err != nil {
+			return OpportunityHistoryPage{}, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return OpportunityHistoryPage{}, err
+	}
+	return OpportunityHistoryPage{Items: items, Page: query.Page, PageSize: query.PageSize, Total: total}, nil
+}
+
+func (r *SQLiteRepository) UpdateOpportunityLifecycle(ctx context.Context, opportunityID string, lifecycle domain.OpportunityLifecycle) error {
+	opportunityID = strings.TrimSpace(opportunityID)
+	if opportunityID == "" {
+		return errors.New("opportunity ID is required")
+	}
+	if !lifecycle.Valid() {
+		return fmt.Errorf("invalid opportunity lifecycle %q", lifecycle)
+	}
+	result, err := r.db.ExecContext(ctx, `
+		UPDATE opportunities SET lifecycle_status = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ? AND status = 'active'
+	`, lifecycle, opportunityID)
+	if err != nil {
+		return fmt.Errorf("update opportunity lifecycle: %w", err)
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read opportunity lifecycle update: %w", err)
+	}
+	if updated == 0 {
+		return ErrOpportunityNotFound
+	}
+	return nil
 }
 
 func (r *SQLiteRepository) ListingDetail(ctx context.Context, listingID string) (ListingDetail, error) {
@@ -1465,10 +1586,12 @@ func (r *SQLiteRepository) ListingDetail(ctx context.Context, listingID string) 
 			COALESCE(listing_analyses.decision_question, ''),
 			listings.first_seen_at, listings.last_seen_at,
 			application_tracking.status, application_tracking.deadline,
-			application_tracking.interview_at, application_tracking.notes
+			application_tracking.interview_at, application_tracking.notes,
+			opportunities.lifecycle_status
 		FROM listings
 		JOIN companies ON companies.id = listings.company_id
 		JOIN listing_opportunities ON listing_opportunities.listing_id = listings.id
+		JOIN opportunities ON opportunities.id = listing_opportunities.opportunity_id
 		LEFT JOIN listing_analyses ON listing_analyses.listing_id = listings.id
 		LEFT JOIN application_tracking ON application_tracking.listing_id = listings.id
 		WHERE listings.id = ?
@@ -1478,7 +1601,7 @@ func (r *SQLiteRepository) ListingDetail(ctx context.Context, listingID string) 
 		&applicationOpen, &relevant, &matchingAreas, &detail.ClassRequirement,
 		&detail.GPARequirement, &detail.Location, &detail.WorkModel, &detail.Confidence,
 		&needsDecision, &detail.DecisionQuestion, &firstSeen, &lastSeen, &trackingStatus,
-		&trackingDeadline, &interviewAt, &notes,
+		&trackingDeadline, &interviewAt, &notes, &detail.Lifecycle,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ListingDetail{}, ErrListingNotFound

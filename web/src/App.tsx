@@ -4,11 +4,14 @@ import {
   eligibilityLabels,
   formatDate,
   groupListings,
+  opportunityLifecycleLabels,
   toDateTimeLocal,
   upcomingDate,
   type ApplicationStatus,
   type Listing,
+  type OpportunityLifecycle,
 } from "./lib/listings";
+import { readJSONResponse } from "./lib/api";
 import { listingIDFromURL, urlWithListing } from "./lib/navigation";
 import { disablePush, enablePush, getPushStatus, type PushStatus } from "./lib/push";
 
@@ -77,6 +80,13 @@ type ScanResponse = {
   sources: Array<{ source: string; skipped?: boolean; retry_at?: string }>;
 };
 
+type OpportunityHistory = {
+  items: Listing[];
+  page: number;
+  page_size: number;
+  total: number;
+};
+
 type ApplicationForm = {
   status: ApplicationStatus;
   deadline: string;
@@ -123,9 +133,14 @@ export default function App() {
   const [pushStatus, setPushStatus] = useState<PushStatus | "loading">("loading");
   const [pushBusy, setPushBusy] = useState(false);
   const [checkingSourceID, setCheckingSourceID] = useState<string | null>(null);
+  const [history, setHistory] = useState<OpportunityHistory>({ items: [], page: 1, page_size: 10, total: 0 });
+  const [historyLifecycle, setHistoryLifecycle] = useState<"" | OpportunityLifecycle>("");
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [lifecycleSaving, setLifecycleSaving] = useState(false);
 
   useEffect(() => {
     void loadDashboard();
+    void loadHistory(1);
 
     const listingID = listingIDFromURL(window.location.href);
     if (listingID) void openListingByID(listingID);
@@ -148,12 +163,23 @@ export default function App() {
   async function loadDashboard() {
     try {
       const response = await fetch(`${apiBaseUrl}/api/v1/dashboard`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = (await response.json()) as DashboardResponse;
+      const data = await readJSONResponse<DashboardResponse>(response);
       setDashboard({ ...emptyDashboard, ...data });
       setMessage(data.last_scan ? "Güncel tarama sonucu hazır." : "Henüz tarama yapılmadı.");
     } catch {
       setMessage("Backend'e ulaşılamadı. API'nin çalıştığını kontrol et.");
+    }
+  }
+
+  async function loadHistory(page = history.page, lifecycle = historyLifecycle, query = historyQuery) {
+    try {
+      const parameters = new URLSearchParams({ page: String(page), page_size: "10" });
+      if (lifecycle) parameters.set("lifecycle", lifecycle);
+      if (query.trim()) parameters.set("q", query.trim());
+      const response = await fetch(`${apiBaseUrl}/api/v1/opportunities?${parameters}`);
+      setHistory(await readJSONResponse<OpportunityHistory>(response));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Fırsat geçmişi yüklenemedi.");
     }
   }
 
@@ -162,12 +188,9 @@ export default function App() {
     setMessage("Kaynaklar taranıyor…");
     try {
       const response = await fetch(`${apiBaseUrl}/api/v1/scan`, { method: "POST" });
-      if (!response.ok) {
-        const payload = (await response.json()) as { error?: string };
-        throw new Error(payload.error ?? `HTTP ${response.status}`);
-      }
-      const result = (await response.json()) as ScanResponse;
+      const result = await readJSONResponse<ScanResponse>(response);
       await loadDashboard();
+      await loadHistory(1);
       const retryAt = result.sources.find((source) => source.retry_at)?.retry_at;
       const retryMessage = retryAt ? ` Tekrar deneme: ${formatDate(retryAt)}.` : "";
       const warning = result.status === "completed" ? "" : ` Bazı kaynaklar tamamlanamadı.${retryMessage}`;
@@ -188,8 +211,7 @@ export default function App() {
     setMessage(company ? `${company} ilanı yükleniyor…` : "İlan yükleniyor…");
     try {
       const response = await fetch(`${apiBaseUrl}/api/v1/listings/${encodeURIComponent(listingID)}`);
-      if (!response.ok) throw new Error(`İlan yüklenemedi (HTTP ${response.status}).`);
-      const detail = (await response.json()) as ListingDetail;
+      const detail = await readJSONResponse<ListingDetail>(response);
       setSelected(detail);
       setApplication({
         status: detail.application?.status ?? "incelenecek",
@@ -240,8 +262,7 @@ export default function App() {
       const response = await fetch(`${apiBaseUrl}/api/v1/watchlist/${encodeURIComponent(sourceID)}/checked`, {
         method: "PUT",
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = (await response.json()) as DashboardResponse;
+      const data = await readJSONResponse<DashboardResponse>(response);
       setDashboard({ ...emptyDashboard, ...data });
       setMessage("Kontrol zamanı kaydedildi.");
     } catch {
@@ -266,15 +287,34 @@ export default function App() {
           notes: application.notes,
         }),
       });
-      const payload = (await response.json()) as ListingDetail | { error?: string };
-      if (!response.ok) throw new Error("error" in payload ? (payload.error ?? "Başvuru kaydedilemedi.") : "Başvuru kaydedilemedi.");
-      setSelected(payload as ListingDetail);
+      const payload = await readJSONResponse<ListingDetail>(response);
+      setSelected(payload);
       await loadDashboard();
       setMessage("Başvuru durumu ve tarihler kaydedildi.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Başvuru kaydedilemedi.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveLifecycle(lifecycle: OpportunityLifecycle) {
+    if (!selected?.opportunity_id) return;
+    setLifecycleSaving(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/opportunities/${encodeURIComponent(selected.opportunity_id)}/lifecycle`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lifecycle_status: lifecycle }),
+      });
+      await readJSONResponse(response);
+      setSelected({ ...selected, lifecycle_status: lifecycle });
+      await Promise.all([loadDashboard(), loadHistory(1)]);
+      setMessage("Fırsat durumu kaydedildi.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Fırsat durumu kaydedilemedi.");
+    } finally {
+      setLifecycleSaving(false);
     }
   }
 
@@ -389,6 +429,40 @@ export default function App() {
             </ul>
           )}
         </section>
+
+        <section className="panel history-panel">
+          <div className="panel-heading"><h2>Tüm fırsatlar / Geçmiş</h2><span>{history.total}</span></div>
+          <form className="history-filters" onSubmit={(event) => { event.preventDefault(); void loadHistory(1); }}>
+            <label>Durum
+              <select value={historyLifecycle} onChange={(event) => setHistoryLifecycle(event.target.value as "" | OpportunityLifecycle)}>
+                <option value="">Tümü</option>
+                {Object.entries(opportunityLifecycleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label>Başlık veya özet
+              <input value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="Örn. backend" />
+            </label>
+            <button type="submit">Filtrele</button>
+          </form>
+          {history.items.length === 0 ? <p className="empty">Bu filtrede fırsat bulunamadı.</p> : (
+            <ul className="listing-list">
+              {history.items.map((listing) => (
+                <li key={listing.opportunity_id ?? listing.id}>
+                  <button className="listing-card" type="button" disabled={detailLoading} onClick={() => openListing(listing)}>
+                    <span className="listing-meta"><strong>{listing.company}</strong><small>{opportunityLifecycleLabels[listing.lifecycle_status ?? "yeni"]}</small></span>
+                    <span className="listing-title">{listing.title}</span>
+                    {listing.summary ? <span className="listing-summary">{listing.summary}</span> : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="pagination">
+            <button type="button" disabled={history.page <= 1} onClick={() => void loadHistory(history.page - 1)}>Önceki</button>
+            <span>{history.page}. sayfa</span>
+            <button type="button" disabled={history.page * history.page_size >= history.total} onClick={() => void loadHistory(history.page + 1)}>Sonraki</button>
+          </div>
+        </section>
       </div>
 
       {selected ? (
@@ -411,6 +485,19 @@ export default function App() {
               <p>{selected.summary || "Analiz özeti bulunmuyor."}</p>
               {selected.matching_areas.length > 0 ? <p><strong>Eşleşen alanlar:</strong> {selected.matching_areas.join(", ")}</p> : null}
               <a className="external-link" href={selected.url} target="_blank" rel="noreferrer">Orijinal ilanı aç ↗</a>
+            </section>
+            <section className="detail-section lifecycle-section">
+              <h3>Fırsat yaşam döngüsü</h3>
+              <label>Durum
+                <select
+                  value={selected.lifecycle_status ?? "yeni"}
+                  disabled={lifecycleSaving}
+                  onChange={(event) => void saveLifecycle(event.target.value as OpportunityLifecycle)}
+                >
+                  {Object.entries(opportunityLifecycleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+              <p>Arşivleme kaydı silmez; fırsat geçmişte bulunmaya devam eder.</p>
             </section>
             <form className="tracking-form" onSubmit={saveApplication}>
               <h3>Başvuru takibi</h3>

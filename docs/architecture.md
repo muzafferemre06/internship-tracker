@@ -83,6 +83,17 @@ notifications ---------------------------------------------> Web Push
 skor/gerekçesiyle append-only olarak saklar. Migration mevcut listing'leri önce
 tekil fırsatlara backfill eder; başlangıç reconciliation'ı yalnız analizli
 kayıtları aynı matcher ile güvenli biçimde yeniden değerlendirir.
+`opportunities.lifecycle_status`, kullanıcıya görünen kalıcı yaşam döngüsüdür;
+kanonikleştirmenin iç `active/merged` durumu ve `application_tracking.status`
+ile birleştirilmez. `arsivlendi` yalnız görünürlük filtresidir, listing veya
+üyelik silmez.
+
+`GET /api/v1/opportunities`, bütün aktif kanonik fırsatları analiz uygunluğundan
+bağımsız olarak son gözlem zamanına göre sayfalar; yaşam döngüsü, şirket ve
+başlık/özet filtresi kabul eder. Her fırsat için en son gözlenen kaynak listing'i
+temsili karttır. `PUT /api/v1/opportunities/{id}/lifecycle` yalnız yedi izinli
+durumdan birini kaydeder. İlan detayı aynı lifecycle değerini taşıdığı için PWA
+arşivleme sonrası kaydı geçmişten yeniden bulabilir.
 
 ## Web Push outbox ve teslimat semantiği
 
@@ -460,3 +471,9 @@ başvuru kaydı başarıyla değişince hem panel hem dashboard yeniden okunur. 
 aktif başvuru sayısı, yaklaşan tarihler ve durum etiketi kalıcı SQLite sonucuyla
 aynı kalır. İki kolonlu masaüstü görünümü dar ekranda tek kolona iner; detay
 paneli telefonda ekran genişliğini kullanır.
+
+PWA geçmişi ayrı sayfalı endpoint'ten okur. Fetch yanıtları JSON ayrıştırma
+öncesi medya türü kontrolünden geçer; reverse proxy'nin HTML/plain-text hata
+gövdesi kullanıcıya veya parse exception'a sızmadan status kodlu güvenli mesaja
+dönüşür. API'nin kendi scan başarı ve hata yolları da daima
+`application/json; charset=utf-8` döndürür.

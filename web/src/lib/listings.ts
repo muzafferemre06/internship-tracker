@@ -1,6 +1,7 @@
 export type Listing = {
   id: string;
   opportunity_id?: string;
+  lifecycle_status?: OpportunityLifecycle;
   company: string;
   title: string;
   url: string;
@@ -11,6 +12,18 @@ export type Listing = {
   application_status?: ApplicationStatus;
   tracking_deadline?: string;
   interview_at?: string;
+};
+
+export type OpportunityLifecycle = "yeni" | "acik" | "incelendi" | "basvuruldu" | "suresi_doldu" | "kapatildi" | "arsivlendi";
+
+export const opportunityLifecycleLabels: Record<OpportunityLifecycle, string> = {
+  yeni: "Yeni",
+  acik: "Açık",
+  incelendi: "İncelendi",
+  basvuruldu: "Başvuruldu",
+  suresi_doldu: "Süresi doldu",
+  kapatildi: "Kapatıldı",
+  arsivlendi: "Arşivlendi",
 };
 
 export type ApplicationStatus =

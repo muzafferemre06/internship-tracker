@@ -40,6 +40,13 @@ izlenir. Kanonik fırsat migration'ı eski listing'leri veri kaybetmeden başlan
 fırsatlarına bağlar; API açılmadan önce analizli kayıtlar güncel deterministik
 eşleme kurallarıyla idempotent olarak uzlaştırılır.
 
+Dashboard'daki koşullu kovaların dışında kalan kayıtlar `Tüm fırsatlar / Geçmiş`
+bölümünde sayfalı olarak bulunur. Kanonik fırsatın `yeni`, `acik`, `incelendi`,
+`basvuruldu`, `suresi_doldu`, `kapatildi` ve `arsivlendi` yaşam döngüsü,
+başvuru takibinden ayrı tutulur. Arşivleme fiziksel silme yapmaz. Geçmiş API'si
+`GET /api/v1/opportunities`; yaşam döngüsü güncellemesi
+`PUT /api/v1/opportunities/{id}/lifecycle` uçlarıdır.
+
 Uygulama aday profili ve kaynak dosyalarını katı bir JSON şemasıyla okur;
 bilinmeyen alanlar ve geçersiz şirket/kaynak değerleri başlangıç hatasıdır.
 Dosya yolları `CANDIDATE_PROFILE_PATH` ve `SOURCES_PATH` ile değiştirilebilir.

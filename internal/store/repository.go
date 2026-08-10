@@ -8,18 +8,19 @@ import (
 )
 
 type DashboardListing struct {
-	ID                string                   `json:"id"`
-	OpportunityID     string                   `json:"opportunity_id"`
-	Company           string                   `json:"company"`
-	Title             string                   `json:"title"`
-	URL               string                   `json:"url"`
-	Priority          string                   `json:"priority"`
-	Eligibility       domain.EligibilityStatus `json:"eligibility,omitempty"`
-	Summary           string                   `json:"summary,omitempty"`
-	ApplicationDueAt  *time.Time               `json:"application_deadline,omitempty"`
-	ApplicationStatus domain.ApplicationStatus `json:"application_status,omitempty"`
-	TrackingDeadline  *time.Time               `json:"tracking_deadline,omitempty"`
-	InterviewAt       *time.Time               `json:"interview_at,omitempty"`
+	ID                string                      `json:"id"`
+	OpportunityID     string                      `json:"opportunity_id"`
+	Company           string                      `json:"company"`
+	Title             string                      `json:"title"`
+	URL               string                      `json:"url"`
+	Priority          string                      `json:"priority"`
+	Eligibility       domain.EligibilityStatus    `json:"eligibility,omitempty"`
+	Summary           string                      `json:"summary,omitempty"`
+	ApplicationDueAt  *time.Time                  `json:"application_deadline,omitempty"`
+	ApplicationStatus domain.ApplicationStatus    `json:"application_status,omitempty"`
+	TrackingDeadline  *time.Time                  `json:"tracking_deadline,omitempty"`
+	InterviewAt       *time.Time                  `json:"interview_at,omitempty"`
+	Lifecycle         domain.OpportunityLifecycle `json:"lifecycle_status"`
 }
 
 type ApplicationTracking struct {
@@ -45,6 +46,21 @@ type ListingDetail struct {
 	FirstSeenAt       time.Time            `json:"first_seen_at"`
 	LastSeenAt        time.Time            `json:"last_seen_at"`
 	Application       *ApplicationTracking `json:"application,omitempty"`
+}
+
+type OpportunityHistoryQuery struct {
+	Page      int
+	PageSize  int
+	Lifecycle domain.OpportunityLifecycle
+	Company   string
+	Query     string
+}
+
+type OpportunityHistoryPage struct {
+	Items    []DashboardListing `json:"items"`
+	Page     int                `json:"page"`
+	PageSize int                `json:"page_size"`
+	Total    int                `json:"total"`
 }
 
 type ManualCheck struct {
@@ -163,6 +179,11 @@ type TrackingRepository interface {
 	ListingDetail(ctx context.Context, listingID string) (ListingDetail, error)
 	SaveApplication(ctx context.Context, listingID string, tracking ApplicationTracking) error
 	MarkSourceChecked(ctx context.Context, sourceKey string, checkedAt time.Time) error
+}
+
+type OpportunityRepository interface {
+	OpportunityHistory(ctx context.Context, query OpportunityHistoryQuery) (OpportunityHistoryPage, error)
+	UpdateOpportunityLifecycle(ctx context.Context, opportunityID string, lifecycle domain.OpportunityLifecycle) error
 }
 
 type PushSubscription struct {

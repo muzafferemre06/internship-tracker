@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"math"
 	"mime"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,18 +33,19 @@ type ReadinessChecker interface {
 }
 
 type Handler struct {
-	allowedOrigin   string
-	logger          *slog.Logger
-	startedAt       time.Time
-	scanner         ScanRunner
-	analysisRetrier AnalysisRetrier
-	dashboardStore  store.DashboardRepository
-	trackingStore   store.TrackingRepository
-	readiness       ReadinessChecker
-	pushEnabled     bool
-	pushPublicKey   string
-	pushStore       store.PushSubscriptionRepository
-	requireOrigin   bool
+	allowedOrigin    string
+	logger           *slog.Logger
+	startedAt        time.Time
+	scanner          ScanRunner
+	analysisRetrier  AnalysisRetrier
+	dashboardStore   store.DashboardRepository
+	trackingStore    store.TrackingRepository
+	opportunityStore store.OpportunityRepository
+	readiness        ReadinessChecker
+	pushEnabled      bool
+	pushPublicKey    string
+	pushStore        store.PushSubscriptionRepository
+	requireOrigin    bool
 }
 
 type PushOptions struct {
@@ -67,14 +70,15 @@ func NewHandler(
 	options ...Options,
 ) http.Handler {
 	handler := Handler{
-		allowedOrigin:   allowedOrigin,
-		logger:          logger,
-		startedAt:       time.Now().UTC(),
-		scanner:         scanner,
-		analysisRetrier: analysisRetrier(scanner),
-		dashboardStore:  dashboardStore,
-		trackingStore:   trackingRepository(dashboardStore),
-		readiness:       readiness,
+		allowedOrigin:    allowedOrigin,
+		logger:           logger,
+		startedAt:        time.Now().UTC(),
+		scanner:          scanner,
+		analysisRetrier:  analysisRetrier(scanner),
+		dashboardStore:   dashboardStore,
+		trackingStore:    trackingRepository(dashboardStore),
+		opportunityStore: opportunityRepository(dashboardStore),
+		readiness:        readiness,
 	}
 	if len(options) > 0 {
 		handler.requireOrigin = options[0].RequireExactOrigin
@@ -87,6 +91,8 @@ func NewHandler(
 	mux.HandleFunc("/health", handler.health)
 	mux.HandleFunc("/ready", handler.ready)
 	mux.HandleFunc("/api/v1/dashboard", handler.dashboard)
+	mux.HandleFunc("/api/v1/opportunities", handler.opportunities)
+	mux.HandleFunc("/api/v1/opportunities/{id}/lifecycle", handler.opportunityLifecycle)
 	mux.HandleFunc("/api/v1/scan", handler.scan)
 	mux.HandleFunc("/api/v1/analyses/retry", handler.retryAnalyses)
 	mux.HandleFunc("/api/v1/listings/{id}", handler.listingDetail)
@@ -201,6 +207,101 @@ func trackingRepository(repository store.DashboardRepository) store.TrackingRepo
 		return tracking
 	}
 	return nil
+}
+
+func opportunityRepository(repository store.DashboardRepository) store.OpportunityRepository {
+	if opportunities, ok := repository.(store.OpportunityRepository); ok {
+		return opportunities
+	}
+	return nil
+}
+
+func (h Handler) opportunities(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		methodNotAllowed(writer)
+		return
+	}
+	if h.opportunityStore == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "opportunity store is unavailable"})
+		return
+	}
+	query := store.OpportunityHistoryQuery{
+		Lifecycle: domain.OpportunityLifecycle(strings.TrimSpace(request.URL.Query().Get("lifecycle"))),
+		Company:   request.URL.Query().Get("company"), Query: request.URL.Query().Get("q"),
+	}
+	var err error
+	if query.Page, err = positiveQueryInt(request, "page", 1, 1_000_000); err != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	if query.PageSize, err = positiveQueryInt(request, "page_size", 20, 100); err != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	page, err := h.opportunityStore.OpportunityHistory(request.Context(), query)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid opportunity lifecycle") {
+			writeJSON(writer, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		h.logger.Error("opportunity history query failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "opportunity history could not be loaded"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, page)
+}
+
+func positiveQueryInt(request *http.Request, name string, fallback, maximum int) (int, error) {
+	raw := strings.TrimSpace(request.URL.Query().Get(name))
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value < 1 || value > maximum {
+		return 0, fmt.Errorf("%s must be between 1 and %d", name, maximum)
+	}
+	return value, nil
+}
+
+type opportunityLifecycleRequest struct {
+	Lifecycle string `json:"lifecycle_status"`
+}
+
+func (h Handler) opportunityLifecycle(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPut {
+		methodNotAllowed(writer)
+		return
+	}
+	if h.opportunityStore == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "opportunity store is unavailable"})
+		return
+	}
+	if !isJSONRequest(request) {
+		writeJSON(writer, http.StatusUnsupportedMediaType, map[string]string{"error": "Content-Type must be application/json"})
+		return
+	}
+	var input opportunityLifecycleRequest
+	decoder := json.NewDecoder(io.LimitReader(request.Body, 4*1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&input); err != nil || ensureJSONEnd(decoder) != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "request body is invalid"})
+		return
+	}
+	lifecycle := domain.OpportunityLifecycle(strings.TrimSpace(input.Lifecycle))
+	if !lifecycle.Valid() {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "lifecycle_status is invalid"})
+		return
+	}
+	if err := h.opportunityStore.UpdateOpportunityLifecycle(request.Context(), request.PathValue("id"), lifecycle); err != nil {
+		if errors.Is(err, store.ErrOpportunityNotFound) {
+			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "opportunity was not found"})
+			return
+		}
+		h.logger.Error("opportunity lifecycle update failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "opportunity lifecycle could not be updated"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, map[string]string{"opportunity_id": request.PathValue("id"), "lifecycle_status": string(lifecycle)})
 }
 
 func (h Handler) listingDetail(writer http.ResponseWriter, request *http.Request) {

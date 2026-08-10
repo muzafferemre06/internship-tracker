@@ -37,6 +37,28 @@ type fakeDashboardRepository struct {
 	snapshot store.DashboardSnapshot
 }
 
+type fakeOpportunityRepository struct {
+	fakeDashboardRepository
+	page      store.OpportunityHistoryPage
+	query     store.OpportunityHistoryQuery
+	updatedID string
+	updatedTo domain.OpportunityLifecycle
+}
+
+func (f *fakeOpportunityRepository) OpportunityHistory(_ context.Context, query store.OpportunityHistoryQuery) (store.OpportunityHistoryPage, error) {
+	f.query = query
+	return f.page, nil
+}
+
+func (f *fakeOpportunityRepository) UpdateOpportunityLifecycle(_ context.Context, opportunityID string, lifecycle domain.OpportunityLifecycle) error {
+	if opportunityID == "missing" {
+		return store.ErrOpportunityNotFound
+	}
+	f.updatedID = opportunityID
+	f.updatedTo = lifecycle
+	return nil
+}
+
 type fakeReadinessChecker struct {
 	err   error
 	calls int
@@ -262,11 +284,60 @@ func TestScanReturnsAggregatedResult(t *testing.T) {
 
 	handler.ServeHTTP(response, request)
 
-	if response.Code != http.StatusOK {
+	if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "application/json; charset=utf-8" {
 		t.Fatalf("expected 200, got %d", response.Code)
 	}
 	if !strings.Contains(response.Body.String(), `"new":1`) || !strings.Contains(response.Body.String(), `"run_id":7`) {
 		t.Fatalf("unexpected response: %s", response.Body.String())
+	}
+}
+
+func TestOpportunityHistoryAndLifecycleAPI(t *testing.T) {
+	repository := &fakeOpportunityRepository{page: store.OpportunityHistoryPage{
+		Items: []store.DashboardListing{{ID: "listing-1", OpportunityID: "opportunity-1", Company: "Meteksan"}},
+		Page:  2, PageSize: 5, Total: 7,
+	}}
+	handler := NewHandler("*", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, repository, nil)
+
+	history := httptest.NewRecorder()
+	handler.ServeHTTP(history, httptest.NewRequest(http.MethodGet,
+		"/api/v1/opportunities?page=2&page_size=5&lifecycle=arsivlendi&company=meteksan&q=backend", nil))
+	if history.Code != http.StatusOK || repository.query.Page != 2 || repository.query.PageSize != 5 ||
+		repository.query.Lifecycle != domain.OpportunityArchived || repository.query.Company != "meteksan" ||
+		repository.query.Query != "backend" || !strings.Contains(history.Body.String(), `"total":7`) {
+		t.Fatalf("unexpected opportunity history response: status=%d query=%#v body=%s", history.Code, repository.query, history.Body.String())
+	}
+
+	update := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/opportunities/opportunity-1/lifecycle",
+		strings.NewReader(`{"lifecycle_status":"arsivlendi"}`))
+	request.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(update, request)
+	if update.Code != http.StatusOK || repository.updatedID != "opportunity-1" || repository.updatedTo != domain.OpportunityArchived {
+		t.Fatalf("unexpected lifecycle update: status=%d id=%q lifecycle=%q body=%s", update.Code, repository.updatedID, repository.updatedTo, update.Body.String())
+	}
+}
+
+func TestOpportunityAPIRejectsInvalidQueryAndLifecycle(t *testing.T) {
+	repository := &fakeOpportunityRepository{}
+	handler := NewHandler("*", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, repository, nil)
+	for _, path := range []string{
+		"/api/v1/opportunities?page=0",
+		"/api/v1/opportunities?page_size=101",
+	} {
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("invalid query %q returned %d", path, response.Code)
+		}
+	}
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/opportunities/opportunity-1/lifecycle",
+		strings.NewReader(`{"lifecycle_status":"deleted"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest || repository.updatedID != "" {
+		t.Fatalf("invalid lifecycle was accepted: status=%d body=%s", response.Code, response.Body.String())
 	}
 }
 
