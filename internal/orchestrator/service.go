@@ -43,6 +43,7 @@ type Service struct {
 	Sources  []scraper.Source
 	Analyzer analyzer.ListingAnalyzer
 	Store    store.Repository
+	Robots   scraper.RobotsChecker
 	Profile  analyzer.CandidateProfile
 	Now      func() time.Time
 }
@@ -94,6 +95,33 @@ func (s Service) Run(ctx context.Context, trigger string) (ScanResult, error) {
 				}
 				result.Sources = append(result.Sources, sourceResult)
 				continue
+			}
+			if strings.EqualFold(policy.Mode, "robots") {
+				robotsDecision := scraper.RobotsDecision{Reason: "robots.txt checker is not configured; access denied"}
+				var robotsErr error
+				if s.Robots != nil {
+					robotsDecision, robotsErr = s.Robots.Check(ctx, policy)
+				} else {
+					robotsErr = errors.New("robots.txt checker is required for robots access mode")
+				}
+				if robotsErr != nil || !robotsDecision.Allowed {
+					sourceResult.Skipped = true
+					sourceResult.AccessReason = strings.TrimSpace(robotsDecision.Reason)
+					if sourceResult.AccessReason == "" {
+						sourceResult.AccessReason = shortError(robotsErr)
+					}
+					if robotsErr != nil {
+						runErrors = append(runErrors, robotsErr)
+					}
+					if err := s.Store.RecordSourceFailure(
+						context.WithoutCancel(ctx), source.Name(), s.now().UTC(), sourceResult.AccessReason,
+					); err != nil {
+						sourceResult.ProcessError++
+						runErrors = append(runErrors, err)
+					}
+					result.Sources = append(result.Sources, sourceResult)
+					continue
+				}
 			}
 		}
 

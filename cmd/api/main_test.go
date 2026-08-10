@@ -4,7 +4,9 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/muzaffer/internship-tracker/internal/config"
 	"github.com/muzaffer/internship-tracker/internal/database"
@@ -45,6 +47,49 @@ func TestConfigureAnalyzerSelectsProviderAndValidatesOpenRouterSettings(t *testi
 	})
 	if err != nil || configured == nil {
 		t.Fatalf("configure Google analyzer: analyzer=%#v err=%v", configured, err)
+	}
+}
+
+func TestConfigureSourcesAppliesResolvedRuntimeAccessPolicy(t *testing.T) {
+	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "tracker.db"), os.DirFS("../../migrations"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	repository, err := store.NewSQLiteRepository(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configured := config.SourcesConfig{
+		AccessPolicies: []config.DomainAccessPolicy{{
+			Domain: "careers.example.test", Mode: "robots",
+			MinimumIntervalSeconds: 2, BaseCooldownSeconds: 60, MaximumCooldownSeconds: 3600,
+		}},
+		Companies: []config.CompanyConfig{{
+			Name: "Example", PriorityGroup: "primary",
+			Sources: []config.SourceConfig{{
+				ID: "example-careers", Type: "career_page", URL: "https://careers.example.test/jobs",
+				Adapter: "json_ld", Strategy: "structured_data", Enabled: true,
+			}},
+		}},
+	}
+	sources, err := configureSources(context.Background(), configured, repository, scraper.SourceDeps{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sources) != 1 {
+		t.Fatalf("configured sources=%d, want 1", len(sources))
+	}
+	protected, ok := sources[0].(scraper.ProtectedSource)
+	if !ok {
+		t.Fatalf("configured source does not expose access policy: %T", sources[0])
+	}
+	want := scraper.AccessPolicy{
+		Mode: "robots", Scope: "careers.example.test", TargetURL: "https://careers.example.test/jobs",
+		MinimumInterval: 2 * time.Second, BaseCooldown: time.Minute, MaximumCooldown: time.Hour,
+	}
+	if got := protected.AccessPolicy(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("runtime policy=%#v, want %#v", got, want)
 	}
 }
 

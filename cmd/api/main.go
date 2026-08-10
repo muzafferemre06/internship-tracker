@@ -98,6 +98,7 @@ func main() {
 		Sources:  sources,
 		Analyzer: listingAnalyzer,
 		Store:    repository,
+		Robots:   scraper.NewHTTPRobotsChecker(nil, nil),
 		Profile:  analyzerProfile(candidateConfig),
 	}
 	scanRunner := orchestrator.NewCoordinatedRunner(scanService)
@@ -213,6 +214,7 @@ func configureSources(
 	sources := make([]scraper.Source, 0)
 	for _, company := range configured.Companies {
 		for _, sourceConfig := range company.Sources {
+			var runtimePolicy *scraper.AccessPolicy
 			registration := domain.SourceRegistration{
 				Key:            sourceConfig.ID,
 				Company:        company.Name,
@@ -230,6 +232,12 @@ func configureSources(
 				registration.MinimumInterval = time.Duration(policy.MinimumIntervalSeconds) * time.Second
 				registration.BaseCooldown = time.Duration(policy.BaseCooldownSeconds) * time.Second
 				registration.MaximumCooldown = time.Duration(policy.MaximumCooldownSeconds) * time.Second
+				resolved := scraper.AccessPolicy{
+					Mode: policy.Mode, Scope: policy.Domain, TargetURL: sourceConfig.URL,
+					MinimumInterval: registration.MinimumInterval,
+					BaseCooldown:    registration.BaseCooldown, MaximumCooldown: registration.MaximumCooldown,
+				}
+				runtimePolicy = &resolved
 			}
 			if err := repository.RegisterSource(ctx, registration); err != nil {
 				return nil, err
@@ -242,10 +250,11 @@ func configureSources(
 				return nil, fmt.Errorf("source %q uses unsupported adapter %q", sourceConfig.ID, sourceConfig.Adapter)
 			}
 			source, err := scraper.NewSource(sourceConfig.Adapter, scraper.SourceSpec{
-				ID:       sourceConfig.ID,
-				Company:  company.Name,
-				PageName: sourceConfig.PageName,
-				URL:      sourceConfig.URL,
+				ID:           sourceConfig.ID,
+				Company:      company.Name,
+				PageName:     sourceConfig.PageName,
+				URL:          sourceConfig.URL,
+				AccessPolicy: runtimePolicy,
 			}, deps)
 			if err != nil {
 				return nil, fmt.Errorf("configure source %q: %w", sourceConfig.ID, err)

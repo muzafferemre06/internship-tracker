@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /jobs/
+
+User-agent: internship-tracker
+Disallow: /jobs/private
+Allow: /jobs/private/public$
+Disallow: /jobs/internships/*.pdf$
+
+User-agent: internship-tracker
+Allow: /jobs/internships/

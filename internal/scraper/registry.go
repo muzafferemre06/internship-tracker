@@ -8,10 +8,11 @@ import (
 // SourceSpec carries the configuration a factory needs to build a Source,
 // independent of how that configuration arrived (file, DB row, API call).
 type SourceSpec struct {
-	ID       string
-	Company  string
-	PageName string
-	URL      string
+	ID           string
+	Company      string
+	PageName     string
+	URL          string
+	AccessPolicy *AccessPolicy
 }
 
 // SourceDeps carries shared, app-level services some adapters need but that are
@@ -71,8 +72,22 @@ func NewSource(adapter string, spec SourceSpec, deps SourceDeps) (Source, error)
 	if !ok {
 		return nil, fmt.Errorf("unsupported adapter %q", adapter)
 	}
-	return factory(spec, deps)
+	source, err := factory(spec, deps)
+	if err != nil {
+		return nil, err
+	}
+	if spec.AccessPolicy != nil {
+		return configuredAccessSource{Source: source, policy: *spec.AccessPolicy}, nil
+	}
+	return source, nil
 }
+
+type configuredAccessSource struct {
+	Source
+	policy AccessPolicy
+}
+
+func (s configuredAccessSource) AccessPolicy() AccessPolicy { return s.policy }
 
 // SupportsAdapter reports whether an adapter has a registered factory.
 func SupportsAdapter(adapter string) bool {

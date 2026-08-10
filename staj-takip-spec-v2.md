@@ -994,6 +994,16 @@ saklanır. `manual_only` sosyal kaynak hiçbir scraper/HTTP istemcisi kurmadan
 kalıcı watchlist'e girer. Faz 14 e-posta/IMAP/OAuth entegrasyonu eklemez; kişisel
 veri ve rıza tasarımı gerektiren bu alternatif ayrı faza bırakılır.
 
+`robots` modu her ilan isteğinden önce scheme/authority kökündeki `/robots.txt`
+kararını zorunlu kılar. RFC 9309 product-token grup birleşimi, wildcard fallback,
+en uzun yol ve eşitlikte allow kuralları uygulanır; `*` ve `$` desteklenir.
+Başarılı veya 4xx kararlar domain bazında en çok 24 saat cache'lenir ve dosya
+512 KiB ile sınırlanır. 404/410 unavailable kabul edilip erişime izin verir;
+diğer 4xx engeller, 5xx/ağ/okuma/geçersiz hedef fail-closed davranır. `public_api`
+robots kontrolünü atlar; iki otomatik mod da kalıcı minimum aralık/cooldown
+bütçesinden geçer. Robots engeli sessiz başarı sayılmaz, fetch yapılmadan kaynak
+durumuna güvenli gerekçeyle işlenir.
+
 Çıkış kriteri: LinkedIn benzeri bir kaynak, scraping denemeden manuel-checklist
 veya e-posta-ayrıştırma stratejisiyle temsil edilir; robots/rate-limit politikası
 per-domain uygulanır.

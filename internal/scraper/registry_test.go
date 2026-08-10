@@ -2,7 +2,9 @@ package scraper
 
 import (
 	"context"
+	"reflect"
 	"testing"
+	"time"
 )
 
 type stubExtractor struct{}
@@ -10,6 +12,27 @@ type stubExtractor struct{}
 func (stubExtractor) Name() string { return "stub" }
 func (stubExtractor) Extract(context.Context, ExtractionRequest) (ExtractionResult, error) {
 	return ExtractionResult{}, nil
+}
+
+func TestNewSourceAppliesConfiguredAccessPolicy(t *testing.T) {
+	policy := AccessPolicy{
+		Mode: "robots", Scope: "careers.example.test",
+		TargetURL:       "https://careers.example.test/jobs",
+		MinimumInterval: 2 * time.Second, BaseCooldown: time.Minute, MaximumCooldown: time.Hour,
+	}
+	source, err := NewSource("json_ld", SourceSpec{
+		ID: "example", Company: "Example", URL: policy.TargetURL, AccessPolicy: &policy,
+	}, SourceDeps{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	protected, ok := source.(ProtectedSource)
+	if !ok {
+		t.Fatalf("configured source does not expose its access policy: %T", source)
+	}
+	if got := protected.AccessPolicy(); !reflect.DeepEqual(got, policy) {
+		t.Fatalf("access policy=%#v, want %#v", got, policy)
+	}
 }
 
 func TestNewSourceDispatchesRegisteredAdapters(t *testing.T) {

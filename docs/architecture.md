@@ -214,6 +214,19 @@ minimum aralık/cooldown değerlerini `company_sources` üzerinde saklar.
 yazar fakat scraper factory çağırmaz. Havelsan'ın doğrulanmış resmî LinkedIn
 profili bu yolla watchlist'te açık bir uyum gerekçesiyle temsil edilir.
 
+Etkin otomatik kaynağın çözülmüş politikası `SourceSpec` üzerinden adapter'ı
+saran `ProtectedSource`'a taşınır; böylece adapter içindeki eski varsayılanlar
+config kararını geçersiz kılamaz. Orchestrator önce SQLite domain rezervasyonunu,
+ardından yalnız `robots` modunda `HTTPRobotsChecker` kararını alır ve izin yoksa
+adapter taşıma katmanını çağırmadan güvenli nedeni kaynak durumuna yazar.
+Checker yalnız aynı scheme/authority kökündeki `/robots.txt` dosyasını okur,
+`internship-tracker` gruplarını RFC 9309'a göre birleştirir, yoksa wildcard
+grubuna düşer; en uzun eşleşmede eşitliği `Allow` kazanır. `*` ve satır sonu `$`
+kuralları desteklenir. Başarılı/4xx karar cache'i 24 saati aşmaz; 404/410
+unavailable olarak izinli, diğer 4xx engelli, 5xx/ağ/okuma/geçersiz URL durumları
+fail-closed'dur. Gövde 512 KiB ile sınırlıdır ve ham içerik kalıcılaştırılmaz.
+`public_api` robots kontrolünü atlar fakat kalıcı domain bütçesinden geçer.
+
 ### Yapılandırılmış-veri adapter'ları (Faz 10)
 
 Faz 10, ucuz ve deterministik (AI'sız) iki adapter'ı aynı `adapterFactories`

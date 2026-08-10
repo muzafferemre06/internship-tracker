@@ -14,7 +14,9 @@ type Source interface {
 }
 
 type AccessPolicy struct {
+	Mode            string
 	Scope           string
+	TargetURL       string
 	MinimumInterval time.Duration
 	BaseCooldown    time.Duration
 	MaximumCooldown time.Duration
@@ -23,6 +25,15 @@ type AccessPolicy struct {
 type ProtectedSource interface {
 	Source
 	AccessPolicy() AccessPolicy
+}
+
+type RobotsDecision struct {
+	Allowed bool
+	Reason  string
+}
+
+type RobotsChecker interface {
+	Check(ctx context.Context, policy AccessPolicy) (RobotsDecision, error)
 }
 
 type AccessError struct {

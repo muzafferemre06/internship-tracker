@@ -44,6 +44,17 @@ func (f protectedFakeSource) AccessPolicy() scraper.AccessPolicy { return f.poli
 
 type fakeAnalyzer struct{}
 
+type fakeRobotsChecker struct {
+	decision scraper.RobotsDecision
+	err      error
+	calls    int
+}
+
+func (f *fakeRobotsChecker) Check(_ context.Context, _ scraper.AccessPolicy) (scraper.RobotsDecision, error) {
+	f.calls++
+	return f.decision, f.err
+}
+
 func (fakeAnalyzer) Analyze(
 	context.Context,
 	domain.RawListing,
@@ -76,6 +87,7 @@ type fakeStore struct {
 	completion     store.ScanCompletion
 	succeeded      []string
 	failed         []string
+	failureReasons []string
 	reserveCalls   int
 	accessFailure  *store.AccessFailure
 	accessSuccess  []string
@@ -121,8 +133,9 @@ func (f *fakeStore) RecordSourceSuccess(_ context.Context, sourceKey string, _ t
 	return nil
 }
 
-func (f *fakeStore) RecordSourceFailure(_ context.Context, sourceKey string, _ time.Time, _ string) error {
+func (f *fakeStore) RecordSourceFailure(_ context.Context, sourceKey string, _ time.Time, reason string) error {
 	f.failed = append(f.failed, sourceKey)
+	f.failureReasons = append(f.failureReasons, reason)
 	return nil
 }
 
@@ -228,6 +241,66 @@ func TestRunStopsProtectedDomainAfterFirstAccessFailure(t *testing.T) {
 	}
 	if len(fakeRepository.accessSuccess) != 0 {
 		t.Fatalf("protected failure must not be reset as success: %#v", fakeRepository.accessSuccess)
+	}
+}
+
+func TestRunSkipsRobotsDisallowedSourceBeforeFetch(t *testing.T) {
+	calls := 0
+	robots := &fakeRobotsChecker{decision: scraper.RobotsDecision{
+		Allowed: false, Reason: "robots.txt disallows target path",
+	}}
+	repository := &fakeStore{seen: map[string]bool{}}
+	service := Service{
+		Sources: []scraper.Source{protectedFakeSource{
+			fakeSource: fakeSource{name: "robots-blocked"}, calls: &calls,
+			policy: scraper.AccessPolicy{
+				Mode: "robots", Scope: "careers.example.test",
+				TargetURL:       "https://careers.example.test/private",
+				MinimumInterval: time.Second, BaseCooldown: time.Minute, MaximumCooldown: time.Hour,
+			},
+		}},
+		Analyzer: fakeAnalyzer{}, Store: repository, Robots: robots,
+	}
+
+	result, err := service.Run(context.Background(), "manual")
+	if err != nil {
+		t.Fatalf("run scan: %v", err)
+	}
+	if calls != 0 || robots.calls != 1 {
+		t.Fatalf("robots block must precede fetch: fetch=%d robots=%d", calls, robots.calls)
+	}
+	if len(result.Sources) != 1 || !result.Sources[0].Skipped || result.Sources[0].AccessReason != "robots.txt disallows target path" {
+		t.Fatalf("unexpected source result: %#v", result.Sources)
+	}
+	if len(repository.failureReasons) != 1 || repository.failureReasons[0] != "robots.txt disallows target path" {
+		t.Fatalf("robots reason was not persisted: %#v", repository.failureReasons)
+	}
+	if len(repository.accessSuccess) != 0 {
+		t.Fatalf("robots block must not reset domain state: %#v", repository.accessSuccess)
+	}
+}
+
+func TestRunPublicAPISourceDoesNotCheckRobots(t *testing.T) {
+	calls := 0
+	robots := &fakeRobotsChecker{decision: scraper.RobotsDecision{Allowed: false}}
+	service := Service{
+		Sources: []scraper.Source{protectedFakeSource{
+			fakeSource: fakeSource{name: "api"}, calls: &calls,
+			policy: scraper.AccessPolicy{
+				Mode: "public_api", Scope: "api.example.test",
+				TargetURL:       "https://api.example.test/jobs",
+				MinimumInterval: time.Second, BaseCooldown: time.Minute, MaximumCooldown: time.Hour,
+			},
+		}},
+		Analyzer: fakeAnalyzer{}, Store: &fakeStore{seen: map[string]bool{}}, Robots: robots,
+	}
+
+	result, err := service.Run(context.Background(), "manual")
+	if err != nil {
+		t.Fatalf("run scan: %v", err)
+	}
+	if calls != 1 || robots.calls != 0 || result.Sources[0].Skipped {
+		t.Fatalf("public API path must bypass robots: fetch=%d robots=%d result=%#v", calls, robots.calls, result.Sources)
 	}
 }
 

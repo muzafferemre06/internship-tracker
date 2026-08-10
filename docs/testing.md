@@ -57,6 +57,17 @@ adapter/strategy/tracking invariant'ını sınar. SQLite testi çözülmüş pol
 kalıcı kaynak alanlarına ve watchlist gerekçesine taşındığını; API wiring testi
 manuel sosyal kaydın scraper oluşturmadan kaydedildiğini doğrular.
 
+Faz 14 robots testleri yalnız fake HTTP transport ve yerel
+`testdata/robots/phase14.txt` fixture'ını kullanır. Product-token gruplarının
+birleşmesi, wildcard fallback, en uzun kural/eşitlikte allow, `*`/`$`, alan bazlı
+24 saat cache ve 512 KiB sınırı kapsanır. 404 izinli; 403, 5xx, ağ hatası,
+geçersiz hedef ve aşırı büyük gövde fail-closed beklenir. Orchestrator testleri
+robots engelinde adapter'ın hiç çağrılmadığını ve nedenin kaydedildiğini;
+`public_api` kaynağında checker'ın atlanıp fetch'in çalıştığını doğrular. API
+wiring ve registry testleri en uzun suffix ile çözülen config politikasının
+runtime `ProtectedSource` üzerindeki değer olduğunu sabitler. Normal testler
+canlı kariyer sitesine gitmez.
+
 Faz 12 birim testleri iki küçültülmüş DOM fixture'ı kullanır. İlk layout fake
 learner ile reçete üretip store'a yazar; yeni bir source instance'ı aynı reçeteyi
 model çağrısı olmadan çalıştırır. İkinci layout eski reçetenin kimlik/golden

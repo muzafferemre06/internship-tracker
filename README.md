@@ -54,6 +54,15 @@ tanımlar. En uzun domain suffix'i kazanır. `manual_only` kaynak devre dışı,
 için scraper kurulmaz. Çözülmüş politika startup'ta SQLite kaynak kaydına
 yazılır ve watchlist gerekçesinde görünür.
 
+`robots` modundaki kaynak, ilan isteğinden önce alanın kökündeki `/robots.txt`
+kararından geçer. `internship-tracker` product token'ına ait gruplar birleştirilir;
+bu grup yoksa `*` grubu, en uzun yol kuralı ve eşitlikte `Allow` uygulanır.
+Karar alan bazında en fazla 24 saat cache'lenir. `404/410` robots dosyasının
+bulunmadığı kabul edilerek erişime izin verir; `401/403`, diğer 4xx yanıtları,
+5xx, ağ/okuma hataları ve doğrulanamayan hedefler fail-closed davranır.
+`public_api` modu robots kontrolü yapmaz ancak aynı kalıcı minimum aralık ve
+cooldown bütçesini kullanır.
+
 `lever` adapter'ı herkese açık resmî `https://jobs.lever.co/<şirket>/<ilan>`
 sayfasındaki tek ilanı izler. Yalnızca aktif başvuru bağlantısı bulunan sayfaları
 kabul eder; takip parametrelerini kaynak URL'sinden çıkarır ve başlık, ilan
