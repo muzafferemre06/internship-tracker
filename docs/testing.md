@@ -68,6 +68,19 @@ wiring ve registry testleri en uzun suffix ile çözülen config politikasının
 runtime `ProtectedSource` üzerindeki değer olduğunu sabitler. Normal testler
 canlı kariyer sitesine gitmez.
 
+Faz 14 uçtan uca fixture kabulü şu komutla ayrı çalıştırılır:
+
+```bash
+go test ./internal/acceptance -run TestPhase14 -count=1 -v
+```
+
+Test, production kaynak config'indeki Havelsan LinkedIn kaydını gerçek geçici
+SQLite'a manuel-only olarak yazar; LinkedIn HTTP çağrısı oluşturmaz. İzinli ve
+yasaklı iki yolu aynı robots fixture/cache'i üzerinden geçirir, yasaklı adapter'ın
+çağrılmadığını ve anlık ikinci taramanın kalıcı domain minimum aralığında hiç
+HTTP'ye ulaşmadığını doğrular. Zaman damgalı sonuç
+`docs/acceptance/phase-14-2026-08-10.md` dosyasındadır.
+
 Faz 12 birim testleri iki küçültülmüş DOM fixture'ı kullanır. İlk layout fake
 learner ile reçete üretip store'a yazar; yeni bir source instance'ı aynı reçeteyi
 model çağrısı olmadan çalıştırır. İkinci layout eski reçetenin kimlik/golden

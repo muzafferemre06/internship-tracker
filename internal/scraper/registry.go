@@ -77,9 +77,15 @@ func NewSource(adapter string, spec SourceSpec, deps SourceDeps) (Source, error)
 		return nil, err
 	}
 	if spec.AccessPolicy != nil {
-		return configuredAccessSource{Source: source, policy: *spec.AccessPolicy}, nil
+		return WithAccessPolicy(source, *spec.AccessPolicy), nil
 	}
 	return source, nil
+}
+
+// WithAccessPolicy makes the resolved, configuration-owned access policy the
+// authoritative policy for a source, regardless of adapter defaults.
+func WithAccessPolicy(source Source, policy AccessPolicy) ProtectedSource {
+	return configuredAccessSource{Source: source, policy: policy}
 }
 
 type configuredAccessSource struct {

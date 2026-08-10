@@ -1008,6 +1008,11 @@ durumuna güvenli gerekçeyle işlenir.
 veya e-posta-ayrıştırma stratejisiyle temsil edilir; robots/rate-limit politikası
 per-domain uygulanır.
 
+Durum (10 Ağustos 2026): Tamamlandı. Havelsan'ın resmî LinkedIn profili
+`manual_only` watchlist kaydıdır ve scraper üretmez. Fixture/fake HTTP kabulü
+robots izni/yasağı ile kalıcı domain aralığını gerçek SQLite ve orchestrator
+üzerinde doğrular; kanıt `docs/acceptance/phase-14-2026-08-10.md` içindedir.
+
 Neden: Anti-bot sistemleriyle savaşmak sürdürülemez ve risklidir; yasal
 erişilebilen içeriğe AI uygulanır, gerisi manuel listeye yönlendirilir (§18
 kapsam-dışı ilkeleriyle tutarlı).

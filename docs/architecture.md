@@ -214,8 +214,9 @@ minimum aralık/cooldown değerlerini `company_sources` üzerinde saklar.
 yazar fakat scraper factory çağırmaz. Havelsan'ın doğrulanmış resmî LinkedIn
 profili bu yolla watchlist'te açık bir uyum gerekçesiyle temsil edilir.
 
-Etkin otomatik kaynağın çözülmüş politikası `SourceSpec` üzerinden adapter'ı
-saran `ProtectedSource`'a taşınır; böylece adapter içindeki eski varsayılanlar
+Etkin otomatik kaynağın çözülmüş politikası `SourceSpec` ve ortak
+`WithAccessPolicy` yolu üzerinden adapter'ı saran `ProtectedSource`'a taşınır;
+böylece adapter içindeki eski varsayılanlar
 config kararını geçersiz kılamaz. Orchestrator önce SQLite domain rezervasyonunu,
 ardından yalnız `robots` modunda `HTTPRobotsChecker` kararını alır ve izin yoksa
 adapter taşıma katmanını çağırmadan güvenli nedeni kaynak durumuna yazar.

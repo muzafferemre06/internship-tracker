@@ -2,12 +2,12 @@
 
 ## Aktif faz
 
-Faz 13 tamamlandı. Farklı kaynak URL'leri listing kanıtı olarak korunurken aynı
-şirket + güvenli normalize başlık + lokasyon kanıtı tek kanonik fırsata
-bağlanıyor. Dashboard fırsatı bir kez gösteriyor, Web Push dedup'ı fırsat
-düzeyinde çalışıyor; belirsiz eşleşmeler ayrı, kararlar audit edilebilir ve açık
-kanıt çelişkisi birleşmeyi veri silmeden geri alıyor. Sıradaki geliştirme fazı
-sosyal/manuel kaynaklar ve uyum politikalarını kapsayan Faz 14'tür.
+Faz 14 tamamlandı. Domain erişim modu config'ten çözülüp SQLite ve runtime
+policy'sine taşınıyor; `robots` kaynaklar fetch öncesi RFC 9309 kararı ve kalıcı
+minimum aralık/cooldown bütçesinden geçiyor, `public_api` robots kontrolünü
+atlıyor. LinkedIn/Havelsan gibi `manual_only` sosyal kaynaklar hiçbir scraper
+kurulmadan gerekçeli watchlist kaydı oluyor. Sıradaki geliştirme fazı ikincil
+kaynaklar ve zengin başvuru bilgisini kapsayan Faz 15'tir.
 
 ## Tamamlananlar
 
@@ -85,6 +85,12 @@ sosyal/manuel kaynaklar ve uyum politikalarını kapsayan Faz 14'tür.
 - Faz 11 blok-hash cache'inin restart'ı aşan SQLite kalıcılığı
 - Analiz, generic extraction ve reçete öğreniminin aynı yapılandırılmış model
   provider örneğini paylaşan production wiring'i
+- Config'te en uzun domain suffix'iyle çözülen `robots`, `public_api` ve
+  `manual_only` erişim modları ile migration 010 kalıcı policy alanları
+- RFC 9309 product-token/wildcard grup seçimi, en uzun yol/eşitlikte allow,
+  `*`/`$`, 24 saat cache ve 512 KiB sınırı uygulayan fail-closed robots checker
+- Robots izni öncesi hiç fetch yapmayan orchestrator kapısı; otomatik kaynaklarda
+  kalıcı minimum aralık ve cooldown, manuel sosyal kaynaklarda açıklamalı watchlist
 
 ## Doğrulanan çıkış kriterleri
 
@@ -153,13 +159,18 @@ sosyal/manuel kaynaklar ve uyum politikalarını kapsayan Faz 14'tür.
 - Faz 13 fixture/fake kabulü iki kaynak listing'ini tek fırsat, tek dashboard
   kartı ve tek push olarak doğruladı; güvenli kanıt
   `docs/acceptance/phase-13-2026-08-09.md` içindedir.
+- Faz 14 fixture/fake kabulü gerçek Havelsan LinkedIn config'inin sıfır HTTP ile
+  manuel watchlist'e girdiğini; izinli/yasaklı iki robots yolunu ve restart'ı
+  aşan domain aralığını gerçek SQLite/orchestrator ile doğruladı. Güvenli kanıt
+  `docs/acceptance/phase-14-2026-08-10.md` içindedir.
 
 ## Sıradaki iş
 
-Faz 14: LinkedIn/sosyal medya doğrudan scraping yapmadan manuel checklist veya
-kullanıcının kendi iş-uyarı e-postası yolunu modellemek; robots.txt, rate limit
-ve cooldown politikasını domain bazında birinci sınıf hâle getirmek. Faz 14 için
-ayrı plan ve açık onay alınmadan uygulamaya başlanmamalıdır.
+Faz 15: İkincil kaynakları ve kaynak/güncellik kanıtlı zengin başvuru süreci
+bilgisini mevcut uyum sınırları içinde modellemek. LinkedIn/sosyal medya doğrudan
+scrape edilmez; e-posta/OAuth gibi kişisel veri yolları ayrıca rıza ve güvenlik
+tasarımı gerektirir. Faz 15 için ayrı plan ve açık onay alınmadan uygulamaya
+başlanmamalıdır.
 
 Faz 5'in production runbook'u geçerliliğini korur. Kullanıcı yerel Docker +
 Cloudflare Tunnel üzerinden telefon erişimini doğrulamıştır; off-host yedek ve
