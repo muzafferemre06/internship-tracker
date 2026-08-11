@@ -4,6 +4,7 @@
 - Split work into small, meaningful commits that each leave the repository in a coherent state.
 - Use the commit subject format `<çalışılan kısım> : <bir cümlelik açıklama>`.
 - Push every completed commit to the configured upstream immediately after creating it. If the push fails, stop treating the delivery as complete and tell the user the exact blocker.
+- Treat production deployment as a separate approval gate from commit and push. After the requested changes are committed, pushed, and the complete quality suite has passed, ask the user separately at the end of the session whether the verified revision should be deployed to production. Never infer deployment approval from permission to commit or push. Deploy only after explicit user approval, take the required pre-deploy snapshot, deploy the exact verified revision, and report production health, smoke-test, and persistent database identity results.
 - Do not commit secrets, local configuration, generated build output, databases, or dependency directories.
 - Prefer fixture-based scraper tests and fake providers; normal tests must not call live career sites or paid AI APIs.
 - Complete and verify the current delivery phase's exit criteria before starting the next phase.
