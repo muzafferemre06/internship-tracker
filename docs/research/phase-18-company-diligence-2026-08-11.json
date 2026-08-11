@@ -1,0 +1,244 @@
+{
+  "phase": "18",
+  "verified_at": "2026-08-11",
+  "approved_batch": [
+    "MobileAction",
+    "SİMSOFT",
+    "Netaş",
+    "Bilişim AŞ"
+  ],
+  "companies": [
+    {
+      "company": "Etiya",
+      "technopark": "Bilkent CYBERPARK",
+      "current_identity": "Bağımsız ve faal kurumsal yazılım şirketi; Bilkent CYBERPARK kimliği güncel.",
+      "official_domain": "https://www.etiya.com",
+      "official_opportunity_urls": [
+        "https://www.etiya.com/tr/kariyer",
+        "https://www.etiya.com/en/career/all-open-positions"
+      ],
+      "current_opportunity_state": "Resmî kariyer ve açık pozisyon sayfaları yayında; doğrulama anındaki görünür roller ağırlıkla kıdemli ürün, yazılım, bilgi güvenliği ve üretken yapay zekâ rolleri.",
+      "student_signal": "Kariyer alanında genç yetenek anlatısı var; Etiya Academy SSS içeriği mezunlara odaklı ve doğrulama anında lisans öğrencisine açık güncel staj ilanı bulunmadı.",
+      "access_observation": "Birinci taraf sayfalar genel erişime açık; ilan listesinin kararlı veri kaynağı veya fixture ile doğrulanmış seçicileri henüz yok.",
+      "automation_decision": "defer_unapproved",
+      "decision_rationale": "Şirket ve fırsat kaynağı güçlü, fakat öğrenciye açık güncel ilan ile güvenilir adapter ayrı bir sonraki batch'te doğrulanmalı.",
+      "phase_18_batch": "later_batch"
+    },
+    {
+      "company": "OBSS",
+      "technopark": "Bilkent CYBERPARK",
+      "current_identity": "Bağımsız ve faal yazılım mühendisliği şirketi; Bilkent CYBERPARK ofisi resmî kaynaklarla eşleşiyor.",
+      "official_domain": "https://obss.tech",
+      "official_opportunity_urls": [
+        "https://obss.tech/en/career-development/",
+        "https://obss.tech/wp-content/uploads/2023/06/OBSS_Kurumsal_Sunum_June_1.pdf"
+      ],
+      "current_opportunity_state": "Resmî kariyer gelişimi alanı mevcut; doğrulanan birinci taraf kaynakta güncel, tekil ve başvuruya açık staj ilanı saptanmadı.",
+      "student_signal": "Kurumsal sunum, Java, iOS, Android, frontend, DevOps, makine öğrenmesi ve yapay zekâ alanlarında geçmiş geniş ölçekli staj programını açıkça belgeliyor.",
+      "access_observation": "Birinci taraf içerik ve PDF açık; güncel ilan panosunun URL ve durum sözleşmesi fixture ile doğrulanmış değil.",
+      "automation_decision": "defer_unapproved",
+      "decision_rationale": "Öğrenci sinyali güçlü fakat eski program kanıtı güncel açık pencere sayılmaz; otomasyon sonraki batch'te canlı ilan kaynağı bulunursa açılmalı.",
+      "phase_18_batch": "later_batch"
+    },
+    {
+      "company": "SİMSOFT",
+      "technopark": "Bilkent CYBERPARK",
+      "current_identity": "Bağımsız ve faal simülasyon/savunma yazılımı şirketi; Bilkent CYBERPARK kimliği güncel.",
+      "official_domain": "https://www.simsoft.com.tr",
+      "official_opportunity_urls": [
+        "https://www.simsoft.com.tr/tr/insan-kaynaklari/aday-muhendis-ve-stajyer-basvuru-formu",
+        "https://www.simsoft.com.tr/tr/insan-kaynaklari"
+      ],
+      "current_opportunity_state": "Aday mühendis ve stajyerlere özel resmî CV yükleme formu yayında; açık pozisyon takibi LinkedIn ve Kariyer.net'e yönlendiriliyor.",
+      "student_signal": "Doğrudan aday mühendis/stajyer formu, öğrenciye uygunluğu açık ve güncel biçimde doğruluyor.",
+      "access_observation": "Form herkese açık olsa da CAPTCHA ve kişisel veri yükleme içeriyor; otomatik tarama veya form gönderimi yapılmamalı.",
+      "automation_decision": "manual_official",
+      "decision_rationale": "Doğru ürün davranışı, resmî formu görünür bir manuel başvuru kaynağı olarak sunmak; ilan üretmek ya da formu otomatik göndermek değil.",
+      "phase_18_batch": "approved_batch_1"
+    },
+    {
+      "company": "T2 Software",
+      "technopark": "Bilkent CYBERPARK",
+      "current_identity": "Bağımsız ve faal özel yazılım geliştirme şirketi; kariyer sayfası Bilkent CYBERPARK ofisini gösteriyor.",
+      "official_domain": "https://www.t2.com.tr",
+      "official_opportunity_urls": [
+        "https://www.t2.com.tr/tr/careers"
+      ],
+      "current_opportunity_state": "Resmî sayfada doğrulama anında Software Engineer ve Senior Software Engineer rolleri görünür; ayrıntılar sayfa içi bileşenlerle açılıyor.",
+      "student_signal": "Güncel staj/aday mühendis ilanı yok; daha junior görünen Software Engineer rolü dahi en az bir yıl deneyim istiyor.",
+      "access_observation": "Sayfa açık, ancak ilan ayrıntıları ayrı kanonik URL üretmiyor; yanlış ilan kimliği ve tekrar riski adapter fixture'ı gerektiriyor.",
+      "automation_decision": "defer_unapproved",
+      "decision_rationale": "Açık roller gerçek olsa da öğrenci uygunluğu zayıf ve sayfa içi ilan modelinin kararlı kimliği sonraki batch'te tasarlanmalı.",
+      "phase_18_batch": "later_batch"
+    },
+    {
+      "company": "MobileAction",
+      "technopark": "Bilkent CYBERPARK",
+      "current_identity": "Bağımsız ve faal mobil pazar zekâsı SaaS şirketi; Ankara/Bilkent kariyer kimliği güncel.",
+      "official_domain": "https://www.mobileaction.co",
+      "official_opportunity_urls": [
+        "https://www.mobileaction.co/careers/",
+        "https://jobs.lever.co/mobile-action"
+      ],
+      "current_opportunity_state": "Resmî kariyer sayfası, açık Lever panosuna bağlanıyor; doğrulama anında Software Engineer, Senior Software Engineer, Senior Data Scientist, Senior Account Manager ve Senior Product Designer rolleri var.",
+      "student_signal": "Doğrulama anında staj rolü yok; genel Software Engineer rolü bulunuyor, kıdemli roller öğrenci fırsatı olarak bildirilmemeli.",
+      "access_observation": "Resmî ATS panosu herkese açık, sunucu tarafı HTML üretiyor ve jobs.lever.co için mevcut bir saniyelik alan bütçesiyle uyumlu.",
+      "automation_decision": "automatic_official_ats",
+      "decision_rationale": "Kanonik ilan URL'leri ve güvenilir resmî ATS mevcut; pano fixture'ı ve kıdemli/tam zamanlı yanlış bildirim korumasıyla otomasyona uygundur.",
+      "phase_18_batch": "approved_batch_1"
+    },
+    {
+      "company": "Binalyze",
+      "technopark": "ODTÜ TEKNOKENT",
+      "current_identity": "Bağımsız ve faal siber olay müdahale şirketi; marka web varlığı binalyze.com'dan binalyze.ai yönüne geçiyor.",
+      "official_domain": "https://www.binalyze.ai",
+      "official_opportunity_urls": [
+        "https://www.binalyze.com/join-the-team/",
+        "https://jobs.ashbyhq.com/binalyze"
+      ],
+      "current_opportunity_state": "Resmî kariyer sayfası Ashby panosuna bağlanıyor; ürün yönetimi ile yapay zekâ/süreç otomasyonu dâhil güncel roller doğrulandı.",
+      "student_signal": "Doğrulama anında staj veya öğrenci rolü bulunmadı.",
+      "access_observation": "Kariyer sayfası ve Ashby panosu açık; domain geçişi nedeniyle şirket kimliği ve ATS kuralları birlikte fixture'lanmalı.",
+      "automation_decision": "defer_unapproved",
+      "decision_rationale": "Resmî ATS otomasyona elverişli görünüyor, ancak bu ilk onaylı batch'te değil ve canonical domain değişimi önce kontrollü ele alınmalı.",
+      "phase_18_batch": "later_batch"
+    },
+    {
+      "company": "TaleWorlds Entertainment",
+      "technopark": "ODTÜ TEKNOKENT",
+      "current_identity": "Bağımsız ve faal PC/konsol oyun stüdyosu; ODTÜ TEKNOKENT kimliği güncel.",
+      "official_domain": "https://www.taleworlds.com",
+      "official_opportunity_urls": [
+        "https://www.taleworlds.com/en/Career"
+      ],
+      "current_opportunity_state": "Resmî kariyer içeriği açık roller ile 'Non-Posted Positions & Internships' başvuru yolunu tanımlıyor.",
+      "student_signal": "CV, transkript ve portföyle ilan dışı staj başvurusu kabul edildiği resmî kariyer metninde belirtiliyor.",
+      "access_observation": "Doğrudan doğrulama isteği 403 ile engellendi; arama dizini içeriği kanıt sağlasa da otomatik tarama erişim politikasına uygun değil.",
+      "automation_decision": "research_blocked",
+      "decision_rationale": "Öğrenci fırsatı güçlü, fakat erişim engeli aşılmamalı; ileride manuel resmî kaynak veya izinli ATS bulunmadan otomasyon açılmaz.",
+      "phase_18_batch": "later_batch"
+    },
+    {
+      "company": "Insider",
+      "technopark": "ODTÜ TEKNOKENT",
+      "current_identity": "Marka güncel kariyer panosunda Insider One adını kullanıyor; Türkiye'deki SaaS şirket kimliği faal.",
+      "official_domain": "https://useinsider.com",
+      "official_opportunity_urls": [
+        "https://useinsider.com/careers/",
+        "https://jobs.lever.co/insiderone"
+      ],
+      "current_opportunity_state": "Herkese açık Lever panosunda İstanbul/Ankara/Türkiye için ürün, satış ve yazılım rolleri ile farklı ülkelerde staj rolleri bulunuyor.",
+      "student_signal": "Güncel panoda staj ve fresh-grad etiketleri var; doğrulama anındaki stajların çoğu Türkiye/Ankara dışında, Türkiye'deki roller ağırlıkla tam zamanlı.",
+      "access_observation": "Resmî Lever panosu açık ve kararlı ilan URL'leri sunuyor; marka anahtarının useinsider/insiderone geçişi fixture ve config kararında açıkça eşlenmeli.",
+      "automation_decision": "defer_unapproved",
+      "decision_rationale": "Güçlü bir sonraki otomasyon adayı, ancak onaylanan ilk batch dışında ve marka eşlemesiyle konum filtresi birlikte test edilmeli.",
+      "phase_18_batch": "later_batch"
+    },
+    {
+      "company": "Netaş",
+      "technopark": "ODTÜ TEKNOKENT",
+      "current_identity": "Faal telekom ve sistem entegrasyonu şirketi; ODTÜ TEKNOKENT öğrenci programı kimliği güncel.",
+      "official_domain": "https://netas.com.tr",
+      "official_opportunity_urls": [
+        "https://netas.com.tr/coop-staj-programi",
+        "https://kariyer.netas.com.tr/"
+      ],
+      "current_opportunity_state": "Resmî COOP program sayfası yayında; ayrı kariyer portalında güncel profesyonel roller bulunuyor, fakat COOP için tarihli açık başvuru penceresi ilan edilmiyor.",
+      "student_signal": "Bilgisayar, elektrik-elektronik ve haberleşme mühendisliği 3./4. sınıf öğrencilerine; güz, bahar ve yaz dönemlerinde uzun/kısa staj modeli açıkça tanımlanıyor.",
+      "access_observation": "Program bilgisi herkese açık, başvuru e-posta/paylaşım yoluyla ilerliyor; açık/kapalı durumu uydurulmadan periyodik ve manuel izlenmeli.",
+      "automation_decision": "manual_official",
+      "decision_rationale": "Programı görünür kılmak değerli, ancak tarihsiz kurumsal açıklama aktif kontenjan değildir; durum 'unknown' penceresiyle dürüstçe modellenmeli.",
+      "phase_18_batch": "approved_batch_1"
+    },
+    {
+      "company": "Alictus",
+      "technopark": "ODTÜ TEKNOKENT",
+      "current_identity": "Alictus 2022'de SciPlay'e katıldı ve güncel şirket profili markanın artık SciPlay olduğunu açıkça belirtiyor.",
+      "official_domain": "https://www.sciplay.com",
+      "official_opportunity_urls": [
+        "https://www.sciplay.com/careers"
+      ],
+      "current_opportunity_state": "SciPlay kariyer sayfası açık; doğrulama görünümünde 15 toplam rol göstergesine rağmen filtre sonucu 0 rol ve genel CV gönderme yolu gösterildi.",
+      "student_signal": "Kariyer metni kariyerine yeni başlayanlara hitap ediyor, ancak Ankara/Türkiye için güncel staj rolü doğrulanmadı.",
+      "access_observation": "SciPlay sayfası açık; eski alictus.com ve Alictus şirket anahtarıyla tarama yapmak yanlış kimlik ve mükerrer şirket üretir.",
+      "automation_decision": "retired_identity",
+      "decision_rationale": "Alictus bağımsız aday olarak Faz 18'e alınmamalı; ileride SciPlay Türkiye stüdyosu yeni kimlikle yeniden araştırılmalı.",
+      "phase_18_batch": "not_eligible"
+    },
+    {
+      "company": "LOTEC",
+      "technopark": "Hacettepe Teknokent",
+      "current_identity": "Bağımsız ve faal akıllı şehir/IoT/yazılım şirketi; Hacettepe Teknokent kimliği güncel.",
+      "official_domain": "https://lotec.com.tr",
+      "official_opportunity_urls": [
+        "https://lotec.com.tr/kariyer/"
+      ],
+      "current_opportunity_state": "Arama dizini resmî sayfada full-stack, mobil, elektronik ve DevOps rolleri gösteriyor.",
+      "student_signal": "Doğrulanan görünümde staj veya öğrenciye özel rol yok.",
+      "access_observation": "Doğrudan sayfa bot challenge döndürüyor; challenge aşılmamalı ve dizin sonucu otomatik ilan kaynağı sayılmamalı.",
+      "automation_decision": "research_blocked",
+      "decision_rationale": "Teknik roller güçlü olsa da izinli, kararlı bir kaynak olmadan otomasyon güvenli değil; sonraki batch'te manuel veya resmî ATS yolu aranmalı.",
+      "phase_18_batch": "later_batch"
+    },
+    {
+      "company": "Bilişim AŞ",
+      "technopark": "Hacettepe Teknokent",
+      "current_identity": "Bağımsız ve faal kurumsal yazılım şirketi; Hacettepe Teknokent kimliği ve staj süreci güncel.",
+      "official_domain": "https://bilisim.com.tr",
+      "official_opportunity_urls": [
+        "https://bilisim.com.tr/insan-kaynaklari-surecleri/"
+      ],
+      "current_opportunity_state": "Resmî insan kaynakları sayfası işe alım ve staj kabul süreçlerini açıklıyor; yapılandırılmış açık ilan listesi veya ayrı staj başvuru formu sunmuyor.",
+      "student_signal": "Stajyerlere proje atanması ve uygun durumda sürenin uzatılması/yarı zamanlı devam olanağı açıkça anlatılıyor.",
+      "access_observation": "Birinci taraf süreç sayfası açık, fakat taranacak ilan kartı yok; metni güncel açık kontenjan gibi çoğaltmak yanlış olur.",
+      "automation_decision": "manual_official",
+      "decision_rationale": "Resmî süreç kaynağı manuel görünürlük sağlar; açık ilan olmadığı için otomatik listing ve bildirim üretmemeli.",
+      "phase_18_batch": "approved_batch_1"
+    },
+    {
+      "company": "Udemy",
+      "technopark": "Hacettepe Teknokent",
+      "current_identity": "Faal küresel öğrenme platformu; resmî kariyer sayfası Ankara ve İstanbul Türkiye lokasyonlarını güncel olarak listeliyor.",
+      "official_domain": "https://www.udemy.com",
+      "official_opportunity_urls": [
+        "https://about.udemy.com/careers/"
+      ],
+      "current_opportunity_state": "Resmî sayfa ürün/tasarım/mühendislik işlerini ve tüm fırsatlar bileşenini sunuyor; doğrulama istemcisinde gömülü iş bileşeni yüklenemedi.",
+      "student_signal": "Resmî etki raporu staj programını doğruluyor ve eski Ankara stajyer hikâyeleri var; doğrulama anında Ankara için güncel staj ilanı görünmedi.",
+      "access_observation": "Ana kariyer içeriği açık, işler istemci tarafı bileşenden geliyor; meşru ilanların yalnız resmî kariyer sayfasından doğrulanması gerektiğini şirket ayrıca belirtiyor.",
+      "automation_decision": "defer_unapproved",
+      "decision_rationale": "Güçlü aday, ancak gömülü sağlayıcı ve Ankara filtresi bir sonraki batch'te fixture/fake ile doğrulanmadan otomasyon açılmamalı.",
+      "phase_18_batch": "later_batch"
+    },
+    {
+      "company": "Ankara Bilgi Teknolojileri",
+      "technopark": "Hacettepe Teknokent",
+      "current_identity": "Faal Ankara merkezli yazılım/BT şirketi; resmî domain ve Hacettepe Teknokent kaydı eşleşiyor.",
+      "official_domain": "https://ankarabt.com",
+      "official_opportunity_urls": [
+        "https://ankarabt.com"
+      ],
+      "current_opportunity_state": "Resmî sitede ayrı kariyer/ATS akışı doğrulanmadı; yakın dönem ilan izleri başvuruyu kurumsal ik@ankarabt.com adresine yönlendiriyor.",
+      "student_signal": "Geçmiş Bilkent staj ortaklığı kaydı ve yakın dönem mezuniyet aşamasındaki adaylara dönük yazılım ilanı var; güncel birinci taraf staj ilanı yok.",
+      "access_observation": "Birinci taraf fırsat sayfası bulunmadığından üçüncü taraf ilanları yüksek güvenli otomatik kaynağa dönüştürmek uygun değil.",
+      "automation_decision": "defer_unapproved",
+      "decision_rationale": "Kimlik gerçek fakat güncel öğrenci fırsatı birinci taraf kanıtla zayıf; sonraki batch'te manuel kurumsal e-posta kaynağı olarak değerlendirilmeli.",
+      "phase_18_batch": "later_batch"
+    },
+    {
+      "company": "Peaksoft Consulting",
+      "technopark": "Hacettepe Teknokent",
+      "current_identity": "Faal Ankara merkezli teknoloji süreç danışmanlığı ve yazılım çözümleri şirketi; Hacettepe Teknokent adresi resmî sitede yer alıyor.",
+      "official_domain": "https://www.peaksoftcon.com",
+      "official_opportunity_urls": [
+        "https://www.peaksoftcon.com/"
+      ],
+      "current_opportunity_state": "Ana sayfadaki kariyer bölümü adaylardan e-posta ile CV istiyor; ayrı açık rol, ATS veya ilan listesi yok.",
+      "student_signal": "Staj/öğrenci programı belirtilmiyor; genel CV havuzu dışında öğrenciye özel güncel sinyal bulunmadı.",
+      "access_observation": "Birinci taraf sayfa açık fakat yalnız mailto genel başvuru sunuyor; otomatik listing üretmek mümkün ve dürüst değil.",
+      "automation_decision": "defer_unapproved",
+      "decision_rationale": "Düşük öğrenci sinyali nedeniyle ilk batch dışında; ileride yalnız manuel genel başvuru kaynağı olarak eklenebilir.",
+      "phase_18_batch": "later_batch"
+    }
+  ]
+}
