@@ -23,11 +23,23 @@ sınar. Ayrı Evreka, MechSoft ve Layermark production-shape fixture'ları üç
 etkin kaynağın gerçek kart yapısını ve heading kullanmayan Evreka başlığının
 konum/kategori metniyle birleşmediğini korur.
 
+Faz 16.5 config testi belirlenen on bir şirketin `secondary` önceliğini koruyup
+ayrı takip fazına taşındığını; otomatik olmayan kaynakların geçerli neden kodu ve
+her kaynağın RFC3339 doğrulama zamanı taşıdığını sınar. İnnova fixture'ı resmî
+sayfadaki Chakra kartlarından başlık/ham metin çıkarmayı, yalnız allowlist'teki
+LinkedIn başvuru URL'sini kaydetmeyi ve dış hedefe hiç istek göndermemeyi
+kanıtlar. Tanımsız dış host fail-closed biçimde `ErrUnexpectedPage` üretir.
+
 Kapsama repository testi birincil ve ikincil şirketleri aynı yanıtta raporlar;
 genel özet ile iki `priority_summaries` kırılımında beş durumun sayımını ve
 manuel kaynağın otomatik kapsama paydasından çıkarılmasını gerçek SQLite ile
 doğrular. HTTP testi `/api/v1/coverage` JSON sözleşmesini fake repository ile
 ağsız sınar.
+
+Faz 16.5 repository testi takip fazı, neden kodu ve doğrulama zamanının migration
+sonrasında korunduğunu; `section_summaries` içinde Faz 16.5'in normal ikincil
+bölümden ayrıldığını doğrular. Frontend helper testi aynı dışlayıcı gruplamayı ve
+Türkçe neden etiketlerini korur.
 
 Frontend kapsama helper testi beş backend durumunun ayrı Türkçe etiket ve görsel
 tonunu, bozuk durumun tehlike tonunu, yerel yüzde biçimini, program durumunu ve
@@ -50,8 +62,16 @@ Zaman damgalı sonuç `docs/acceptance/phase-15-2026-08-11.md` içindedir.
 production kataloğunu gerçek geçici SQLite'a kaydeder ve robots kontrollü Evreka
 fixture'ını iki taramada işler. İki görünür ikincil fırsata karşı yalnız backend
 odak eşleşmesinden tek fake push; tekrarda sıfır yeni kayıt ve API'de 15 mevcut
-ikincil şirketin 4 otomatik, 5 manuel, 6 araştırılıyor / `%40` kırılımını bekler.
+ikincil şirketin 5 otomatik, 4 manuel, 6 araştırılıyor / yaklaşık `%45,5`
+kırılımını bekler.
 Faz 16'nın yeni 14 şirketi ayrıca katalog testinde eski STM kaydından ayrıdır.
+
+`TestPhase165ResearchCohortAndOfficialInnovaIndexEndToEnd`, production config'ini
+gerçek geçici SQLite'a kaydeder, robots-izinli İnnova fixture'ını tarar ve iki
+resmî kartın bulunduğunu doğrular. Coverage HTTP yanıtında Faz 16.5 için 11
+şirket/1 otomatik/4 manuel/6 araştırılıyor, normal ikincil bölümde ise dört
+otomatik şirket beklenir; manuel/araştırma kaynaklarının neden kodu ve doğrulama
+zamanı API ayrıntısında zorunludur.
 
 ```bash
 go test ./...

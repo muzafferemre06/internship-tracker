@@ -212,6 +212,37 @@ ve yüksek kaynak güveni isteyen ikincil push kapısı iki taramalı fixture/fa
 kabulünde geçti; güvenli kanıt `docs/acceptance/phase-16-2026-08-11.md`
 dosyasındadır.
 
+## Faz 16.5 — Ayrı kaynak araştırması ve manuel takip
+
+### Kapsam
+
+- İnnova, İntertech, Sebit, DenizBank, Otsimo, Mobiliz, AI Studio, Belsis,
+  Viseur AI, Actioner ve Bilishim iş önceliği bakımından `secondary` kalır;
+  kapsama ekranında `tracking_phase=16.5` ile diğer ikincil şirketlerden ayrı
+  gösterilir.
+- Her resmî kaynak kariyer/ATS, robots, sitemap, yapılandırılmış veri ve açık API
+  açısından yeniden doğrulanır. Hesap, CAPTCHA ve üçüncü taraf toplayıcılar
+  otomatik taranmaz; özel API tersine mühendisliği yapılmaz.
+- Otomatik olmayan her kaynak yapılandırılmış engel kodu, ayrıntılı Türkçe
+  gerekçe, resmî manuel bağlantı ve son doğrulama zamanı taşır.
+- Resmî sayfada açık ilan kartı varsa fixture-first deterministik adapter açılır.
+  Dış başvuru hedefi ancak açık host allowlist'indeyse kaydedilir ve adapter bu
+  hedefe istek göndermez.
+
+### Çıkış kriteri
+
+On bir şirket ayrı Faz 16.5 bölümünde eksiksiz görünür; İnnova'nın resmî ilan
+indeksi otomatik taranır, kalan kaynakların neden otomatikleştirilemediği doğrudan
+ekranda açıklanır. Config → SQLite → coverage API → PWA ve resmî indeks taraması
+fixture tabanlı uçtan uca kabul testinden geçer.
+
+### Uygulama durumu (11 Ağustos 2026)
+
+Davranış ve fixture kabulü tamamlandı. Ayrıntılı resmî kaynak matrisi
+`docs/research/phase-16.5-sources-2026-08-11.md`, doğrulama kaydı
+`docs/acceptance/phase-16.5-2026-08-11.md` dosyasındadır. Production yayını tam
+kalite kapısından ve ayrı kullanıcı onayından sonra yapılır.
+
 ## Faz 17 — Üçüncül şirket araştırması
 
 ### Kapsam

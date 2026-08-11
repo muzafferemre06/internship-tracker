@@ -139,6 +139,68 @@ func TestProductionSourcesContainApprovedPhase16SecondaryCompaniesWithCoverage(t
 	}
 }
 
+func TestProductionSourcesSeparatePhase165ResearchCohort(t *testing.T) {
+	sources, err := LoadSources("../../configs/sources.json")
+	if err != nil {
+		t.Fatalf("load production sources: %v", err)
+	}
+	want := map[string]bool{
+		"İnnova": false, "İntertech": false, "Sebit": false, "DenizBank": false,
+		"Otsimo": false, "Mobiliz": false, "AI Studio": false, "Belsis": false,
+		"Viseur AI": false, "Actioner": false, "Bilishim": false,
+	}
+	for _, company := range sources.Companies {
+		if _, included := want[company.Name]; !included {
+			if company.TrackingPhase == "16.5" {
+				t.Errorf("unexpected company %q in Phase 16.5", company.Name)
+			}
+			continue
+		}
+		want[company.Name] = true
+		if company.PriorityGroup != "secondary" || company.TrackingPhase != "16.5" {
+			t.Errorf("company %q must remain secondary and move to tracking phase 16.5: %#v", company.Name, company)
+		}
+		for _, source := range company.Sources {
+			if source.LastVerifiedAt == "" {
+				t.Errorf("source %q lacks a verification date", source.ID)
+			}
+			if source.EffectiveCoverageStatus() != "automatic" && source.CoverageReasonCode == "" {
+				t.Errorf("non-automatic source %q lacks a structured reason", source.ID)
+			}
+		}
+	}
+	for company, found := range want {
+		if !found {
+			t.Errorf("Phase 16.5 company %q is missing", company)
+		}
+	}
+}
+
+func TestLoadSourcesValidatesPhase165Metadata(t *testing.T) {
+	path := writeConfigTestFile(t, `{
+		"companies":[{
+			"name":"Test", "priority_group":"secondary", "tracking_status":"manual", "tracking_phase":"16.5",
+			"sources":[{"id":"test", "type":"career_page", "url":"https://example.test/careers", "adapter":"manual", "strategy":"manual", "enabled":false,
+				"coverage_status":"manual", "coverage_reason":"Oturum gerekiyor.", "coverage_reason_code":"account_required", "last_verified_at":"2026-08-11T00:00:00+03:00"}]
+		}]
+	}`)
+	if _, err := LoadSources(path); err != nil {
+		t.Fatalf("valid Phase 16.5 metadata was rejected: %v", err)
+	}
+
+	invalidReason := strings.ReplaceAll(readConfigTestFile(t, path), "account_required", "made_up")
+	badReasonPath := writeConfigTestFile(t, invalidReason)
+	if _, err := LoadSources(badReasonPath); err == nil || !strings.Contains(err.Error(), "coverage_reason_code") {
+		t.Fatalf("expected invalid reason code error, got %v", err)
+	}
+
+	invalidDate := strings.ReplaceAll(readConfigTestFile(t, path), "2026-08-11T00:00:00+03:00", "yesterday")
+	badDatePath := writeConfigTestFile(t, invalidDate)
+	if _, err := LoadSources(badDatePath); err == nil || !strings.Contains(err.Error(), "last_verified_at") {
+		t.Fatalf("expected invalid verification date error, got %v", err)
+	}
+}
+
 func TestLoadSourcesRejectsInconsistentCoverageClassification(t *testing.T) {
 	path := writeConfigTestFile(t, `{
 		"companies":[{"name":"Test","priority_group":"primary","sources":[{
@@ -393,4 +455,13 @@ func writeConfigTestFile(t *testing.T, contents string) string {
 		t.Fatalf("write config: %v", err)
 	}
 	return path
+}
+
+func readConfigTestFile(t *testing.T, path string) string {
+	t.Helper()
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(contents)
 }

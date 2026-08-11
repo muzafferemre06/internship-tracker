@@ -28,7 +28,7 @@
     { "domain": "jotform.com", "mode": "robots", "minimum_interval_seconds": 86400, "base_cooldown_seconds": 21600, "maximum_cooldown_seconds": 86400 },
     { "domain": "akinsoft.com.tr", "mode": "robots", "minimum_interval_seconds": 86400, "base_cooldown_seconds": 21600, "maximum_cooldown_seconds": 86400 },
     { "domain": "kariyer.roketsan.com.tr", "mode": "robots", "minimum_interval_seconds": 86400, "base_cooldown_seconds": 21600, "maximum_cooldown_seconds": 86400 },
-    { "domain": "innova.com.tr", "mode": "manual_only" },
+    { "domain": "innova.com.tr", "mode": "robots", "minimum_interval_seconds": 86400, "base_cooldown_seconds": 3600, "maximum_cooldown_seconds": 86400 },
     { "domain": "intertech.com.tr", "mode": "manual_only" },
     { "domain": "sebitkariyerim.sebit.com.tr", "mode": "manual_only" },
     { "domain": "denizbank.com", "mode": "manual_only" },
@@ -283,18 +283,19 @@
     {
       "name": "İnnova",
       "priority_group": "secondary",
-      "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "innova-official-jobs",
           "type": "career_page",
           "url": "https://www.innova.com.tr/is-ilanlari",
-          "adapter": "manual",
-          "strategy": "manual",
-          "coverage_status": "manual",
-          "coverage_reason": "Resmî ilan sayfası başvuruları LinkedIn'e yönlendiriyor; hesap/oturum yolu otomatik taranmıyor.",
+          "adapter": "career_links",
+          "listing_path_prefix": "/jobs/view/",
+          "listing_allowed_hosts": ["www.linkedin.com"],
+          "coverage_status": "automatic",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
-          "enabled": false
+          "enabled": true
         }
       ]
     },
@@ -302,6 +303,7 @@
       "name": "İntertech",
       "priority_group": "secondary",
       "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "intertech-official-career",
@@ -310,7 +312,9 @@
           "adapter": "manual",
           "strategy": "manual",
           "coverage_status": "manual",
-          "coverage_reason": "Resmî kariyer sayfası ilan ve başvurular için LinkedIn'i işaret ediyor; oturum gerektiren yol kullanılmıyor.",
+          "coverage_reason": "Resmî kariyer sayfası açık pozisyonlar için LinkedIn'e, StartTech/InternTech/FirstTech programları için Youthall'a yönlendiriyor; bu üçüncü taraf hesap akışları taranmıyor.",
+          "coverage_reason_code": "third_party_restricted",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
         }
@@ -320,6 +324,7 @@
       "name": "Sebit",
       "priority_group": "secondary",
       "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "sebit-official-career",
@@ -329,6 +334,8 @@
           "strategy": "manual",
           "coverage_status": "manual",
           "coverage_reason": "Onaylanan resmî kariyer portalı istemci tarafında çalışıyor; doğrulanmış açık ATS/API bulunmadı.",
+          "coverage_reason_code": "client_rendered_unverified",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
         }
@@ -338,6 +345,7 @@
       "name": "DenizBank",
       "priority_group": "secondary",
       "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "denizbank-human-resources",
@@ -347,6 +355,8 @@
           "strategy": "manual",
           "coverage_status": "manual",
           "coverage_reason": "Resmî sayfa staj programlarını doğruluyor; başvuru portalı ayrı oturum/aday akışı olduğundan otomatik istek yapılmıyor.",
+          "coverage_reason_code": "account_required",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
         }
@@ -356,6 +366,7 @@
       "name": "Mobiliz",
       "priority_group": "secondary",
       "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "mobiliz-official-company",
@@ -364,7 +375,9 @@
           "adapter": "manual",
           "strategy": "manual",
           "coverage_status": "researching",
-          "coverage_reason": "Resmî şirket ve çalışan/stajyer aday metinleri doğrulandı; açık kariyer ilan akışı bulunamadı.",
+          "coverage_reason": "Resmî şirket ve çalışan/stajyer aday metinleri doğrulandı; açık kariyer ilan akışı, ATS, sitemap ilanı veya başvuru sayfası bulunamadı.",
+          "coverage_reason_code": "no_public_job_source",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
         }
@@ -374,6 +387,7 @@
       "name": "AI Studio",
       "priority_group": "secondary",
       "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "ai-studio-official-company",
@@ -382,7 +396,9 @@
           "adapter": "manual",
           "strategy": "manual",
           "coverage_status": "researching",
-          "coverage_reason": "Kullanıcı onaylı aistudio.com.tr ticari kimliği doğrulandı; açık kariyer veya ATS kaynağı bulunamadı.",
+          "coverage_reason": "Kullanıcı onaylı aistudio.com.tr ticari kimliği doğrulandı; robots ve sitemap açık olsa da kariyer, ilan veya ATS kaynağı bulunamadı.",
+          "coverage_reason_code": "no_public_job_source",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
         }
@@ -392,6 +408,7 @@
       "name": "Belsis",
       "priority_group": "secondary",
       "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "belsis-official-company",
@@ -400,7 +417,9 @@
           "adapter": "manual",
           "strategy": "manual",
           "coverage_status": "researching",
-          "coverage_reason": "Resmî Belsis yazılım şirketi kimliği doğrulandı; açık kariyer/ilan akışı bulunamadı.",
+          "coverage_reason": "Resmî şirket kimliği doğrulandı; açık kariyer/ilan akışı bulunamadı ve sunucunun TLS sertifika zinciri standart istemciyle doğrulanamadığı için otomatik erişim açılmadı.",
+          "coverage_reason_code": "source_unreachable",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
         }
@@ -426,6 +445,7 @@
       "name": "Viseur AI",
       "priority_group": "secondary",
       "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "viseur-ai-official-company",
@@ -434,7 +454,9 @@
           "adapter": "manual",
           "strategy": "manual",
           "coverage_status": "researching",
-          "coverage_reason": "Resmî Viseur AI kimliği doğrulandı; indekslenmiş eski kariyer bağlantısı güncel sitede erişilebilir değil.",
+          "coverage_reason": "Resmî sitemap kariyer adresini listeliyor ancak /careers/ bugün 404 dönüyor; güncel sitede ilan, ATS veya başvuru akışı bulunamadı.",
+          "coverage_reason_code": "no_public_job_source",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
         }
@@ -477,6 +499,7 @@
       "name": "Actioner",
       "priority_group": "secondary",
       "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "actioner-official-company",
@@ -485,7 +508,9 @@
           "adapter": "manual",
           "strategy": "manual",
           "coverage_status": "researching",
-          "coverage_reason": "Resmî Actioner alan adı doğrulandı; açık kariyer veya ilan akışı bulunamadı.",
+          "coverage_reason": "Resmî sitemapteki “Build with us” sayfaları işe alım değil müşteri danışmanlığı sunuyor; açık kariyer, ilan veya ATS kaynağı bulunamadı.",
+          "coverage_reason_code": "no_public_job_source",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
         }
@@ -495,6 +520,7 @@
       "name": "Bilishim",
       "priority_group": "secondary",
       "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "bilishim-ai-official-company",
@@ -503,7 +529,9 @@
           "adapter": "manual",
           "strategy": "manual",
           "coverage_status": "researching",
-          "coverage_reason": "Kullanıcı onaylı Bilishim Cyber Security & AI kimliği doğrulandı; açık kariyer kaynağı bulunamadı.",
+          "coverage_reason": "Kullanıcı onaylı Bilishim Cyber Security & AI kimliği doğrulandı; açık kariyer/ATS kaynağı yok ve sitemap farklı, yazım hatalı bir alana yönleniyor.",
+          "coverage_reason_code": "no_public_job_source",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
         }
@@ -513,6 +541,7 @@
       "name": "Otsimo",
       "priority_group": "secondary",
       "tracking_status": "manual",
+      "tracking_phase": "16.5",
       "sources": [
         {
           "id": "otsimo-official-careers",
@@ -522,6 +551,8 @@
           "strategy": "manual",
           "coverage_status": "manual",
           "coverage_reason": "Resmî kariyer sayfası ilanları Indeed'e yönlendiriyor; toplayıcı/hesap yolu otomatik taranmıyor.",
+          "coverage_reason_code": "third_party_restricted",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
         }

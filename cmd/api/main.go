@@ -217,19 +217,22 @@ func configureSources(
 		for _, sourceConfig := range company.Sources {
 			var runtimePolicy *scraper.AccessPolicy
 			registration := domain.SourceRegistration{
-				Key:            sourceConfig.ID,
-				Company:        company.Name,
-				PriorityGroup:  company.PriorityGroup,
-				Type:           sourceConfig.Type,
-				URL:            sourceConfig.URL,
-				Adapter:        sourceConfig.Adapter,
-				Strategy:       sourceConfig.EffectiveStrategy(),
-				TrackingStatus: company.EffectiveTrackingStatus(),
-				Enabled:        sourceConfig.Enabled,
-				CoverageStatus: sourceConfig.EffectiveCoverageStatus(),
-				CoverageReason: sourceConfig.CoverageReason,
-				TrustLevel:     sourceConfig.EffectiveTrustLevel(),
+				Key:                sourceConfig.ID,
+				Company:            company.Name,
+				PriorityGroup:      company.PriorityGroup,
+				Type:               sourceConfig.Type,
+				URL:                sourceConfig.URL,
+				Adapter:            sourceConfig.Adapter,
+				Strategy:           sourceConfig.EffectiveStrategy(),
+				TrackingStatus:     company.EffectiveTrackingStatus(),
+				TrackingPhase:      company.TrackingPhase,
+				Enabled:            sourceConfig.Enabled,
+				CoverageStatus:     sourceConfig.EffectiveCoverageStatus(),
+				CoverageReason:     sourceConfig.CoverageReason,
+				CoverageReasonCode: sourceConfig.CoverageReasonCode,
+				TrustLevel:         sourceConfig.EffectiveTrustLevel(),
 			}
+			registration.LastVerifiedAt, _ = parseOptionalConfigTime(sourceConfig.LastVerifiedAt)
 			if policy, found := configured.ResolveAccessPolicy(sourceConfig.URL); found {
 				registration.AccessMode = policy.Mode
 				registration.AccessScope = policy.Domain
@@ -254,13 +257,14 @@ func configureSources(
 				return nil, fmt.Errorf("source %q uses unsupported adapter %q", sourceConfig.ID, sourceConfig.Adapter)
 			}
 			source, err := scraper.NewSource(sourceConfig.Adapter, scraper.SourceSpec{
-				ID:                 sourceConfig.ID,
-				Company:            company.Name,
-				PageName:           sourceConfig.PageName,
-				URL:                sourceConfig.URL,
-				ListingContainerID: sourceConfig.ListingContainerID,
-				ListingPathPrefix:  sourceConfig.ListingPathPrefix,
-				AccessPolicy:       runtimePolicy,
+				ID:                  sourceConfig.ID,
+				Company:             company.Name,
+				PageName:            sourceConfig.PageName,
+				URL:                 sourceConfig.URL,
+				ListingContainerID:  sourceConfig.ListingContainerID,
+				ListingPathPrefix:   sourceConfig.ListingPathPrefix,
+				ListingAllowedHosts: sourceConfig.ListingAllowedHosts,
+				AccessPolicy:        runtimePolicy,
 			}, deps)
 			if err != nil {
 				return nil, fmt.Errorf("configure source %q: %w", sourceConfig.ID, err)

@@ -91,13 +91,15 @@ Commencis'in resmî Lever ilanı bu adapter'ın yapılandırmasını gösterir.
 Lever istekleri alanın robots politikasındaki bir saniyelik minimum aralıkla
 kalıcı erişim bütçesinden geçirilir.
 
-Faz 16'nın `career_links` adapter'ı açık, aynı-origin kariyer indekslerinde
+Faz 16'nın `career_links` adapter'ı açık kariyer indekslerinde
 ilan kartlarını deterministik olarak çıkarır. `listing_path_prefix` zorunludur;
 gerektiğinde `listing_container_id` taramayı kararlı ilan bölümüne sınırlar.
 Adapter query/fragment parçalarını kanonik URL'den çıkarır, tekrarlı bağlantıları
 birleştirir ve başlık bulunmayan/değişmiş sayfayı sessiz sıfır yerine kaynak
 hatası sayar. Evreka, MechSoft ve Layermark'ın robots-uyumlu açık sayfaları bu
-adapter'la en fazla günde bir taranır.
+adapter'la en fazla günde bir taranır. Faz 16.5'te İnnova'nın resmî sayfasındaki
+kartlar da bu adapter'a alınmıştır: LinkedIn başvuru hedefi açık host
+allowlist'iyle yalnız URL olarak saklanır, LinkedIn hiçbir zaman fetch edilmez.
 
 ## İlan analizi
 
@@ -311,9 +313,10 @@ immutable revision dizinine kurulur. Ayrıntılar deployment runbook'undadır.
 - `POST /api/v1/scan`: etkin kaynakları hemen tarar; toplam bulunan/yeni ilan
   sayılarını, kalıcı tarama kimliğini/durumunu ve kaynak bazlı hataları döndürür;
   başka bir tarama çalışıyorsa `409` döner
-- `GET /api/v1/coverage`: birincil ve ikincil şirketlerin kaynak durumunu, güven
-  sınıfını, manuel/araştırma gerekçesini, dönemsel programlarını ve manuel
-  kaynakları paydadan çıkaran genel/öncelik kırılımlı otomatik oranları döndürür
+- `GET /api/v1/coverage`: birincil, ikincil ve ayrı Faz 16.5 takip bölümünün
+  kaynak durumunu, güven sınıfını, yapılandırılmış manuel/araştırma gerekçesini,
+  son doğrulama zamanını, dönemsel programlarını ve manuel kaynakları paydadan
+  çıkaran genel/öncelik/bölüm kırılımlı otomatik oranları döndürür
 - `POST /api/v1/analyses/retry`: en fazla 25 `pending` analizi, kaynak siteye
   yeniden bağlanmadan saklanan ham ilan metni üzerinden işler; işlenen ve tekrar
   başarısız olan kayıt sayılarını döndürür

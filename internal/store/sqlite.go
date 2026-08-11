@@ -101,13 +101,14 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 		trackingStatus = "active"
 	}
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO companies(name, priority_group, tracking_status)
-		VALUES (?, ?, ?)
+		INSERT INTO companies(name, priority_group, tracking_status, tracking_phase)
+		VALUES (?, ?, ?, ?)
 		ON CONFLICT(name) DO UPDATE SET
 			priority_group = excluded.priority_group,
 			tracking_status = excluded.tracking_status,
+			tracking_phase = excluded.tracking_phase,
 			updated_at = CURRENT_TIMESTAMP
-	`, source.Company, source.PriorityGroup, trackingStatus); err != nil {
+	`, source.Company, source.PriorityGroup, trackingStatus, strings.TrimSpace(source.TrackingPhase)); err != nil {
 		return fmt.Errorf("upsert company %q: %w", source.Company, err)
 	}
 
@@ -129,8 +130,8 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 			company_id, source_key, source_type, url, adapter_type, strategy, enabled,
 			access_mode, access_scope, minimum_interval_seconds,
 			base_cooldown_seconds, maximum_cooldown_seconds,
-			coverage_status, coverage_reason, trust_level
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			coverage_status, coverage_reason, coverage_reason_code, last_verified_at, trust_level
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(source_key) DO UPDATE SET
 			company_id = excluded.company_id,
 			source_type = excluded.source_type,
@@ -145,12 +146,14 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 			maximum_cooldown_seconds = excluded.maximum_cooldown_seconds,
 			coverage_status = excluded.coverage_status,
 			coverage_reason = excluded.coverage_reason,
+			coverage_reason_code = excluded.coverage_reason_code,
+			last_verified_at = excluded.last_verified_at,
 			trust_level = excluded.trust_level,
 			updated_at = CURRENT_TIMESTAMP
 	`, companyID, source.Key, source.Type, source.URL, source.Adapter, strategy, boolInt(source.Enabled),
 		accessMode, strings.ToLower(strings.TrimSpace(source.AccessScope)), durationSeconds(source.MinimumInterval),
 		durationSeconds(source.BaseCooldown), durationSeconds(source.MaximumCooldown),
-		effectiveCoverageStatus(source), strings.TrimSpace(source.CoverageReason), effectiveTrustLevel(source)); err != nil {
+		effectiveCoverageStatus(source), strings.TrimSpace(source.CoverageReason), strings.TrimSpace(source.CoverageReasonCode), nullableTime(source.LastVerifiedAt), effectiveTrustLevel(source)); err != nil {
 		return fmt.Errorf("upsert source %q: %w", source.Key, err)
 	}
 
@@ -1287,10 +1290,11 @@ func (r *SQLiteRepository) Dashboard(ctx context.Context) (DashboardSnapshot, er
 
 func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT companies.name, companies.priority_group, companies.tracking_status,
+		SELECT companies.name, companies.priority_group, companies.tracking_status, companies.tracking_phase,
 			company_sources.source_key, company_sources.source_type, company_sources.url,
 			company_sources.adapter_type, company_sources.strategy, company_sources.coverage_status,
-			company_sources.coverage_reason, company_sources.trust_level, company_sources.enabled,
+			company_sources.coverage_reason, company_sources.coverage_reason_code, company_sources.last_verified_at,
+			company_sources.trust_level, company_sources.enabled,
 			company_sources.last_success_at, COALESCE(company_sources.last_error, '')
 		FROM companies JOIN company_sources ON company_sources.company_id = companies.id
 		WHERE companies.priority_group IN ('primary', 'secondary')
@@ -1302,6 +1306,7 @@ func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error)
 	defer rows.Close()
 	report := CoverageReport{
 		PrioritySummaries: map[string]CoverageSummary{"primary": {}, "secondary": {}},
+		SectionSummaries:  map[string]CoverageSummary{"primary": {}, "secondary": {}, "phase_16_5": {}},
 		Companies:         make([]CompanyCoverage, 0), Programs: make([]ProgramCoverage, 0),
 	}
 	companyIndex := make(map[string]int)
@@ -1309,10 +1314,10 @@ func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error)
 		var company CompanyCoverage
 		var source CoverageSource
 		var enabled int
-		var lastSuccess sql.NullString
-		if err := rows.Scan(&company.Name, &company.Priority, &company.TrackingStatus,
+		var lastSuccess, lastVerified sql.NullString
+		if err := rows.Scan(&company.Name, &company.Priority, &company.TrackingStatus, &company.TrackingPhase,
 			&source.SourceID, &source.Type, &source.URL, &source.Adapter, &source.Strategy,
-			&source.Status, &source.Reason, &source.TrustLevel, &enabled, &lastSuccess, &source.LastError); err != nil {
+			&source.Status, &source.Reason, &source.ReasonCode, &lastVerified, &source.TrustLevel, &enabled, &lastSuccess, &source.LastError); err != nil {
 			return CoverageReport{}, fmt.Errorf("scan source coverage: %w", err)
 		}
 		source.Enabled = enabled == 1
@@ -1320,6 +1325,11 @@ func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error)
 		if err != nil {
 			return CoverageReport{}, fmt.Errorf("parse coverage success time: %w", err)
 		}
+		source.LastVerifiedAt, err = parseStoredTime(lastVerified)
+		if err != nil {
+			return CoverageReport{}, fmt.Errorf("parse coverage verification time: %w", err)
+		}
+		section := coverageSection(company)
 		index, found := companyIndex[company.Name]
 		if !found {
 			index = len(report.Companies)
@@ -1330,12 +1340,18 @@ func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error)
 			prioritySummary := report.PrioritySummaries[company.Priority]
 			prioritySummary.TotalCompanies++
 			report.PrioritySummaries[company.Priority] = prioritySummary
+			sectionSummary := report.SectionSummaries[section]
+			sectionSummary.TotalCompanies++
+			report.SectionSummaries[section] = sectionSummary
 		}
 		report.Companies[index].Sources = append(report.Companies[index].Sources, source)
 		addCoverageSource(&report.Summary, source.Status)
 		prioritySummary := report.PrioritySummaries[company.Priority]
 		addCoverageSource(&prioritySummary, source.Status)
 		report.PrioritySummaries[company.Priority] = prioritySummary
+		sectionSummary := report.SectionSummaries[section]
+		addCoverageSource(&sectionSummary, source.Status)
+		report.SectionSummaries[section] = sectionSummary
 	}
 	if err := rows.Err(); err != nil {
 		return CoverageReport{}, fmt.Errorf("read source coverage: %w", err)
@@ -1344,6 +1360,10 @@ func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error)
 	for priority, summary := range report.PrioritySummaries {
 		finalizeCoverageSummary(&summary)
 		report.PrioritySummaries[priority] = summary
+	}
+	for section, summary := range report.SectionSummaries {
+		finalizeCoverageSummary(&summary)
+		report.SectionSummaries[section] = summary
 	}
 
 	programRows, err := r.db.QueryContext(ctx, `
@@ -1403,6 +1423,13 @@ func finalizeCoverageSummary(summary *CoverageSummary) {
 	if summary.AutomaticEligibleSources > 0 {
 		summary.AutomaticCoveragePercent = float64(summary.AutomaticSources+summary.FeedSources) * 100 / float64(summary.AutomaticEligibleSources)
 	}
+}
+
+func coverageSection(company CompanyCoverage) string {
+	if company.TrackingPhase == "16.5" {
+		return "phase_16_5"
+	}
+	return company.Priority
 }
 
 // manualChecks surfaces sources the scraper attempted and failed on. It
@@ -2342,6 +2369,16 @@ func validateSourceRegistration(source domain.SourceRegistration) error {
 	case "primary", "secondary", "candidate":
 	default:
 		return fmt.Errorf("invalid source priority group %q", source.PriorityGroup)
+	}
+	if source.TrackingPhase != "" && source.TrackingPhase != "16.5" {
+		return fmt.Errorf("invalid tracking phase %q", source.TrackingPhase)
+	}
+	if source.CoverageReasonCode != "" {
+		switch source.CoverageReasonCode {
+		case "account_required", "third_party_restricted", "no_public_job_source", "client_rendered_unverified", "periodic_program", "source_unreachable":
+		default:
+			return fmt.Errorf("invalid coverage reason code %q", source.CoverageReasonCode)
+		}
 	}
 	if strings.TrimSpace(source.Type) == "" || strings.TrimSpace(source.Adapter) == "" {
 		return errors.New("source type and adapter are required")

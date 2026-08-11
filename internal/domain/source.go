@@ -11,23 +11,26 @@ import "time"
 // watchlist entry) rather than scraped, independent of whether any scrape
 // attempt has ever failed.
 type SourceRegistration struct {
-	Key             string
-	Company         string
-	PriorityGroup   string
-	Type            string
-	URL             string
-	Adapter         string
-	Strategy        string
-	TrackingStatus  string
-	Enabled         bool
-	AccessMode      string
-	AccessScope     string
-	MinimumInterval time.Duration
-	BaseCooldown    time.Duration
-	MaximumCooldown time.Duration
-	CoverageStatus  string
-	CoverageReason  string
-	TrustLevel      string
+	Key                string
+	Company            string
+	PriorityGroup      string
+	Type               string
+	URL                string
+	Adapter            string
+	Strategy           string
+	TrackingStatus     string
+	TrackingPhase      string
+	Enabled            bool
+	AccessMode         string
+	AccessScope        string
+	MinimumInterval    time.Duration
+	BaseCooldown       time.Duration
+	MaximumCooldown    time.Duration
+	CoverageStatus     string
+	CoverageReason     string
+	CoverageReasonCode string
+	LastVerifiedAt     *time.Time
+	TrustLevel         string
 }
 
 // ProgramWindow models a period-based application program independently from

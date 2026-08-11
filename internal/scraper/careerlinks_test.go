@@ -89,3 +89,51 @@ func TestCareerLinksSourceProductionShapes(t *testing.T) {
 		})
 	}
 }
+
+func TestCareerLinksSourceAllowsConfiguredExternalApplicationHostWithoutFetchingIt(t *testing.T) {
+	fixture, err := os.ReadFile("testdata/careerlinks/innova-careers.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	requests := 0
+	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		requests++
+		if request.URL.String() != "https://www.innova.com.tr/is-ilanlari" {
+			t.Fatalf("external application target must never be fetched: %s", request.URL)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(string(fixture)))}, nil
+	})}
+	source, err := NewCareerLinksSourceWithAllowedHosts(
+		"innova-official-jobs", "İnnova", "https://www.innova.com.tr/is-ilanlari",
+		"open-positions", "/jobs/view/", []string{"www.linkedin.com"}, client,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	listings, err := source.FetchListings(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requests != 1 || len(listings) != 2 {
+		t.Fatalf("expected one official page request and two listings, requests=%d listings=%#v", requests, listings)
+	}
+	if listings[0].Title != "Sistem Linux Uzmanı" || listings[0].URL != "https://www.linkedin.com/jobs/view/1234567890" ||
+		!strings.Contains(listings[0].RawText, "İstanbul") {
+		t.Fatalf("unexpected official card extraction: %#v", listings[0])
+	}
+}
+
+func TestCareerLinksSourceRejectsUnconfiguredExternalHost(t *testing.T) {
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(
+			`<main id="open-positions"><article><h4>Backend Intern</h4><a href="https://evil.example/jobs/view/1">Başvur</a></article></main>`,
+		))}, nil
+	})}
+	source, err := NewCareerLinksSourceWithAllowedHosts("jobs", "Test", "https://example.test/careers", "open-positions", "/jobs/view/", []string{"www.linkedin.com"}, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := source.FetchListings(context.Background()); err == nil || !strings.Contains(err.Error(), ErrUnexpectedPage.Error()) {
+		t.Fatalf("expected unconfigured host to be rejected, got %v", err)
+	}
+}

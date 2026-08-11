@@ -96,6 +96,7 @@ type CompanyConfig struct {
 	Name           string          `json:"name"`
 	PriorityGroup  string          `json:"priority_group"`
 	TrackingStatus string          `json:"tracking_status,omitempty"`
+	TrackingPhase  string          `json:"tracking_phase,omitempty"`
 	Sources        []SourceConfig  `json:"sources"`
 	Programs       []ProgramConfig `json:"programs,omitempty"`
 }
@@ -121,18 +122,30 @@ func (c CompanyConfig) EffectiveTrackingStatus() string {
 }
 
 type SourceConfig struct {
-	ID                 string `json:"id"`
-	Type               string `json:"type"`
-	URL                string `json:"url"`
-	Adapter            string `json:"adapter"`
-	Strategy           string `json:"strategy,omitempty"`
-	PageName           string `json:"page_name,omitempty"`
-	ListingContainerID string `json:"listing_container_id,omitempty"`
-	ListingPathPrefix  string `json:"listing_path_prefix,omitempty"`
-	Enabled            bool   `json:"enabled"`
-	CoverageStatus     string `json:"coverage_status,omitempty"`
-	CoverageReason     string `json:"coverage_reason,omitempty"`
-	TrustLevel         string `json:"trust_level,omitempty"`
+	ID                  string   `json:"id"`
+	Type                string   `json:"type"`
+	URL                 string   `json:"url"`
+	Adapter             string   `json:"adapter"`
+	Strategy            string   `json:"strategy,omitempty"`
+	PageName            string   `json:"page_name,omitempty"`
+	ListingContainerID  string   `json:"listing_container_id,omitempty"`
+	ListingPathPrefix   string   `json:"listing_path_prefix,omitempty"`
+	ListingAllowedHosts []string `json:"listing_allowed_hosts,omitempty"`
+	Enabled             bool     `json:"enabled"`
+	CoverageStatus      string   `json:"coverage_status,omitempty"`
+	CoverageReason      string   `json:"coverage_reason,omitempty"`
+	CoverageReasonCode  string   `json:"coverage_reason_code,omitempty"`
+	LastVerifiedAt      string   `json:"last_verified_at,omitempty"`
+	TrustLevel          string   `json:"trust_level,omitempty"`
+}
+
+var validCoverageReasonCodes = map[string]struct{}{
+	"account_required":           {},
+	"third_party_restricted":     {},
+	"no_public_job_source":       {},
+	"client_rendered_unverified": {},
+	"periodic_program":           {},
+	"source_unreachable":         {},
 }
 
 func (s SourceConfig) EffectiveCoverageStatus() string {
@@ -325,6 +338,9 @@ func (c SourcesConfig) validate() error {
 		default:
 			return fmt.Errorf("company %q has invalid tracking_status %q", name, company.TrackingStatus)
 		}
+		if company.TrackingPhase != "" && company.TrackingPhase != "16.5" {
+			return fmt.Errorf("company %q has invalid tracking_phase %q", name, company.TrackingPhase)
+		}
 
 		for sourceIndex, source := range company.Sources {
 			if err := source.validate(); err != nil {
@@ -436,6 +452,12 @@ func (s SourceConfig) validate() error {
 	if s.Adapter == "career_links" && !strings.HasPrefix(strings.TrimSpace(s.ListingPathPrefix), "/") {
 		return errors.New("career_links adapter requires listing_path_prefix starting with /")
 	}
+	for _, host := range s.ListingAllowedHosts {
+		normalized := normalizePolicyDomain(host)
+		if !validPolicyDomain(host, normalized) {
+			return fmt.Errorf("invalid listing_allowed_hosts entry %q", host)
+		}
+	}
 	parsedURL, err := url.ParseRequestURI(s.URL)
 	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
 		return errors.New("url must be an absolute HTTP(S) URL")
@@ -465,6 +487,16 @@ func (s SourceConfig) validate() error {
 	case "official_company", "official_ats", "verified_newsletter", "aggregator":
 	default:
 		return fmt.Errorf("invalid trust_level %q", s.EffectiveTrustLevel())
+	}
+	if s.CoverageReasonCode != "" {
+		if _, ok := validCoverageReasonCodes[s.CoverageReasonCode]; !ok {
+			return fmt.Errorf("invalid coverage_reason_code %q", s.CoverageReasonCode)
+		}
+	}
+	if s.LastVerifiedAt != "" {
+		if _, err := time.Parse(time.RFC3339, s.LastVerifiedAt); err != nil {
+			return errors.New("last_verified_at must be an RFC3339 timestamp")
+		}
 	}
 	return nil
 }

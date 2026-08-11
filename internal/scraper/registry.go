@@ -8,13 +8,14 @@ import (
 // SourceSpec carries the configuration a factory needs to build a Source,
 // independent of how that configuration arrived (file, DB row, API call).
 type SourceSpec struct {
-	ID                 string
-	Company            string
-	PageName           string
-	URL                string
-	ListingContainerID string
-	ListingPathPrefix  string
-	AccessPolicy       *AccessPolicy
+	ID                  string
+	Company             string
+	PageName            string
+	URL                 string
+	ListingContainerID  string
+	ListingPathPrefix   string
+	ListingAllowedHosts []string
+	AccessPolicy        *AccessPolicy
 }
 
 // SourceDeps carries shared, app-level services some adapters need but that are
@@ -51,7 +52,7 @@ var adapterFactories = map[string]SourceFactory{
 		return NewJSONLDSource(spec.ID, spec.Company, spec.URL, nil)
 	},
 	"career_links": func(spec SourceSpec, _ SourceDeps) (Source, error) {
-		return NewCareerLinksSource(spec.ID, spec.Company, spec.URL, spec.ListingContainerID, spec.ListingPathPrefix, nil)
+		return NewCareerLinksSourceWithAllowedHosts(spec.ID, spec.Company, spec.URL, spec.ListingContainerID, spec.ListingPathPrefix, spec.ListingAllowedHosts, nil)
 	},
 	"greenhouse": func(spec SourceSpec, _ SourceDeps) (Source, error) {
 		return NewGreenhouseSource(spec.ID, spec.Company, spec.URL, nil)

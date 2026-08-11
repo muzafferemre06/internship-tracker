@@ -2,12 +2,23 @@
 
 ## Aktif faz
 
-Faz 16 tamamlandı, tam kalite kapısı geçti ve ayrı kullanıcı onayından sonra
+Faz 16.5 davranışı geliştirildi ve fixture kabulü geçti; tam kalite kapısı ve
+commit/push doğrulaması sürüyor. Production deploy edilmedi ve ayrı onay kapısı
+korunuyor. Önceki Faz 16 tamamlandı, tam kalite kapısı geçti ve ayrı kullanıcı onayından sonra
 `b66c5b2c110c179b2e2052b04fe187bb9ce1b061` revision'ı yerel Docker +
 Cloudflare Tunnel production ortamına deploy edildi. Snapshot/restorecheck,
 health/smoke, HTTP/2 ve kalıcı `internship_tracker_data` kimliği doğrulandı;
 ayrıntılar `docs/acceptance/phase-16-2026-08-11.md` dosyasındadır. Faz 17 yalnız
 üçüncül şirket araştırmasıdır ve ayrıca planlanıp onaylanmadan başlamaz.
+
+İnnova, İntertech, Sebit, DenizBank, Otsimo, Mobiliz, AI Studio, Belsis, Viseur
+AI, Actioner ve Bilishim iş kurallarında `secondary` kalırken API/PWA'da ayrı
+Faz 16.5 kaynak araştırması ve manuel takip bölümündedir. İnnova resmî kartlardan
+otomatik izlenir; LinkedIn yalnız allowlist'teki başvuru hedefidir ve fetch
+edilmez. Diğer on kaynak resmî bağlantı, yapılandırılmış engel kodu, ayrıntılı
+neden ve doğrulama tarihi taşır. Kaynak matrisi
+`docs/research/phase-16.5-sources-2026-08-11.md`, fixture kabulü
+`docs/acceptance/phase-16.5-2026-08-11.md` dosyasındadır.
 
 Kullanıcı 11 Ağustos 2026'da kapsamı ve kimlik kararlarını onayladı:
 `ÜşüSebit` kanonik `Sebit`, `AI Studio` `aistudio.com.tr`, `Bilishim` ise
@@ -15,11 +26,11 @@ Kullanıcı 11 Ağustos 2026'da kapsamı ve kimlik kararlarını onayladı:
 `docs/research/phase-16-sources-2026-08-11.md` dosyasındadır.
 
 On dört Faz 16 şirketi production kataloğuna eklendi. Açık ve robots-uyumlu
-Evreka, MechSoft ve Layermark kariyer indeksleri fixture-first deterministik
+Evreka, MechSoft, Layermark ve Faz 16.5 kapsamındaki İnnova kariyer indeksleri fixture-first deterministik
 `career_links` adapter'ıyla otomatik izlenir. Oturum/toplayıcı yolu kullanan veya
-açık ilan akışı bulunmayan diğer on bir kaynak manuel ya da araştırılıyor olarak
+açık ilan akışı bulunmayan diğer on kaynak manuel ya da araştırılıyor olarak
 gerekçesiyle görünür tutulur. Coverage API/PWA artık genel toplamın yanında
-birincil ve ikincil grupların şirket, kaynak, durum ve otomatik oranlarını ayrı
+birincil, ikincil ve Faz 16.5 gruplarının şirket, kaynak, durum ve otomatik oranlarını ayrı
 gösterir; manuel kaynak her iki oranın da paydasından çıkarılır. İkincil fırsat
 yalnız boş olmayan odak eşleşmesi, sabit `0.7` güven ve yüksek kaynak güvenini
 birlikte sağladığında ayrı sürümlü event ile push üretir. Uçtan uca Faz 16
@@ -37,12 +48,13 @@ Commencis birincil gruba alındı; Türk Telekom, Jotform, Akınsoft ve Roketsan
 doğrulanmış resmî URL ve açık manuel/araştırılıyor gerekçeleriyle eklendi.
 Kaynak kapsama ve güven sınıfları SQLite'a kalıcı yazılır.
 
-Minimal `GET /api/v1/coverage` endpoint'i birincil ve ikincil şirketleri, kaynak
-sağlık/kapsama ayrıntılarını, dönemsel programları ve manuel kaynakları dışlayan
-genel ve öncelik kırılımlı otomatik kapsama oranlarını sunar.
+Minimal `GET /api/v1/coverage` endpoint'i birincil, ikincil ve Faz 16.5 takip
+bölümünü; kaynak sağlık/kapsama ayrıntılarını, neden kodu/doğrulama zamanını,
+dönemsel programları ve manuel kaynakları dışlayan genel, öncelik ve bölüm
+kırılımlı otomatik kapsama oranlarını sunar.
 
-PWA kapsama paneli birincil ve ikincil şirketleri ayrı grup başlıkları ve
-otomatik oranlarla sunar. Panel beş kaynak durumunu, açık gerekçeleri ve Turkcell
+PWA kapsama paneli birincil, ikincil ve Faz 16.5 şirketlerini ayrı grup başlıkları
+ve otomatik oranlarla sunar. Panel beş kaynak durumunu, açık gerekçeleri ve Turkcell
 dahil dönemsel programların açık/kapalı/bilinmiyor durumunu mobilde tek kolona
 inen görünümde korur.
 
@@ -143,8 +155,9 @@ penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
 - Production DB yolunu ve yalnız güvenli tablo sayılarını read-only raporlayan
   `dbinspect` aracı ile volume/DB kimliği operasyon akışı
 - On dört yeni ikincil şirket için kanonik kimlik ve erişim sınıfları; Evreka,
-  MechSoft ve Layermark için deterministik `career_links` adapter'ı
-- Coverage API/PWA'da genel toplamdan ayrı birincil ve ikincil özetler
+  MechSoft, Layermark ve İnnova için deterministik `career_links` adapter'ı
+- Coverage API/PWA'da genel toplamdan ayrı birincil, ikincil ve Faz 16.5 özetleri
+- Faz 16.5 kaynaklarında yapılandırılmış engel kodu ve doğrulama zamanı
 - Güçlü ikincil fırsatlarda odak alanı, sabit `0.7` güven ve yüksek kaynak
   güvenini birlikte isteyen versionlanmış bildirim kapısı
 
@@ -227,11 +240,16 @@ penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
   iki taramalı dedup'ı, zayıf aday görünürlüğünü, tek güçlü ikincil push'ı ve
   %40 ikincil otomatik kapsama oranını doğruladı. Kanıt
   `docs/acceptance/phase-16-2026-08-11.md` içindedir.
+- Faz 16.5 fixture kabulü on bir şirketin ayrı bölümünü, İnnova resmî indeksinin
+  dış başvuru hedefine istek göndermeden taranmasını ve manuel/araştırma
+  kayıtlarının neden/tarih metadata'sını doğruladı. Kanıt
+  `docs/acceptance/phase-16.5-2026-08-11.md` içindedir.
 
 ## Sıradaki iş
 
 Faz 15 birincil ve Faz 16 ikincil şirket kapsamı tamamlandı; Faz 16 production
-deploy'u snapshot ve kalıcılık kanıtıyla doğrulandı. Sonraki ürün işi Faz 17'de
+deploy'u snapshot ve kalıcılık kanıtıyla doğrulandı. Faz 16.5 kalite/push ve ayrı
+production onay kapısındadır. Sonraki ürün işi Faz 17'de
 yalnız üçüncül şirket araştırması, ardından Faz 18'de onaylanan şirketlerin eklenmesidir.
 RSS/e-posta ve geniş fırsat türleri Faz 19–21'de, analitik/öğrenme ise Faz 23'te
 ele alınır; ayrıntılar `docs/roadmap.md` içindedir.

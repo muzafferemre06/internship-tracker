@@ -15,11 +15,14 @@ import { readJSONResponse } from "./lib/api";
 import { listingIDFromURL, urlWithListing } from "./lib/navigation";
 import { disablePush, enablePush, getPushStatus, type PushStatus } from "./lib/push";
 import {
+  companiesForSection,
+  coverageForSection,
+  coverageReasonLabels,
   coverageStatusLabels,
   coverageTone,
-  coverageForPriority,
   formatCoveragePercent,
   programStatusLabels,
+  type CoverageSection,
   type CoverageResponse,
 } from "./lib/coverage";
 
@@ -400,12 +403,17 @@ export default function App() {
           </div>
           {coverage ? (
             <>
-              {(["primary", "secondary"] as const).map((priority) => {
-                const summary = coverageForPriority(coverage, priority);
+              {([
+                { key: "primary", title: "Birincil şirketler" },
+                { key: "secondary", title: "İkincil şirketler" },
+                { key: "phase_16_5", title: "Faz 16.5 — Kaynak araştırması ve manuel takip" },
+              ] as Array<{ key: CoverageSection; title: string }>).map((section) => {
+                const summary = coverageForSection(coverage, section.key);
+                const companies = companiesForSection(coverage, section.key);
                 return (
-                  <div className="coverage-group" key={priority}>
+                  <div className="coverage-group" key={section.key}>
                     <div className="coverage-group-heading">
-                      <h3>{priority === "primary" ? "Birincil şirketler" : "İkincil şirketler"}</h3>
+                      <h3>{section.title}</h3>
                       <span>{summary.total_companies} şirket</span>
                     </div>
                     <div className="coverage-summary">
@@ -414,14 +422,18 @@ export default function App() {
                       <small>{summary.automatic_sources} otomatik · {summary.feed_sources} akış · {summary.manual_sources} manuel · {summary.researching_sources} araştırılıyor · {summary.broken_sources} bozuk</small>
                     </div>
                     <ul className="coverage-list">
-                      {coverage.companies.filter((company) => company.priority === priority).map((company) => (
+                      {companies.map((company) => (
                         <li key={company.name}>
                           <strong>{company.name}</strong>
                           <div className="coverage-sources">
                             {company.sources.map((source) => (
                               <a key={source.source_id} href={source.url} target="_blank" rel="noreferrer" title={source.reason || source.last_error}>
                                 <span className={`coverage-badge ${coverageTone(source.status)}`}>{coverageStatusLabels[source.status]}</span>
-                                <small>{source.reason || source.last_error || source.trust_level}</small>
+                                <small>
+                                  {source.reason_code ? `${coverageReasonLabels[source.reason_code]} — ` : ""}
+                                  {source.reason || source.last_error || source.trust_level}
+                                  {source.last_verified_at ? ` · Doğrulama: ${formatDate(source.last_verified_at)}` : ""}
+                                </small>
                               </a>
                             ))}
                           </div>

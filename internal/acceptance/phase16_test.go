@@ -121,8 +121,8 @@ func TestPhase16SecondaryCatalogCoverageAndStrongMatchNotificationEndToEnd(t *te
 		t.Fatal(err)
 	}
 	secondary := coverage.PrioritySummaries["secondary"]
-	if secondary.TotalCompanies != 15 || secondary.TotalSources != 15 || secondary.AutomaticSources != 4 ||
-		secondary.ManualSources != 5 || secondary.ResearchingSources != 6 || secondary.AutomaticCoveragePercent != 40 {
+	if secondary.TotalCompanies != 15 || secondary.TotalSources != 15 || secondary.AutomaticSources != 5 ||
+		secondary.ManualSources != 4 || secondary.ResearchingSources != 6 || secondary.AutomaticCoveragePercent < 45.4 || secondary.AutomaticCoveragePercent > 45.5 {
 		t.Fatalf("unexpected secondary coverage: %#v", secondary)
 	}
 }
@@ -136,8 +136,10 @@ func registerPhase16Catalog(t *testing.T, repository *store.SQLiteRepository, co
 				Key: source.ID, Company: company.Name, PriorityGroup: company.PriorityGroup,
 				Type: source.Type, URL: source.URL, Adapter: source.Adapter,
 				Strategy: source.EffectiveStrategy(), TrackingStatus: company.EffectiveTrackingStatus(),
-				Enabled: source.Enabled, CoverageStatus: source.EffectiveCoverageStatus(),
-				CoverageReason: source.CoverageReason, TrustLevel: source.EffectiveTrustLevel(),
+				TrackingPhase: company.TrackingPhase,
+				Enabled:       source.Enabled, CoverageStatus: source.EffectiveCoverageStatus(),
+				CoverageReason: source.CoverageReason, CoverageReasonCode: source.CoverageReasonCode,
+				LastVerifiedAt: phase15Time(t, source.LastVerifiedAt), TrustLevel: source.EffectiveTrustLevel(),
 			}
 			if policy, found := configured.ResolveAccessPolicy(source.URL); found {
 				registration.AccessMode = policy.Mode

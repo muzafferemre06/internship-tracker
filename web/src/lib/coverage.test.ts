@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coverageForPriority, coverageStatusLabels, coverageTone, formatCoveragePercent, programStatusLabels, type CoverageResponse } from "./coverage";
+import { companiesForSection, coverageForPriority, coverageForSection, coverageReasonLabels, coverageStatusLabels, coverageTone, formatCoveragePercent, programStatusLabels, type CoverageResponse } from "./coverage";
 
 describe("coverage presentation", () => {
   it("labels every backend coverage state without merging manual and researching", () => {
@@ -29,5 +29,21 @@ describe("coverage presentation", () => {
 
     expect(coverageForPriority(coverage, "primary").total_companies).toBe(12);
     expect(coverageForPriority(coverage, "secondary").automatic_coverage_percent).toBe(40);
+  });
+
+  it("presents Phase 16.5 as a separate section without changing business priority", () => {
+	const empty = { total_companies: 0, total_sources: 0, automatic_sources: 0, feed_sources: 0, manual_sources: 0, researching_sources: 0, broken_sources: 0, automatic_eligible_sources: 0, automatic_coverage_percent: 0 };
+	const coverage = {
+	  section_summaries: { primary: empty, secondary: empty, phase_16_5: { ...empty, total_companies: 1, total_sources: 1, manual_sources: 1 } },
+	  companies: [
+		{ name: "İnnova", priority: "secondary", tracking_phase: "16.5", tracking_status: "active", sources: [] },
+		{ name: "Evreka", priority: "secondary", tracking_status: "active", sources: [] },
+	  ],
+	} as unknown as CoverageResponse;
+
+	expect(coverageForSection(coverage, "phase_16_5").total_companies).toBe(1);
+	expect(companiesForSection(coverage, "phase_16_5").map((company) => company.name)).toEqual(["İnnova"]);
+	expect(companiesForSection(coverage, "secondary").map((company) => company.name)).toEqual(["Evreka"]);
+	expect(coverageReasonLabels.account_required).toBe("Aday hesabı gerekiyor");
   });
 });

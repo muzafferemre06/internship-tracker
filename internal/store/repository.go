@@ -104,23 +104,26 @@ type DashboardSnapshot struct {
 }
 
 type CoverageSource struct {
-	SourceID      string     `json:"source_id"`
-	Type          string     `json:"type"`
-	URL           string     `json:"url"`
-	Adapter       string     `json:"adapter"`
-	Strategy      string     `json:"strategy"`
-	Status        string     `json:"status"`
-	Reason        string     `json:"reason,omitempty"`
-	TrustLevel    string     `json:"trust_level"`
-	Enabled       bool       `json:"enabled"`
-	LastSuccessAt *time.Time `json:"last_success_at,omitempty"`
-	LastError     string     `json:"last_error,omitempty"`
+	SourceID       string     `json:"source_id"`
+	Type           string     `json:"type"`
+	URL            string     `json:"url"`
+	Adapter        string     `json:"adapter"`
+	Strategy       string     `json:"strategy"`
+	Status         string     `json:"status"`
+	Reason         string     `json:"reason,omitempty"`
+	ReasonCode     string     `json:"reason_code,omitempty"`
+	LastVerifiedAt *time.Time `json:"last_verified_at,omitempty"`
+	TrustLevel     string     `json:"trust_level"`
+	Enabled        bool       `json:"enabled"`
+	LastSuccessAt  *time.Time `json:"last_success_at,omitempty"`
+	LastError      string     `json:"last_error,omitempty"`
 }
 
 type CompanyCoverage struct {
 	Name           string           `json:"name"`
 	Priority       string           `json:"priority"`
 	TrackingStatus string           `json:"tracking_status"`
+	TrackingPhase  string           `json:"tracking_phase,omitempty"`
 	Sources        []CoverageSource `json:"sources"`
 }
 
@@ -151,6 +154,7 @@ type CoverageSummary struct {
 type CoverageReport struct {
 	Summary           CoverageSummary            `json:"summary"`
 	PrioritySummaries map[string]CoverageSummary `json:"priority_summaries"`
+	SectionSummaries  map[string]CoverageSummary `json:"section_summaries"`
 	Companies         []CompanyCoverage          `json:"companies"`
 	Programs          []ProgramCoverage          `json:"programs"`
 }

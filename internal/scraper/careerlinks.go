@@ -25,11 +25,19 @@ type CareerLinksSource struct {
 	pageURL            *url.URL
 	listingContainerID string
 	listingPathPrefix  string
+	allowedHosts       map[string]struct{}
 	client             *http.Client
 	now                func() time.Time
 }
 
 func NewCareerLinksSource(name, company, pageURL, listingContainerID, listingPathPrefix string, client *http.Client) (*CareerLinksSource, error) {
+	return NewCareerLinksSourceWithAllowedHosts(name, company, pageURL, listingContainerID, listingPathPrefix, nil, client)
+}
+
+// NewCareerLinksSourceWithAllowedHosts reads listing cards only from the
+// official index page. Explicit external hosts may be retained as application
+// targets, but they are never fetched by this adapter.
+func NewCareerLinksSourceWithAllowedHosts(name, company, pageURL, listingContainerID, listingPathPrefix string, allowedHosts []string, client *http.Client) (*CareerLinksSource, error) {
 	name = strings.TrimSpace(name)
 	company = strings.TrimSpace(company)
 	listingContainerID = strings.TrimSpace(listingContainerID)
@@ -47,6 +55,15 @@ func NewCareerLinksSource(name, company, pageURL, listingContainerID, listingPat
 	if !strings.HasPrefix(listingPathPrefix, "/") {
 		return nil, errors.New("listing path prefix must start with /")
 	}
+	hosts := map[string]struct{}{strings.ToLower(parsedURL.Hostname()): {}}
+	for _, host := range allowedHosts {
+		host = strings.ToLower(strings.TrimSuffix(strings.TrimSpace(host), "."))
+		parsedHost, err := url.Parse("https://" + host)
+		if err != nil || host == "" || parsedHost.Hostname() != host || parsedHost.Port() != "" || parsedHost.Path != "" {
+			return nil, fmt.Errorf("invalid allowed listing host %q", host)
+		}
+		hosts[host] = struct{}{}
+	}
 	parsedURL.RawQuery = ""
 	parsedURL.Fragment = ""
 	if client == nil {
@@ -55,7 +72,8 @@ func NewCareerLinksSource(name, company, pageURL, listingContainerID, listingPat
 	return &CareerLinksSource{
 		name: name, company: company, pageURL: parsedURL,
 		listingContainerID: listingContainerID, listingPathPrefix: listingPathPrefix,
-		client: client, now: time.Now,
+		allowedHosts: hosts,
+		client:       client, now: time.Now,
 	}, nil
 }
 
@@ -118,8 +136,8 @@ func (s *CareerLinksSource) parseListings(root *html.Node) ([]domain.RawListing,
 			continue
 		}
 		listingURL, err := s.pageURL.Parse(strings.TrimSpace(href))
-		if err != nil || (listingURL.Scheme != "http" && listingURL.Scheme != "https") ||
-			!strings.EqualFold(listingURL.Hostname(), s.pageURL.Hostname()) ||
+		_, allowedHost := s.allowedHosts[strings.ToLower(listingURL.Hostname())]
+		if err != nil || (listingURL.Scheme != "http" && listingURL.Scheme != "https") || !allowedHost ||
 			!strings.HasPrefix(listingURL.Path, s.listingPathPrefix) || listingURL.Path == s.pageURL.Path {
 			continue
 		}

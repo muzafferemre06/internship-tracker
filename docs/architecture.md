@@ -351,14 +351,23 @@ bir kanonik şirketi hedefleyebilir; `Commensis` girdisi bu nedenle ayrı şirke
 oluşturmadan `Commencis` kimliğine bağlanır.
 
 Faz 16 kaynak keşfinde `career_links`, resmî açık kariyer indeksleri için
-deterministik bir ara katmandır. Zorunlu `listing_path_prefix` yalnız aynı-origin
-ilan URL'lerini kabul eder; isteğe bağlı `listing_container_id` DOM yürüyüşünü
+deterministik bir ara katmandır. Zorunlu `listing_path_prefix` aynı-origin ilan
+URL'lerini kabul eder; Faz 16.5'te eklenen `listing_allowed_hosts` yalnız açıkça
+tanımlanmış dış başvuru hostlarını hedef olarak saklayabilir. Adapter dış hedefi
+hiçbir zaman fetch etmez; içerik ve kaynak güveni resmî indeks sayfasından gelir.
+İsteğe bağlı `listing_container_id` DOM yürüyüşünü
 ilan bölümüne sınırlar. Başlık en yakın ilan kartının heading öğesinden, ham
 analiz metni aynı kartın normalize içeriğinden üretilir. Heading kullanmayan
 kartlarda (Evreka gibi) bağlantının ilk dolu doğrudan çocuğu başlıktır; konum ve
 kategori kardeşleri başlığa eklenmez. Query/fragment temizliği ve URL dedup'u
 adapter içinde yapılır. Hiç eşleşme veya beklenen container'ın kaybı
 `ErrUnexpectedPage` üretir; layout kırılması başarılı sıfır ilan sayılmaz.
+
+Faz 16.5 migration'ı şirketlerde `tracking_phase`, kaynaklarda
+`coverage_reason_code` ve `last_verified_at` alanlarını kalıcılaştırır. Engel
+kodları hesap gereksinimi, kısıtlı üçüncü taraf, açık ilan kaynağı yokluğu,
+doğrulanmamış istemci-render akışı, dönemsel program ve güvenli istemciyle
+erişilemeyen kaynak ayrımlarını taşır; serbest metin gerekçe ayrıntıyı korur.
 
 `GET /api/v1/coverage`, birincil ve ikincil şirketleri kaynaklarıyla gruplar ve
 aynı raporda dönemsel program pencerelerini döndürür. `summary` iki grubun
@@ -368,11 +377,18 @@ oranının payı `automatic + feed`, paydası `automatic + feed + researching +
 broken` kaynaklarıdır; bilinçli `manual` kaynaklar katalog toplamında görünür
 ancak genel veya grup oranının paydasına girmez.
 
+İş önceliği ile sunum kohortu birbirinden bağımsızdır. `priority_summaries`
+secondary şirketlerin tamamını korurken `section_summaries.primary`,
+`.secondary` ve `.phase_16_5` PWA'da birbirini dışlayan üç görünür bölümün tam
+sayımlarını verir. Böylece Faz 16.5 şirketleri bildirim/eşleşme açısından
+secondary kalır, fakat araştırma ve manuel takip ekranında ayrı yönetilir.
+
 PWA açılışta dashboard ve fırsat geçmişinden bağımsız olarak kapsama endpoint'ini
 yükler; taramadan sonra üç görünümü de yeniler. Kapsama paneli backend enumlarını
-birleştirmeden ayrı rozetlerle, birincil ve ikincil grup özetlerini birbirine
+birleştirmeden ayrı rozetlerle, birincil, ikincil ve Faz 16.5 grup özetlerini birbirine
 karıştırmadan sunar. Sabit şirket sayısı kullanmaz; backend toplamını gösterir,
-gerekçe/sağlık bilgisini resmî kaynak bağlantısında görünür tutar ve
+gerekçe/sağlık bilgisini, yapılandırılmış engel etiketini ve doğrulama tarihini
+resmî kaynak bağlantısında görünür tutar ve
 `program_windows` kayıtlarını listing kartlarına karıştırmadan ayrı gösterir.
 
 Bildirim outbox kapısı listing'in bağlı `company_sources.trust_level` değerini

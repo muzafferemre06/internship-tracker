@@ -1002,6 +1002,40 @@ func TestRegisterSourcePersistsCoverageAndTrust(t *testing.T) {
 	}
 }
 
+func TestCoverageSeparatesTrackingPhaseAndPersistsResearchMetadata(t *testing.T) {
+	repository, db := newTestRepository(t)
+	verified := time.Date(2026, 8, 11, 0, 0, 0, 0, time.FixedZone("TRT", 3*60*60))
+	err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
+		Key: "phase165", Company: "Research Co", PriorityGroup: "secondary", TrackingPhase: "16.5",
+		Type: "career_page", URL: "https://example.test/careers", Adapter: "manual", Strategy: "manual",
+		TrackingStatus: "manual", CoverageStatus: "manual", CoverageReason: "Aday hesabı gerekiyor.",
+		CoverageReasonCode: "account_required", LastVerifiedAt: &verified, TrustLevel: "official_company", Enabled: false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var phase, reasonCode, verifiedAt string
+	if err := db.QueryRow(`SELECT companies.tracking_phase, company_sources.coverage_reason_code, company_sources.last_verified_at
+		FROM companies JOIN company_sources ON company_sources.company_id = companies.id WHERE source_key = 'phase165'`).Scan(&phase, &reasonCode, &verifiedAt); err != nil {
+		t.Fatal(err)
+	}
+	if phase != "16.5" || reasonCode != "account_required" || verifiedAt == "" {
+		t.Fatalf("unexpected persisted research metadata: phase=%q reason=%q verified=%q", phase, reasonCode, verifiedAt)
+	}
+	report, err := repository.Coverage(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	phaseSummary := report.SectionSummaries["phase_16_5"]
+	if phaseSummary.TotalCompanies != 1 || phaseSummary.ManualSources != 1 || report.SectionSummaries["secondary"].TotalCompanies != 0 {
+		t.Fatalf("unexpected section summaries: %#v", report.SectionSummaries)
+	}
+	company := report.Companies[0]
+	if company.TrackingPhase != "16.5" || company.Sources[0].ReasonCode != "account_required" || company.Sources[0].LastVerifiedAt == nil {
+		t.Fatalf("unexpected coverage detail: %#v", company)
+	}
+}
+
 func TestNotificationRequiresHighTrustSource(t *testing.T) {
 	repository, db := newTestRepository(t)
 	ctx := context.Background()
