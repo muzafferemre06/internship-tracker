@@ -11,8 +11,9 @@ teknokentte toplam 15 sonlu adayla tamamlandı; 12 önerilen, 1 düşük sinyal 
 manuel erişim kararı `docs/research/phase-17-candidates-2026-08-11.md` ile
 makinece doğrulanan JSON kataloğunda kayıtlıdır. Adaylar production config'inden
 izole tutuldu. Kabul kaydı `docs/acceptance/phase-17-2026-08-11.md`
-dosyasındadır. Aktif ürün işi, bu listenin küçük batch'lerle ele alınacağı Faz
-18 hazırlığıdır. Önceki
+dosyasındadır; tam kalite paketi geçti ve araştırma revision'ı upstream `main`e
+gönderildi. Aktif ürün işi, bu listenin küçük batch'lerle ele alınacağı Faz 18
+hazırlığıdır. Önceki
 Faz 16 tamamlandı, tam kalite kapısı geçti ve ayrı kullanıcı onayından sonra
 `b66c5b2c110c179b2e2052b04fe187bb9ce1b061` revision'ı yerel Docker +
 Cloudflare Tunnel production ortamına deploy edildi. Snapshot/restorecheck,

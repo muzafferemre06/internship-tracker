@@ -278,7 +278,9 @@ adayı belgelendi. On iki aday `önerilen`, bir aday `düşük_sinyal`, iki aday
 `erişim_manuel` durumundadır. Makinece doğrulanan katalog ve değerlendirme
 gerekçeleri `docs/research/phase-17-candidates-2026-08-11.json` ile aynı adlı
 Markdown raporundadır. Kabul testi adayların production kaynaklarından izole
-kaldığını doğrular.
+kaldığını doğrular. Tam backend/frontend/deployment/Docker kalite paketi geçti
+ve araştırma revision'ı upstream `main`e gönderildi; kanıt
+`docs/acceptance/phase-17-2026-08-11.md` dosyasındadır.
 
 ## Faz 18 — Onaylanan üçüncül şirketlerin eklenmesi
 
