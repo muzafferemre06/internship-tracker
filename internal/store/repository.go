@@ -103,6 +103,57 @@ type DashboardSnapshot struct {
 	LastScan           *ScanSummary       `json:"last_scan"`
 }
 
+type CoverageSource struct {
+	SourceID      string     `json:"source_id"`
+	Type          string     `json:"type"`
+	URL           string     `json:"url"`
+	Adapter       string     `json:"adapter"`
+	Strategy      string     `json:"strategy"`
+	Status        string     `json:"status"`
+	Reason        string     `json:"reason,omitempty"`
+	TrustLevel    string     `json:"trust_level"`
+	Enabled       bool       `json:"enabled"`
+	LastSuccessAt *time.Time `json:"last_success_at,omitempty"`
+	LastError     string     `json:"last_error,omitempty"`
+}
+
+type CompanyCoverage struct {
+	Name           string           `json:"name"`
+	Priority       string           `json:"priority"`
+	TrackingStatus string           `json:"tracking_status"`
+	Sources        []CoverageSource `json:"sources"`
+}
+
+type ProgramCoverage struct {
+	ProgramID      string     `json:"program_id"`
+	Company        string     `json:"company"`
+	Name           string     `json:"name"`
+	Type           string     `json:"type"`
+	URL            string     `json:"url"`
+	Status         string     `json:"status"`
+	OpensAt        *time.Time `json:"opens_at,omitempty"`
+	ClosesAt       *time.Time `json:"closes_at,omitempty"`
+	LastVerifiedAt *time.Time `json:"last_verified_at,omitempty"`
+}
+
+type CoverageSummary struct {
+	TotalCompanies           int     `json:"total_companies"`
+	TotalSources             int     `json:"total_sources"`
+	AutomaticSources         int     `json:"automatic_sources"`
+	FeedSources              int     `json:"feed_sources"`
+	ManualSources            int     `json:"manual_sources"`
+	ResearchingSources       int     `json:"researching_sources"`
+	BrokenSources            int     `json:"broken_sources"`
+	AutomaticEligibleSources int     `json:"automatic_eligible_sources"`
+	AutomaticCoveragePercent float64 `json:"automatic_coverage_percent"`
+}
+
+type CoverageReport struct {
+	Summary   CoverageSummary   `json:"summary"`
+	Companies []CompanyCoverage `json:"companies"`
+	Programs  []ProgramCoverage `json:"programs"`
+}
+
 type ListingRepository interface {
 	UpsertRawListing(ctx context.Context, listing domain.RawListing) (listingID string, isNew bool, err error)
 	AnalysisRequired(ctx context.Context, listingID string) (bool, error)
@@ -173,6 +224,10 @@ type Repository interface {
 
 type DashboardRepository interface {
 	Dashboard(ctx context.Context) (DashboardSnapshot, error)
+}
+
+type CoverageRepository interface {
+	Coverage(ctx context.Context) (CoverageReport, error)
 }
 
 type TrackingRepository interface {

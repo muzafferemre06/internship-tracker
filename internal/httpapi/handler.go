@@ -39,6 +39,7 @@ type Handler struct {
 	scanner          ScanRunner
 	analysisRetrier  AnalysisRetrier
 	dashboardStore   store.DashboardRepository
+	coverageStore    store.CoverageRepository
 	trackingStore    store.TrackingRepository
 	opportunityStore store.OpportunityRepository
 	readiness        ReadinessChecker
@@ -76,6 +77,7 @@ func NewHandler(
 		scanner:          scanner,
 		analysisRetrier:  analysisRetrier(scanner),
 		dashboardStore:   dashboardStore,
+		coverageStore:    coverageRepository(dashboardStore),
 		trackingStore:    trackingRepository(dashboardStore),
 		opportunityStore: opportunityRepository(dashboardStore),
 		readiness:        readiness,
@@ -91,6 +93,7 @@ func NewHandler(
 	mux.HandleFunc("/health", handler.health)
 	mux.HandleFunc("/ready", handler.ready)
 	mux.HandleFunc("/api/v1/dashboard", handler.dashboard)
+	mux.HandleFunc("/api/v1/coverage", handler.coverage)
 	mux.HandleFunc("/api/v1/opportunities", handler.opportunities)
 	mux.HandleFunc("/api/v1/opportunities/{id}/lifecycle", handler.opportunityLifecycle)
 	mux.HandleFunc("/api/v1/scan", handler.scan)
@@ -102,6 +105,29 @@ func NewHandler(
 	mux.HandleFunc("/api/v1/push/subscriptions", handler.pushSubscriptions)
 
 	return handler.withMiddleware(mux)
+}
+
+func coverageRepository(repository store.DashboardRepository) store.CoverageRepository {
+	coverage, _ := repository.(store.CoverageRepository)
+	return coverage
+}
+
+func (h Handler) coverage(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		methodNotAllowed(writer)
+		return
+	}
+	if h.coverageStore == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "coverage store is unavailable"})
+		return
+	}
+	report, err := h.coverageStore.Coverage(request.Context())
+	if err != nil {
+		h.logger.Error("coverage query failed", "error", err)
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "coverage could not be loaded"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, report)
 }
 
 type pushSubscriptionRequest struct {

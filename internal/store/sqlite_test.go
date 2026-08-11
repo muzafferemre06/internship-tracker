@@ -1002,6 +1002,38 @@ func TestRegisterSourcePersistsCoverageAndTrust(t *testing.T) {
 	}
 }
 
+func TestCoverageReportsPrimarySourcesAndExcludesManualFromAutomaticDenominator(t *testing.T) {
+	repository, _ := newTestRepository(t)
+	ctx := context.Background()
+	registrations := []domain.SourceRegistration{
+		{Key: "automatic", Company: "Auto Co", PriorityGroup: "primary", Type: "career_page", URL: "https://auto.test/jobs", Adapter: "json_ld", Strategy: "json_ld", Enabled: true, CoverageStatus: "automatic", TrustLevel: "official_company"},
+		{Key: "manual", Company: "Manual Co", PriorityGroup: "primary", Type: "career_page", URL: "https://manual.test/jobs", Adapter: "manual", Strategy: "manual", TrackingStatus: "manual", Enabled: false, CoverageStatus: "manual", CoverageReason: "Elle izleniyor.", TrustLevel: "official_company"},
+		{Key: "research", Company: "Research Co", PriorityGroup: "primary", Type: "career_page", URL: "https://research.test/jobs", Adapter: "manual", Strategy: "manual", TrackingStatus: "manual", Enabled: false, CoverageStatus: "researching", CoverageReason: "Adapter araştırılıyor.", TrustLevel: "official_company"},
+		{Key: "secondary", Company: "Secondary Co", PriorityGroup: "secondary", Type: "career_page", URL: "https://secondary.test/jobs", Adapter: "json_ld", Strategy: "json_ld", Enabled: true, CoverageStatus: "automatic", TrustLevel: "official_company"},
+	}
+	for _, registration := range registrations {
+		if err := repository.RegisterSource(ctx, registration); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := repository.RegisterProgramWindow(ctx, domain.ProgramWindow{Key: "manual-program", Company: "Manual Co", Name: "Staj", Type: "internship", URL: "https://manual.test/apply", Status: "closed"}); err != nil {
+		t.Fatal(err)
+	}
+	report, err := repository.Coverage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Summary.TotalCompanies != 3 || report.Summary.TotalSources != 3 || report.Summary.ManualSources != 1 || report.Summary.ResearchingSources != 1 {
+		t.Fatalf("unexpected coverage summary: %#v", report.Summary)
+	}
+	if report.Summary.AutomaticEligibleSources != 2 || report.Summary.AutomaticCoveragePercent != 50 {
+		t.Fatalf("manual source must be excluded from automatic denominator: %#v", report.Summary)
+	}
+	if len(report.Companies) != 3 || len(report.Programs) != 1 || report.Programs[0].Status != "closed" {
+		t.Fatalf("unexpected coverage detail: %#v", report)
+	}
+}
+
 func registerMeteksanSources(t *testing.T, repository *SQLiteRepository) {
 	t.Helper()
 	registerMeteksan(t, repository)

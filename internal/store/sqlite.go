@@ -1280,6 +1280,105 @@ func (r *SQLiteRepository) Dashboard(ctx context.Context) (DashboardSnapshot, er
 	}, nil
 }
 
+func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT companies.name, companies.priority_group, companies.tracking_status,
+			company_sources.source_key, company_sources.source_type, company_sources.url,
+			company_sources.adapter_type, company_sources.strategy, company_sources.coverage_status,
+			company_sources.coverage_reason, company_sources.trust_level, company_sources.enabled,
+			company_sources.last_success_at, COALESCE(company_sources.last_error, '')
+		FROM companies JOIN company_sources ON company_sources.company_id = companies.id
+		WHERE companies.priority_group = 'primary'
+		ORDER BY companies.name, company_sources.source_key
+	`)
+	if err != nil {
+		return CoverageReport{}, fmt.Errorf("query source coverage: %w", err)
+	}
+	defer rows.Close()
+	report := CoverageReport{Companies: make([]CompanyCoverage, 0), Programs: make([]ProgramCoverage, 0)}
+	companyIndex := make(map[string]int)
+	for rows.Next() {
+		var company CompanyCoverage
+		var source CoverageSource
+		var enabled int
+		var lastSuccess sql.NullString
+		if err := rows.Scan(&company.Name, &company.Priority, &company.TrackingStatus,
+			&source.SourceID, &source.Type, &source.URL, &source.Adapter, &source.Strategy,
+			&source.Status, &source.Reason, &source.TrustLevel, &enabled, &lastSuccess, &source.LastError); err != nil {
+			return CoverageReport{}, fmt.Errorf("scan source coverage: %w", err)
+		}
+		source.Enabled = enabled == 1
+		source.LastSuccessAt, err = parseStoredTime(lastSuccess)
+		if err != nil {
+			return CoverageReport{}, fmt.Errorf("parse coverage success time: %w", err)
+		}
+		index, found := companyIndex[company.Name]
+		if !found {
+			index = len(report.Companies)
+			companyIndex[company.Name] = index
+			company.Sources = make([]CoverageSource, 0)
+			report.Companies = append(report.Companies, company)
+		}
+		report.Companies[index].Sources = append(report.Companies[index].Sources, source)
+		report.Summary.TotalSources++
+		switch source.Status {
+		case "automatic":
+			report.Summary.AutomaticSources++
+		case "feed":
+			report.Summary.FeedSources++
+		case "manual":
+			report.Summary.ManualSources++
+		case "researching":
+			report.Summary.ResearchingSources++
+		case "broken":
+			report.Summary.BrokenSources++
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return CoverageReport{}, fmt.Errorf("read source coverage: %w", err)
+	}
+	report.Summary.TotalCompanies = len(report.Companies)
+	report.Summary.AutomaticEligibleSources = report.Summary.AutomaticSources + report.Summary.FeedSources + report.Summary.ResearchingSources + report.Summary.BrokenSources
+	if report.Summary.AutomaticEligibleSources > 0 {
+		report.Summary.AutomaticCoveragePercent = float64(report.Summary.AutomaticSources+report.Summary.FeedSources) * 100 / float64(report.Summary.AutomaticEligibleSources)
+	}
+
+	programRows, err := r.db.QueryContext(ctx, `
+		SELECT program_windows.program_key, companies.name, program_windows.name,
+			program_windows.program_type, program_windows.url, program_windows.status,
+			program_windows.opens_at, program_windows.closes_at, program_windows.last_verified_at
+		FROM program_windows JOIN companies ON companies.id = program_windows.company_id
+		WHERE companies.priority_group = 'primary'
+		ORDER BY companies.name, program_windows.program_key
+	`)
+	if err != nil {
+		return CoverageReport{}, fmt.Errorf("query program coverage: %w", err)
+	}
+	defer programRows.Close()
+	for programRows.Next() {
+		var program ProgramCoverage
+		var opensAt, closesAt, verifiedAt sql.NullString
+		if err := programRows.Scan(&program.ProgramID, &program.Company, &program.Name, &program.Type,
+			&program.URL, &program.Status, &opensAt, &closesAt, &verifiedAt); err != nil {
+			return CoverageReport{}, fmt.Errorf("scan program coverage: %w", err)
+		}
+		if program.OpensAt, err = parseStoredTime(opensAt); err != nil {
+			return CoverageReport{}, err
+		}
+		if program.ClosesAt, err = parseStoredTime(closesAt); err != nil {
+			return CoverageReport{}, err
+		}
+		if program.LastVerifiedAt, err = parseStoredTime(verifiedAt); err != nil {
+			return CoverageReport{}, err
+		}
+		report.Programs = append(report.Programs, program)
+	}
+	if err := programRows.Err(); err != nil {
+		return CoverageReport{}, fmt.Errorf("read program coverage: %w", err)
+	}
+	return report, nil
+}
+
 // manualChecks surfaces sources the scraper attempted and failed on. It
 // deliberately excludes tracking_status = 'manual' companies (see
 // watchlist), so a source never appears in both: it either was never

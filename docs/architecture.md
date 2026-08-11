@@ -350,6 +350,12 @@ kaynağın nedenini saklar. Kaynak config'indeki `canonical_aliases` yalnız mev
 bir kanonik şirketi hedefleyebilir; `Commensis` girdisi bu nedenle ayrı şirket
 oluşturmadan `Commencis` kimliğine bağlanır.
 
+`GET /api/v1/coverage`, yalnız birincil şirketleri kaynaklarıyla gruplar ve aynı
+raporda dönemsel program pencerelerini döndürür. Özet sayımları beş kapsama
+durumunu ayrı tutar. Otomatik kapsama oranının payı `automatic + feed`, paydası
+`automatic + feed + researching + broken` kaynaklarıdır; bilinçli `manual`
+kaynaklar katalog toplamında görünür ancak bu oranın paydasına girmez.
+
 Dashboard iki ayrı, kesişmeyen liste sunar. `manual_checks`
 (`company_sources.last_error IS NOT NULL AND companies.tracking_status !=
 'manual'`) yalnız scraper'ın deneyip başarısız olduğu kaynakları gösterir —

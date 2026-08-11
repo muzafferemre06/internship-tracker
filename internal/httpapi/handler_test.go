@@ -37,6 +37,15 @@ type fakeDashboardRepository struct {
 	snapshot store.DashboardSnapshot
 }
 
+type fakeCoverageRepository struct {
+	fakeDashboardRepository
+	report store.CoverageReport
+}
+
+func (f fakeCoverageRepository) Coverage(context.Context) (store.CoverageReport, error) {
+	return f.report, nil
+}
+
 type fakeOpportunityRepository struct {
 	fakeDashboardRepository
 	page      store.OpportunityHistoryPage
@@ -389,6 +398,20 @@ func TestDashboardUsesRepository(t *testing.T) {
 
 	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"company":"Meteksan"`) {
 		t.Fatalf("unexpected dashboard response: status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestCoverageUsesRepository(t *testing.T) {
+	repository := fakeCoverageRepository{report: store.CoverageReport{
+		Summary:   store.CoverageSummary{TotalCompanies: 12, AutomaticSources: 5},
+		Companies: []store.CompanyCoverage{{Name: "Commencis", Priority: "primary"}},
+	}}
+	handler := NewHandler("http://localhost:5173", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, repository, nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/coverage", nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"total_companies":12`) || !strings.Contains(response.Body.String(), `"Commencis"`) {
+		t.Fatalf("unexpected coverage response: status=%d body=%s", response.Code, response.Body.String())
 	}
 }
 

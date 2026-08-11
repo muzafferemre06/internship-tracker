@@ -16,6 +16,10 @@ Commencis birincil gruba alındı; Türk Telekom, Jotform, Akınsoft ve Roketsan
 doğrulanmış resmî URL ve açık manuel/araştırılıyor gerekçeleriyle eklendi.
 Kaynak kapsama ve güven sınıfları SQLite'a kalıcı yazılır.
 
+Minimal `GET /api/v1/coverage` endpoint'i birincil şirketleri, kaynak sağlık ve
+kapsama ayrıntılarını, dönemsel programları ve manuel kaynakları dışlayan
+otomatik kapsama oranını sunar.
+
 ## Tamamlananlar
 
 - Ürün ve teknik kararları içeren v2 spec

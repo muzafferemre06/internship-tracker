@@ -12,6 +12,11 @@ alias kararını ve her kaynağın kapsama/güven sınıfını production config
 doğrular. Tutarsız otomatik/disabled sınıflandırması startup'ta reddedilir;
 SQLite testi sınıflandırmanın kaynak sağlık kaydına taşındığını kanıtlar.
 
+Kapsama repository testi yalnız birincil şirketleri raporlar, beş durumun
+sayımını ve manuel kaynağın otomatik kapsama paydasından çıkarılmasını gerçek
+SQLite ile doğrular. HTTP testi `/api/v1/coverage` JSON sözleşmesini fake
+repository ile ağsız sınar.
+
 ```bash
 go test ./...
 go vet ./...
