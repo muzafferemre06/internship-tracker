@@ -109,6 +109,12 @@ bağlantıları manuel; LOTEC'in korumalı sayfası araştırılıyor olarak gö
 LinkedIn veya başvuru e-postası otomatik kullanılmaz ve erişim challenge'ı
 aşılmaz.
 
+Son Faz 18 katalog batch'i Ankara Bilgi Teknolojileri ile Peaksoft Consulting'i
+resmî şirket sayfaları üzerinden `manual_only` izler; otomatik CV/e-posta
+göndermez. `alictus.com` güncel olarak SciPlay Games Turkey'ye yönlendiği için
+eski Alictus kimliği ayrı şirket olarak eklenmez. SciPlay ileride ancak yeni
+kanonik aday ve resmî fırsat kaynağıyla değerlendirilir.
+
 Faz 16'nın `career_links` adapter'ı açık kariyer indekslerinde
 ilan kartlarını deterministik olarak çıkarır. `listing_path_prefix` zorunludur;
 gerektiğinde `listing_container_id` taramayı kararlı ilan bölümüne sınırlar.

@@ -113,6 +113,12 @@ tekilleşir ve yalnız backend odaklı gerçek staj fixture'ı tek güçlü ikin
 üretir. Dört devre dışı kaynak için gerekçe kodu, tarih ve `manual_only`
 politikası production config kabulünde zorunludur.
 
+Son Faz 18 katalog kabulü Ankara Bilgi Teknolojileri ve Peaksoft Consulting'in
+tek resmî, devre dışı, gerekçe/tarih taşıyan `manual_only` kaynağını doğrular.
+Aynı test 15 araştırma adayının 14'ünü production kataloğunda bulur; güncel
+SciPlay Games Turkey kimliğine dönüşen Alictus'un `not_eligible` kararıyla ayrı
+production şirketi olmadığını zorunlu tutar.
+
 Kariyer.net adapter testi bellek içi sahte bir HTTP taşıma katmanı kullanır;
 iki ilan, tekrarlı bağlantı, sıfır ilan, eksik başlık, değişmiş sayfa işareti,
 HTTP 403/418/429/5xx, timeout ve iptal edilen istek senaryolarını kapsar.

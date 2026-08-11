@@ -17,6 +17,14 @@ Greenhouse URL kanonikleştirmesi fixture-first doğrulandı; iki otomatik kayna
 üretti. Katalog bu batch ile 39 şirket/41 kaynak/16 otomatik kaynak/15 otomatik
 şirkettir. Kanıt `docs/acceptance/phase-18-batch-3-2026-08-11.md` dosyasındadır.
 
+Son katalog batch'i Ankara Bilgi Teknolojileri ve Peaksoft Consulting'i
+otomatik form/e-posta göndermeyen manuel resmî kaynaklarla ekler. Alictus alan
+adı SciPlay Games Turkey'ye yönlendiğinden eski kimlik production'a alınmaz.
+Faz 17'deki 15 adayın tamamı 14 dürüst katalog kaydı ve 1 bilinçli kimlik
+dışlamasıyla hesaplanmıştır. Final katalog 41 şirket, 43 kaynak, 16 otomatik
+kaynak ve 15 otomatik şirkettir; kanıt
+`docs/acceptance/phase-18-batch-4-2026-08-11.md` dosyasındadır.
+
 On beş Faz 17
 şirketinin ayrıntılı durum tespiti `03dc03f`; MobileAction, SİMSOFT, Netaş ve
 Bilişim AŞ kaynak uygulaması `b409fa1`; uzun hata mesajı taşma düzeltmesi ve tam

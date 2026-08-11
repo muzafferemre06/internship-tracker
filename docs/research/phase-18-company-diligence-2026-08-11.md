@@ -90,3 +90,10 @@ Udemy sayfası Coursera ve Udemy'nin artık tek şirket olduğunu bildirirken
 resmî `udemy` Greenhouse board'u çalışmaya devam etmektedir; kaynak bu kanonik
 board kimliğiyle tutulur. Hiçbir LinkedIn/apply/e-posta hedefi fetch edilmez veya
 otomatik gönderilmez, challenge aşılmaz.
+
+Son katalog doğrulamasında `ankarabt.com` ve `peaksoftcon.com` HTTP 200 verdi
+ancak kararlı ilan/ATS akışı sunmadı; ikisi manuel resmî şirket kaynağı olarak
+eklendi. `alictus.com` doğrudan `sciplaygamesturkey.com` alanına yönlendi ve
+sayfa “Alictus is now SciPlay Games Turkey” kimliğini gösterdi. Bu nedenle eski
+Alictus adı production'a eklenmedi; SciPlay ayrı kanonik aday olarak ileride
+yeniden araştırılmalıdır.

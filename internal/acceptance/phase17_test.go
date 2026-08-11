@@ -97,6 +97,7 @@ func TestPhase17ResearchCatalogIsFiniteEvidenceBackedAndRuntimeIsolated(t *testi
 	phase18Approved := map[string]struct{}{
 		"MobileAction": {}, "SİMSOFT": {}, "Netaş": {}, "Bilişim AŞ": {}, "Binalyze": {}, "Insider": {},
 		"Etiya": {}, "OBSS": {}, "T2 Software": {}, "TaleWorlds Entertainment": {}, "LOTEC": {}, "Udemy": {},
+		"Ankara Bilgi Teknolojileri": {}, "Peaksoft Consulting": {},
 	}
 	for company := range seenCompanies {
 		if _, approved := phase18Approved[company]; approved {

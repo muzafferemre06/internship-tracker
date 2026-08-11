@@ -77,8 +77,8 @@ func TestPhase165ResearchCohortAndOfficialInnovaIndexEndToEnd(t *testing.T) {
 		phase.AutomaticCoveragePercent < 14.2 || phase.AutomaticCoveragePercent > 14.3 {
 		t.Fatalf("unexpected Phase 16.5 summary: %#v", phase)
 	}
-	if secondary := coverage.SectionSummaries["secondary"]; secondary.TotalCompanies != 16 || secondary.AutomaticSources != 9 ||
-		secondary.ManualSources != 6 || secondary.ResearchingSources != 1 || secondary.AutomaticCoveragePercent != 90 {
+	if secondary := coverage.SectionSummaries["secondary"]; secondary.TotalCompanies != 18 || secondary.AutomaticSources != 9 ||
+		secondary.ManualSources != 8 || secondary.ResearchingSources != 1 || secondary.AutomaticCoveragePercent != 90 {
 		t.Fatalf("regular secondary companies were not separated: %#v", secondary)
 	}
 	for _, company := range coverage.Companies {

@@ -64,7 +64,9 @@
     { "domain": "obss.tech", "mode": "manual_only" },
     { "domain": "t2.com.tr", "mode": "manual_only" },
     { "domain": "taleworlds.com", "mode": "manual_only" },
-    { "domain": "lotec.com.tr", "mode": "manual_only" }
+    { "domain": "lotec.com.tr", "mode": "manual_only" },
+    { "domain": "ankarabt.com", "mode": "manual_only" },
+    { "domain": "peaksoftcon.com", "mode": "manual_only" }
   ],
   "companies": [
     {
@@ -738,6 +740,46 @@
           "coverage_status": "researching",
           "coverage_reason": "Resmî kariyer sayfası güvenli istemciye HTTP 500/koruma yanıtı veriyor; bot challenge aşılmadan kararlı ilan kaynağı araştırılıyor.",
           "coverage_reason_code": "source_unreachable",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "Ankara Bilgi Teknolojileri",
+      "priority_group": "secondary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "ankara-bt-official-company",
+          "type": "company_page",
+          "url": "https://ankarabt.com/",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Resmî şirket sitesi erişilebilir ancak güncel kariyer/ATS veya öğrenciye özel başvuru akışı sunmuyor; üçüncü taraf ve geçmiş e-posta izleri otomatik kaynak yapılmaz.",
+          "coverage_reason_code": "no_public_job_source",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "Peaksoft Consulting",
+      "priority_group": "secondary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "peaksoft-official-company",
+          "type": "company_page",
+          "url": "https://www.peaksoftcon.com/",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Resmî site erişilebilir ancak ayrı ilan listesi veya öğrenci programı sunmuyor; genel CV/e-posta başvurusu otomatik gönderilmeden elle izlenir.",
+          "coverage_reason_code": "no_public_job_source",
           "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false
