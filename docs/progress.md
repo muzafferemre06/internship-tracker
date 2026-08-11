@@ -2,10 +2,15 @@
 
 ## Aktif faz
 
-Faz 16 test-first uygulaması sürüyor. Kullanıcı 11 Ağustos 2026'da kapsamı ve
-kimlik kararlarını onayladı: `ÜşüSebit` kanonik `Sebit`, `AI Studio`
-`aistudio.com.tr`, `Bilishim` ise `bilishim.ai` olarak izlenecek. Resmî kanıt ve
-erişim sınıfları `docs/research/phase-16-sources-2026-08-11.md` dosyasındadır.
+Faz 16 tamamlandı ve tam kalite kapısı geçti. Doğrulanmış revision'ın
+production deploy'u, repository kuralındaki ayrı kullanıcı onayını bekliyor.
+Faz 17 yalnız üçüncül şirket araştırmasıdır; production deploy tamamlandıktan
+sonra ayrıca planlanıp onaylanmadan başlamaz.
+
+Kullanıcı 11 Ağustos 2026'da kapsamı ve kimlik kararlarını onayladı:
+`ÜşüSebit` kanonik `Sebit`, `AI Studio` `aistudio.com.tr`, `Bilishim` ise
+`bilishim.ai` olarak izlenecek. Resmî kanıt ve erişim sınıfları
+`docs/research/phase-16-sources-2026-08-11.md` dosyasındadır.
 
 On dört Faz 16 şirketi production kataloğuna eklendi. Açık ve robots-uyumlu
 Evreka, MechSoft ve Layermark kariyer indeksleri fixture-first deterministik
@@ -18,8 +23,8 @@ yalnız boş olmayan odak eşleşmesi, sabit `0.7` güven ve yüksek kaynak güv
 birlikte sağladığında ayrı sürümlü event ile push üretir. Uçtan uca Faz 16
 kabul testi de production kataloğunu, üç production-shape fixture'ını, iki
 tarama dedup'ını, zayıf aday görünürlüğünü, tek güçlü push'ı ve ikincil coverage
-kırılımını doğrular. Tam repository kalite paketi ve acceptance kanıt kaydı
-sıradaki teslim kapısıdır.
+kırılımını doğruladı. Faz 16 kabul ve tam kalite kanıtı
+`docs/acceptance/phase-16-2026-08-11.md` dosyasındadır.
 
 11 Ağustos 2026'da kullanıcı, spec'teki `Commensis` yazımının resmî `Commencis`
 kimliğiyle birleştirilmesini ve Turkcell için sentetik ilan yerine ayrı minimal
@@ -135,6 +140,11 @@ penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
   analiz, lifecycle, başvuru tarihleri ve notları koruyan Faz 14.1 kabulü
 - Production DB yolunu ve yalnız güvenli tablo sayılarını read-only raporlayan
   `dbinspect` aracı ile volume/DB kimliği operasyon akışı
+- On dört yeni ikincil şirket için kanonik kimlik ve erişim sınıfları; Evreka,
+  MechSoft ve Layermark için deterministik `career_links` adapter'ı
+- Coverage API/PWA'da genel toplamdan ayrı birincil ve ikincil özetler
+- Güçlü ikincil fırsatlarda odak alanı, sabit `0.7` güven ve yüksek kaynak
+  güvenini birlikte isteyen versionlanmış bildirim kapısı
 
 ## Doğrulanan çıkış kriterleri
 
@@ -211,13 +221,18 @@ penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
   yeniden açılması ve snapshot restore sonrasında kimlik/üyelik/analiz/lifecycle/
   başvuru verilerini korudu; scan JSON/JSON-olmayan istemci yollarını güvenli
   sözleşmeyle doğruladı. Kanıt `docs/acceptance/phase-14.1-2026-08-10.md` içindedir.
+- Faz 16 kabulü production ikincil kataloğunu, üç fixture-first otomatik kaynağı,
+  iki taramalı dedup'ı, zayıf aday görünürlüğünü, tek güçlü ikincil push'ı ve
+  %40 ikincil otomatik kapsama oranını doğruladı. Kanıt
+  `docs/acceptance/phase-16-2026-08-11.md` içindedir.
 
 ## Sıradaki iş
 
-Faz 15 birincil şirketler, Faz 16 ikincil şirketler,
-Faz 17 yalnız üçüncül şirket araştırması ve Faz 18 onaylanan üçüncül şirketlerin
-eklenmesidir. RSS/e-posta ve geniş fırsat türleri Faz 19–21'de, analitik/öğrenme
-ise Faz 23'te ele alınır; ayrıntılar `docs/roadmap.md` içindedir.
+Faz 15 birincil ve Faz 16 ikincil şirket kapsamı tamamlandı. Production deploy
+ayrı onay ve operasyon kapısındadır. Sonraki ürün işi Faz 17'de yalnız üçüncül
+şirket araştırması, ardından Faz 18'de onaylanan şirketlerin eklenmesidir.
+RSS/e-posta ve geniş fırsat türleri Faz 19–21'de, analitik/öğrenme ise Faz 23'te
+ele alınır; ayrıntılar `docs/roadmap.md` içindedir.
 
 Faz 5'in production runbook'u geçerliliğini korur. Kullanıcı yerel Docker +
 Cloudflare Tunnel üzerinden telefon erişimini doğrulamıştır; off-host yedek ve

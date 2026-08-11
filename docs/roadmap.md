@@ -199,6 +199,19 @@ aynı kaynak doğrulama, erişim sınıflandırma, fixture ve kapsama raporu uyg
 On dört ikincil şirketin tamamı kanonik kimlik, doğrulanmış kaynak ve dürüst
 kapsama durumuyla uygulamadadır; otomatik ve manuel oranları ayrı raporlanır.
 
+### Tamamlanma (11 Ağustos 2026)
+
+On dört Faz 16 şirketi kullanıcı onaylı kimliklerle production kataloğuna
+alındı. Evreka, MechSoft ve Layermark açık resmî kariyer indeksleri yeni
+fixture-first `career_links` adapter'ıyla otomatik izlenir; kalan kaynaklar
+hesap/oturum sınırları ve açık kaynak bulunmaması nedeniyle dürüst manuel veya
+araştırılıyor gerekçesi taşır. Mevcut STM dahil ikincil kapsama 15 şirket/15
+kaynak, 4 otomatik, 5 manuel, 6 araştırılıyor ve %40 otomatik oran olarak
+doğrulandı. Birincil/ikincil coverage kırılımı ile odak eşleşmesi, `0.7` güven
+ve yüksek kaynak güveni isteyen ikincil push kapısı iki taramalı fixture/fake
+kabulünde geçti; güvenli kanıt `docs/acceptance/phase-16-2026-08-11.md`
+dosyasındadır.
+
 ## Faz 17 — Üçüncül şirket araştırması
 
 ### Kapsam
