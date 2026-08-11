@@ -279,17 +279,18 @@ penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
 ## Sıradaki iş
 
 Faz 18'in dört batch'i, tam kalite paketi ve upstream push'ları tamamlandı.
-Sıradaki zorunlu adım ayrı kullanıcı onayıyla verified `ec9f4ac` revision'ının
-production'a deploy edilmesidir. Production şu anda ilk batch `eec2f63`
-binary'siyle healthy çalışır; bind-mount edilen güncel config `ashby_board`
-adapter'ını içerdiğinden deploy öncesi container restart'ı eski binary/yeni
-config uyumsuzluğu yaratabilir. Snapshot, restorecheck, exact revision rollout,
-health/smoke ve kalıcı DB kimliği deployment sırasında tekrar doğrulanmalıdır.
+Verified exact `ec9f4ac38a8a2b575ea78f33a072a5180f8ca8a2` revision'ı ayrı kullanıcı
+onayı, pre-deploy snapshot ve iki-release restore kontrolünden sonra production'a
+deploy edildi. API/web healthy, Cloudflare HTTP/2 tunnel running; production DB
+41 şirket/43 kaynak/31 korunmuş ilan-fırsat/14 migration gösterir. On altı
+otomatik kaynakla 15 benzersiz şirket izlenir. Kalıcı volume kimliği değişmedi;
+rollback manifesti previous `eec2f63` revision'ını korur. Ayrıntı
+`docs/acceptance/phase-18-final-2026-08-11.md` dosyasındadır.
 
-Bu rollout tamamlandıktan sonraki ürün fazı Faz 19 genel fırsat modeli ve
-bildirim katmanlarıdır. Taksonomi, program penceresi şeması ve fixture eval altın
-kümesi koddan önce ayrı plan/onay kapısından geçer. RSS/e-posta Faz 20–21'de,
-analitik/öğrenme Faz 23'te kalır; ayrıntılar `docs/roadmap.md` içindedir.
+Sıradaki ürün fazı Faz 19 genel fırsat modeli ve bildirim katmanlarıdır.
+Taksonomi, program penceresi şeması ve fixture eval altın kümesi koddan önce ayrı
+plan/onay kapısından geçer. RSS/e-posta Faz 20–21'de, analitik/öğrenme Faz 23'te
+kalır; ayrıntılar `docs/roadmap.md` içindedir.
 
 Faz 5'in production runbook'u geçerliliğini korur. Kullanıcı yerel Docker +
 Cloudflare Tunnel üzerinden telefon erişimini doğrulamıştır; off-host yedek ve
