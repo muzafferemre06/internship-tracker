@@ -6,8 +6,13 @@ Faz 16.5 davranışı `27277f68db9fa5a0e03008faa8d9b1c593bf0ea8`
 revision'ında geliştirildi, tam kalite kapısından geçti, upstream `main`e
 gönderildi ve ayrı kullanıcı onayından sonra production'a deploy edildi. Snapshot,
 14 migration, health/readiness, Cloudflare HTTP/2 ve kalıcı DB kimliği kanıtı
-`docs/acceptance/phase-16.5-2026-08-11.md` dosyasındadır. Aktif ürün işi Faz 17
-üçüncül şirket araştırmasıdır. Önceki
+`docs/acceptance/phase-16.5-2026-08-11.md` dosyasındadır. Faz 17 araştırması üç
+teknokentte toplam 15 sonlu adayla tamamlandı; 12 önerilen, 1 düşük sinyal ve 2
+manuel erişim kararı `docs/research/phase-17-candidates-2026-08-11.md` ile
+makinece doğrulanan JSON kataloğunda kayıtlıdır. Adaylar production config'inden
+izole tutuldu. Kabul kaydı `docs/acceptance/phase-17-2026-08-11.md`
+dosyasındadır. Aktif ürün işi, bu listenin küçük batch'lerle ele alınacağı Faz
+18 hazırlığıdır. Önceki
 Faz 16 tamamlandı, tam kalite kapısı geçti ve ayrı kullanıcı onayından sonra
 `b66c5b2c110c179b2e2052b04fe187bb9ce1b061` revision'ı yerel Docker +
 Cloudflare Tunnel production ortamına deploy edildi. Snapshot/restorecheck,

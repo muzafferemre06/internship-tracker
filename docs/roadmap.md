@@ -271,6 +271,15 @@ Kaynak bağlantıları ve değerlendirme gerekçeleri bulunan, tekrar üretilebi
 bir aday şirket raporu ve kullanıcı onay listesi oluşur; uygulama davranışı
 değişmez.
 
+### Uygulama durumu (11 Ağustos 2026)
+
+Üç resmî teknokent dizini taranarak park başına beş, toplam on beş yazılım/BT
+adayı belgelendi. On iki aday `önerilen`, bir aday `düşük_sinyal`, iki aday
+`erişim_manuel` durumundadır. Makinece doğrulanan katalog ve değerlendirme
+gerekçeleri `docs/research/phase-17-candidates-2026-08-11.json` ile aynı adlı
+Markdown raporundadır. Kabul testi adayların production kaynaklarından izole
+kaldığını doğrular.
+
 ## Faz 18 — Onaylanan üçüncül şirketlerin eklenmesi
 
 ### Kapsam

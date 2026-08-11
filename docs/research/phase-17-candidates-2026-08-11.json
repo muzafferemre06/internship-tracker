@@ -1,0 +1,204 @@
+{
+  "phase": "17",
+  "verified_at": "2026-08-11",
+  "parks": [
+    {
+      "name": "Bilkent CYBERPARK",
+      "official_directory_url": "https://www.cyberpark.com.tr/firma-arsiv",
+      "candidates": [
+        {
+          "company": "Etiya",
+          "official_domain": "https://www.etiya.com",
+          "focus": "Kurumsal yazılım, telekom BSS ve yapay zekâ destekli dijital dönüşüm",
+          "technopark_evidence_url": "https://www.cyberpark.com.tr/firma-arsiv/7",
+          "opportunity_signal_url": "https://www.etiya.com/tr/kariyer",
+          "opportunity_signal": "Resmî kariyer alanında genç yetenek, akademi ve açık pozisyon akışları bulunuyor.",
+          "source_type": "official_career",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "Güncel resmî dizin kaydı, yazılım odağı ve doğrudan şirket kariyer akışı birlikte doğrulandı."
+        },
+        {
+          "company": "OBSS",
+          "official_domain": "https://obss.tech",
+          "focus": "Kurumsal yazılım geliştirme, bulut, veri ve yapay zekâ",
+          "technopark_evidence_url": "https://www.cyberpark.com.tr/firma-arsiv/13",
+          "opportunity_signal_url": "https://obss.tech/en/career-development/",
+          "opportunity_signal": "Resmî kariyer gelişimi sayfası ve kurumsal sunumunda geçmiş staj programı izi var.",
+          "source_type": "official_career",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "Bilkent ofisi ve yazılım kimliği resmî kaynaklarda; kariyer içeriği doğrudan erişilebilir."
+        },
+        {
+          "company": "SİMSOFT",
+          "official_domain": "https://www.simsoft.com.tr",
+          "focus": "Simülasyon, savunma yazılımı, ciddi oyun ve gömülü sistemler",
+          "technopark_evidence_url": "https://www.cyberpark.com.tr/firma-arsiv/16",
+          "opportunity_signal_url": "https://www.simsoft.com.tr/tr/insan-kaynaklari/aday-muhendis-ve-stajyer-basvuru-formu",
+          "opportunity_signal": "Resmî stajyer ve aday mühendis başvuru formu doğrudan açık.",
+          "source_type": "official_application_form",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "Teknoloji odağı güçlü; öğrenciye özel resmî başvuru yolu mevcut."
+        },
+        {
+          "company": "T2 Software",
+          "official_domain": "https://www.t2.com.tr",
+          "focus": "Özel yazılım geliştirme, mikroservisler, bulut ve sistem modernizasyonu",
+          "technopark_evidence_url": "https://www.cyberpark.com.tr/firma-arsiv/16",
+          "opportunity_signal_url": "https://www.t2.com.tr/tr/careers",
+          "opportunity_signal": "Resmî kariyer sayfası mühendislik ilanlarını ve Bilkent Cyberpark ofisini yayımlıyor.",
+          "source_type": "official_career",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "Açık yazılım rolleri, resmî şirket sayfasında yapılandırılmış biçimde görülebiliyor."
+        },
+        {
+          "company": "MobileAction",
+          "official_domain": "https://www.mobileaction.co",
+          "focus": "Mobil uygulama pazar zekâsı, reklam analitiği ve SaaS",
+          "technopark_evidence_url": "https://www.cyberpark.com.tr/firma-arsiv/11",
+          "opportunity_signal_url": "https://www.mobileaction.co/careers/",
+          "opportunity_signal": "Resmî kariyer sayfası ekip ve açık rol akışını sunuyor.",
+          "source_type": "official_career",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "Yazılım/SaaS odağı ve doğrudan kariyer kaynağı güçlü bir izleme adayı oluşturuyor."
+        }
+      ]
+    },
+    {
+      "name": "ODTÜ TEKNOKENT",
+      "official_directory_url": "https://www.odtuteknokent.com.tr/tr/firmalar/tum-firmalar.php",
+      "candidates": [
+        {
+          "company": "Binalyze",
+          "official_domain": "https://www.binalyze.com",
+          "focus": "Dijital adli inceleme ve olay müdahale yazılımı",
+          "technopark_evidence_url": "https://www.odtuteknokent.com.tr/tr/firmalar/tum-firmalar.php",
+          "opportunity_signal_url": "https://www.binalyze.com/careers",
+          "opportunity_signal": "Resmî kariyer sayfası işe alım ve ekip katılım akışını yayımlıyor.",
+          "source_type": "official_career",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "Güncel teknokent dizini ile siber güvenlik yazılımı ve resmî kariyer kaynağı eşleşiyor."
+        },
+        {
+          "company": "TaleWorlds Entertainment",
+          "official_domain": "https://www.taleworlds.com",
+          "focus": "PC ve konsol oyun geliştirme",
+          "technopark_evidence_url": "https://www.odtuteknokent.com.tr/tr/firmalar/tum-firmalar.php",
+          "opportunity_signal_url": "https://www.taleworlds.com/en/Career",
+          "opportunity_signal": "Resmî kariyer sayfası açık rolleri ve ilan dışı staj başvuru yolunu açıklıyor.",
+          "source_type": "official_career",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "Öğrenci stajına açık doğrudan kaynak ve açık teknik roller bulunuyor."
+        },
+        {
+          "company": "Insider",
+          "official_domain": "https://useinsider.com",
+          "focus": "Yapay zekâ destekli müşteri deneyimi ve pazarlama SaaS platformu",
+          "technopark_evidence_url": "https://www.odtuteknokent.com.tr/tr/firmalar/tum-firmalar.php",
+          "opportunity_signal_url": "https://useinsider.com/careers/",
+          "opportunity_signal": "Resmî kariyer alanı ekip ve açık pozisyonları yayımlıyor.",
+          "source_type": "official_career",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "ODTÜ dizin kimliği, yazılım ürünü ve doğrudan kariyer kaynağı birlikte mevcut."
+        },
+        {
+          "company": "Netaş",
+          "official_domain": "https://netas.com.tr",
+          "focus": "Telekom, bulut, siber güvenlik, yapay zekâ ve sistem entegrasyonu",
+          "technopark_evidence_url": "https://www.odtuteknokent.com.tr/tr/firmalar/tum-firmalar.php",
+          "opportunity_signal_url": "https://netas.com.tr/coop-staj-programi",
+          "opportunity_signal": "Resmî COOP sayfası üç dönemli uzun süreli staj programını ve yazılım/test alanlarını açıklıyor.",
+          "source_type": "official_internship_program",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "Düzenli ve doğrudan öğrenci programı sinyali en güçlü adaylardan biri."
+        },
+        {
+          "company": "Alictus",
+          "official_domain": "https://www.alictus.com",
+          "focus": "Mobil oyun geliştirme",
+          "technopark_evidence_url": "https://www.odtuteknokent.com.tr/tr/firmalar/tum-firmalar.php",
+          "opportunity_signal_url": "https://www.linkedin.com/company/alictus",
+          "opportunity_signal": "Geçmiş açık pozisyon izi şirketin LinkedIn sayfasında; resmî domainde bağımsız kariyer akışı doğrulanamadı.",
+          "source_type": "third_party_company_profile",
+          "access": "manual_third_party",
+          "status": "erişim_manuel",
+          "rationale": "Teknokent ve oyun-yazılım kimliği açık, fakat fırsat takibi oturumlu üçüncü taraf üzerinden manuel yapılmalı."
+        }
+      ]
+    },
+    {
+      "name": "Hacettepe Teknokent",
+      "official_directory_url": "https://www.hacettepeteknokent.com.tr/tr/firma_rehberi/bilgisayar_ve_iletisim_teknolojileri-16",
+      "candidates": [
+        {
+          "company": "LOTEC",
+          "official_domain": "https://lotec.com.tr",
+          "focus": "Akıllı şehir, IoT, bulut, gömülü yazılım ve savunma teknolojileri",
+          "technopark_evidence_url": "https://www.hacettepeteknokent.com.tr/tr/firma/lotec_teknoloji_limited_sirketi-1495",
+          "opportunity_signal_url": "https://lotec.com.tr/kariyer/",
+          "opportunity_signal": "Resmî kariyer sayfasında full-stack yazılım geliştirici ilanı ve başvuru yolu var.",
+          "source_type": "official_career",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "Adaya özgü resmî teknokent kartı ile güncel teknik ilan aynı kimlikte birleşiyor."
+        },
+        {
+          "company": "Bilişim AŞ",
+          "official_domain": "https://bilisim.com.tr",
+          "focus": "Kurumsal yazılım, insan kaynakları ve iş süreçleri platformları",
+          "technopark_evidence_url": "https://www.hacettepeteknokent.com.tr/tr/firma_rehberi/bilgisayar_ve_iletisim_teknolojileri-16",
+          "opportunity_signal_url": "https://bilisim.com.tr/insan-kaynaklari-surecleri/",
+          "opportunity_signal": "Resmî insan kaynakları sayfası kariyer ve staj kabul süreçlerini ayrı ayrı açıklıyor.",
+          "source_type": "official_internship_process",
+          "access": "public_official",
+          "status": "önerilen",
+          "rationale": "Yazılım odağı ve belgelenmiş staj süreci doğrudan izlenebilir bir aday oluşturuyor."
+        },
+        {
+          "company": "Udemy",
+          "official_domain": "https://www.udemy.com",
+          "focus": "Çevrim içi öğrenme platformu, ürün ve yazılım mühendisliği",
+          "technopark_evidence_url": "https://www.hacettepeteknokent.com.tr/tr/firma_rehberi/bilgisayar_ve_iletisim_teknolojileri-16",
+          "opportunity_signal_url": "https://about.udemy.com/careers/",
+          "opportunity_signal": "Resmî kariyer sayfası Ankara lokasyonunu, ürün/mühendislik ekiplerini ve açık rolleri gösteriyor.",
+          "source_type": "official_career",
+          "access": "public_ats",
+          "status": "önerilen",
+          "rationale": "Resmî teknokent kaydı ve Ankara mühendislik kariyer akışı güçlü; ilanlar şirket ATS'inden izlenebilir."
+        },
+        {
+          "company": "Ankara Bilgi Teknolojileri",
+          "official_domain": "https://ankarabt.com",
+          "focus": "Uygulama yazılımı, veri merkezi, GIS, yapay zekâ ve sürdürülebilirlik yazılımı",
+          "technopark_evidence_url": "https://www.hacettepeteknokent.com.tr/tr/firma/ankara_bilgi_teknolojileri-118",
+          "opportunity_signal_url": "https://www.ctis.bilkent.edu.tr/repository/SelectedInternshipPartners.pdf",
+          "opportunity_signal": "Bilkent CTIS'in geçmiş staj ortakları belgesinde Hacettepe Teknokent adresiyle yer alıyor; şirket sitesinde açık kariyer akışı yok.",
+          "source_type": "university_internship_record",
+          "access": "manual_third_party",
+          "status": "erişim_manuel",
+          "rationale": "Şirket kimliği resmî teknokent kartıyla doğrulandı; eski staj izi var ancak güncel fırsat doğrulaması manuel gerektiriyor."
+        },
+        {
+          "company": "Peaksoft Consulting",
+          "official_domain": "https://www.peaksoftcon.com",
+          "focus": "Teknoloji süreç danışmanlığı ve yazılım çözümleri",
+          "technopark_evidence_url": "https://www.peaksoftcon.com/",
+          "opportunity_signal_url": "https://www.peaksoftcon.com/",
+          "opportunity_signal": "Resmî ana sayfada Hacettepe Teknokent adresi ve kariyer bölümü var; ayrı ilan akışı görünmüyor.",
+          "source_type": "official_site_embedded_career",
+          "access": "public_official",
+          "status": "düşük_sinyal",
+          "rationale": "Kimlik ve yazılım odağı açık, ancak fırsat sinyali bağımsız ve yapılandırılmış bir kariyer kaynağı kadar güçlü değil."
+        }
+      ]
+    }
+  ]
+}
