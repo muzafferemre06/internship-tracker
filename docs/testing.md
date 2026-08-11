@@ -61,8 +61,8 @@ Zaman damgalı sonuç `docs/acceptance/phase-15-2026-08-11.md` içindedir.
 `TestPhase16SecondaryCatalogCoverageAndStrongMatchNotificationEndToEnd`, bütün
 production kataloğunu gerçek geçici SQLite'a kaydeder ve robots kontrollü Evreka
 fixture'ını iki taramada işler. İki görünür ikincil fırsata karşı yalnız backend
-odak eşleşmesinden tek fake push; tekrarda sıfır yeni kayıt ve API'de 15 mevcut
-ikincil şirketin 5 otomatik, 4 manuel, 6 araştırılıyor / yaklaşık `%45,5`
+odak eşleşmesinden tek fake push; tekrarda sıfır yeni kayıt ve API'de 19 mevcut
+ikincil şirketin 6 otomatik, 7 manuel, 6 araştırılıyor / `%50`
 kırılımını bekler.
 Faz 16'nın yeni 14 şirketi ayrıca katalog testinde eski STM kaydından ayrıdır.
 
@@ -303,6 +303,10 @@ npm --prefix web audit --audit-level=high
 
 Saf sınıflandırma ve görünüm yardımcıları Vitest ile test edilir. Dashboard
 akışları geliştikçe component ve tarayıcı tabanlı uçtan uca testler eklenir.
+`styles.test.ts`, uzun veya boşluksuz hata/gerekçe metinlerinin kapsam kartı,
+üst durum mesajı ve manuel kaynak kartı dışına taşmamasını CSS sözleşmesi olarak
+sınar; iç flex/grid öğelerinin küçülebilmesini ve metnin kart içinde kırılmasını
+zorunlu tutar.
 Frontend araçları Node 24.18 veya daha yeni bir Node 24 LTS sürümü gerektirir;
 Vite 7 ve Vitest 4 güvenlik yamaları alınmış sabit sürümlere kilitlenir.
 Vite yapılandırması TypeScript tarafından yalnızca tip kontrolünden geçirilir;

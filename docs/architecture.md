@@ -404,6 +404,9 @@ karıştırmadan sunar. Sabit şirket sayısı kullanmaz; backend toplamını g�
 gerekçe/sağlık bilgisini, yapılandırılmış engel etiketini ve doğrulama tarihini
 resmî kaynak bağlantısında görünür tutar ve
 `program_windows` kayıtlarını listing kartlarına karıştırmadan ayrı gösterir.
+Kapsama ve manuel kaynak kartlarındaki hata/gerekçe metinleri tek satıra
+zorlanmaz: iç flex/grid öğeleri küçülebilir ve uzun, boşluksuz teşhis parçaları
+kart sınırında kırılır. Aynı koruma üst durum mesajına da uygulanır.
 
 Bildirim outbox kapısı listing'in bağlı `company_sources.trust_level` değerini
 aynı transaction içinde okur. Yalnız resmî şirket, resmî ATS veya doğrulanmış
