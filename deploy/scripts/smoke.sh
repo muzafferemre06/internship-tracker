@@ -23,7 +23,7 @@ for service_name in api web cloudflared; do
 done
 
 compose_cmd "$RUNTIME_ENV" "$RELEASE_MANIFEST" "$COMPOSE_FILE" \
-    exec --no-TTY web wget --quiet --timeout=5 --spider http://127.0.0.1:8080/ready ||
+    exec --no-TTY web wget --quiet --timeout=5 -O /dev/null http://127.0.0.1:8080/ready ||
     die "origin readiness smoke check failed"
 
 if [ -n "$PUBLIC_ORIGIN" ]; then

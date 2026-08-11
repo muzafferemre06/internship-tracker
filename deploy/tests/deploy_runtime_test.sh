@@ -131,7 +131,18 @@ case "$action" in
     ps)
         printf '%s\n' api web cloudflared
         ;;
-    pull|up|exec|down)
+    exec)
+        [ "$#" -eq 8 ] &&
+            [ "$1" = --no-TTY ] &&
+            [ "$2" = web ] &&
+            [ "$3" = wget ] &&
+            [ "$4" = --quiet ] &&
+            [ "$5" = --timeout=5 ] &&
+            [ "$6" = -O ] &&
+            [ "$7" = /dev/null ] &&
+            [ "$8" = http://127.0.0.1:8080/ready ] || exit 97
+        ;;
+    pull|up|down)
         ;;
     *) exit 95 ;;
 esac

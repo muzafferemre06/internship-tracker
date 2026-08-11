@@ -211,7 +211,8 @@ commit'in allowlist ile sınırlı bundle'ını workflow ile aynı biçimde
 
 Deploy sırası preflight, mevcut SQLite volume'undan zorunlu ve tutarlı
 `/app/backup` snapshot'ı, digest pull, `docker compose up --wait`, container içi
-`/ready` smoke ve isteğe bağlı dış HTTPS smoke'tur. Snapshot başarısızsa
+gerçek GET `/ready` smoke ve isteğe bağlı dış HTTPS smoke'tur. API yalnız izin
+verilen yöntemleri kabul ettiği için origin smoke HEAD/`wget --spider` kullanmaz. Snapshot başarısızsa
 image veya container değiştirilmez. Başarısız candidate varsa
 `state/current.env` image'ları, manifestteki `DEPLOY_REVISION` ile seçilen önceki
 Compose ve smoke scriptiyle otomatik geri açılır. İlk deploy başarısızsa
