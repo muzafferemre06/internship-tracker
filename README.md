@@ -324,6 +324,11 @@ sınav-mülakat zamanı ve notlar düzenlenir. Tarihi olan aktif başvurular yak
 tarihlerde sıralanır. Son taramada hata veren kaynaklar manuel kontrol listesinde
 resmî kaynak bağlantısıyla görünür.
 
+Dashboard'daki “Birincil şirket kapsamı” paneli on iki şirketin kaynaklarını
+otomatik, akış, manuel, araştırılıyor ve bozuk rozetleriyle gösterir. Otomatik
+olmayan kaynakların gerekçesi ve resmî bağlantısı korunur; dönemsel programlar
+ayrı açık/kapalı/bilinmiyor rozeti ve son doğrulama zamanıyla listelenir.
+
 Başvuru güncelleme gövdesindeki `deadline` ve `interview_at` alanları RFC3339
 zaman damgası veya `null` olmalıdır. Durum; `incelenecek`, `basvuruldu`,
 `sinav_mulakat`, `olumlu` ya da `olumsuz` değerlerinden biridir. API ham ilan

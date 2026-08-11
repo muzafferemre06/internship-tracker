@@ -17,6 +17,11 @@ sayımını ve manuel kaynağın otomatik kapsama paydasından çıkarılmasın�
 SQLite ile doğrular. HTTP testi `/api/v1/coverage` JSON sözleşmesini fake
 repository ile ağsız sınar.
 
+Frontend kapsama helper testi beş backend durumunun ayrı Türkçe etiket ve görsel
+tonunu, bozuk durumun tehlike tonunu, yerel yüzde biçimini ve program durum
+etiketlerini doğrular. Typecheck ve production build, endpoint sözleşmesinin
+responsive PWA paneline eksiksiz bağlandığını denetler.
+
 ```bash
 go test ./...
 go vet ./...

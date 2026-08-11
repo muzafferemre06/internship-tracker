@@ -356,6 +356,12 @@ durumunu ayrı tutar. Otomatik kapsama oranının payı `automatic + feed`, payd
 `automatic + feed + researching + broken` kaynaklarıdır; bilinçli `manual`
 kaynaklar katalog toplamında görünür ancak bu oranın paydasına girmez.
 
+PWA açılışta dashboard ve fırsat geçmişinden bağımsız olarak kapsama endpoint'ini
+yükler; taramadan sonra üç görünümü de yeniler. Kapsama paneli backend enumlarını
+birleştirmeden ayrı rozetlerle sunar, gerekçe/sağlık bilgisini resmî kaynak
+bağlantısında görünür tutar ve `program_windows` kayıtlarını listing kartlarına
+karıştırmadan ayrı bir bölümde gösterir.
+
 Dashboard iki ayrı, kesişmeyen liste sunar. `manual_checks`
 (`company_sources.last_error IS NOT NULL AND companies.tracking_status !=
 'manual'`) yalnız scraper'ın deneyip başarısız olduğu kaynakları gösterir —

@@ -14,6 +14,13 @@ import {
 import { readJSONResponse } from "./lib/api";
 import { listingIDFromURL, urlWithListing } from "./lib/navigation";
 import { disablePush, enablePush, getPushStatus, type PushStatus } from "./lib/push";
+import {
+  coverageStatusLabels,
+  coverageTone,
+  formatCoveragePercent,
+  programStatusLabels,
+  type CoverageResponse,
+} from "./lib/coverage";
 
 type ManualCheck = {
   source_id: string;
@@ -137,10 +144,12 @@ export default function App() {
   const [historyLifecycle, setHistoryLifecycle] = useState<"" | OpportunityLifecycle>("");
   const [historyQuery, setHistoryQuery] = useState("");
   const [lifecycleSaving, setLifecycleSaving] = useState(false);
+  const [coverage, setCoverage] = useState<CoverageResponse | null>(null);
 
   useEffect(() => {
     void loadDashboard();
     void loadHistory(1);
+    void loadCoverage();
 
     const listingID = listingIDFromURL(window.location.href);
     if (listingID) void openListingByID(listingID);
@@ -171,6 +180,15 @@ export default function App() {
     }
   }
 
+  async function loadCoverage() {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/coverage`);
+      setCoverage(await readJSONResponse<CoverageResponse>(response));
+    } catch {
+      setCoverage(null);
+    }
+  }
+
   async function loadHistory(page = history.page, lifecycle = historyLifecycle, query = historyQuery) {
     try {
       const parameters = new URLSearchParams({ page: String(page), page_size: "10" });
@@ -191,6 +209,7 @@ export default function App() {
       const result = await readJSONResponse<ScanResponse>(response);
       await loadDashboard();
       await loadHistory(1);
+      await loadCoverage();
       const retryAt = result.sources.find((source) => source.retry_at)?.retry_at;
       const retryMessage = retryAt ? ` Tekrar deneme: ${formatDate(retryAt)}.` : "";
       const warning = result.status === "completed" ? "" : ` Bazı kaynaklar tamamlanamadı.${retryMessage}`;
@@ -370,6 +389,51 @@ export default function App() {
       </section>
 
       <div className="dashboard-grid">
+        <section className="panel coverage-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Birincil şirket kapsamı</h2>
+              <p className="coverage-caption">Manuel kaynaklar otomatik kapsama oranının paydasına girmez.</p>
+            </div>
+            <span>{coverage ? `${coverage.summary.total_companies}/12` : "—"}</span>
+          </div>
+          {coverage ? (
+            <>
+              <div className="coverage-summary">
+                <strong>{formatCoveragePercent(coverage.summary.automatic_coverage_percent)}</strong>
+                <span>otomatik kapsama</span>
+                <small>{coverage.summary.automatic_sources} otomatik · {coverage.summary.feed_sources} akış · {coverage.summary.manual_sources} manuel · {coverage.summary.researching_sources} araştırılıyor · {coverage.summary.broken_sources} bozuk</small>
+              </div>
+              <ul className="coverage-list">
+                {coverage.companies.map((company) => (
+                  <li key={company.name}>
+                    <strong>{company.name}</strong>
+                    <div className="coverage-sources">
+                      {company.sources.map((source) => (
+                        <a key={source.source_id} href={source.url} target="_blank" rel="noreferrer" title={source.reason || source.last_error}>
+                          <span className={`coverage-badge ${coverageTone(source.status)}`}>{coverageStatusLabels[source.status]}</span>
+                          <small>{source.reason || source.last_error || source.trust_level}</small>
+                        </a>
+                      ))}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {coverage.programs.length > 0 ? (
+                <div className="program-windows">
+                  <h3>Dönemsel programlar</h3>
+                  {coverage.programs.map((program) => (
+                    <a key={program.program_id} href={program.url} target="_blank" rel="noreferrer">
+                      <span><strong>{program.company} — {program.name}</strong>{program.last_verified_at ? <small>Son doğrulama: {formatDate(program.last_verified_at)}</small> : null}</span>
+                      <span className={`coverage-badge ${program.status === "open" ? "success" : program.status === "closed" ? "neutral" : "warning"}`}>{programStatusLabels[program.status]}</span>
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+            </>
+          ) : <p className="empty">Kapsama raporu yüklenemedi.</p>}
+        </section>
+
         <ListingSection title="Yeni ve uygun fırsatlar" listings={dashboard.new_listings} empty="Yeni uygun ilan yok." onOpen={openListing} loading={detailLoading} />
         <ListingSection title="Karar bekleyenler" listings={dashboard.needs_decision} empty="Yanıt bekleyen karar yok." onOpen={openListing} loading={detailLoading} />
         <ListingSection title="Aktif başvurular" listings={dashboard.active_applications} empty="Henüz takip edilen başvuru yok." onOpen={openListing} loading={detailLoading} />

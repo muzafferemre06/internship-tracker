@@ -20,6 +20,10 @@ Minimal `GET /api/v1/coverage` endpoint'i birincil şirketleri, kaynak sağlık 
 kapsama ayrıntılarını, dönemsel programları ve manuel kaynakları dışlayan
 otomatik kapsama oranını sunar.
 
+PWA'da birincil şirket kapsama paneli eklendi. Panel beş kaynak durumunu,
+otomatik oranı, açık gerekçeleri ve Turkcell dahil dönemsel programların
+açık/kapalı/bilinmiyor durumunu mobilde tek kolona inen görünümde sunar.
+
 ## Tamamlananlar
 
 - Ürün ve teknik kararları içeren v2 spec
