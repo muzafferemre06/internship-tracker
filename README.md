@@ -55,12 +55,13 @@ Her kaynak, taramalar ve veritabanı kayıtları arasında değişmeyen benzersi
 izlenebilir. İştirak profilinin sayfa başlığı ana şirket adından farklıysa
 selector doğrulaması için kaynakta `page_name` belirtilir.
 
-Faz 15 kaynakları `coverage_status` ile `automatic`, `feed`, `manual`,
+Faz 15-16 kaynakları `coverage_status` ile `automatic`, `feed`, `manual`,
 `researching` veya `broken`; `trust_level` ile `official_company`,
 `official_ats`, `verified_newsletter` veya `aggregator` olarak sınıflandırır.
 Otomatik olmayan kaynaklarda `coverage_reason` kullanıcıya nedenini açıklar.
 `canonical_aliases`, eski veya hatalı bir adı tek kanonik şirkete yönlendirir;
-`Commensis` bu yolla resmî `Commencis` kimliğinde tutulur.
+`Commensis`, `İnova`, `ÜşüSebit` ve `MechSoft AI` bu yolla sırasıyla resmî
+`Commencis`, `İnnova`, `Sebit` ve `MechSoft` kimliklerinde tutulur.
 
 Dönemsel başvurular şirketin `programs[]` alanında ilanlardan ayrı tanımlanır.
 Her program kararlı `id`, ad, tür, resmî URL, `open`/`closed`/`unknown` durumu
@@ -89,6 +90,14 @@ kategorileri ile açıklama alanlarını normalize eder. Örnek kaynak dosyasın
 Commencis'in resmî Lever ilanı bu adapter'ın yapılandırmasını gösterir.
 Lever istekleri alanın robots politikasındaki bir saniyelik minimum aralıkla
 kalıcı erişim bütçesinden geçirilir.
+
+Faz 16'nın `career_links` adapter'ı açık, aynı-origin kariyer indekslerinde
+ilan kartlarını deterministik olarak çıkarır. `listing_path_prefix` zorunludur;
+gerektiğinde `listing_container_id` taramayı kararlı ilan bölümüne sınırlar.
+Adapter query/fragment parçalarını kanonik URL'den çıkarır, tekrarlı bağlantıları
+birleştirir ve başlık bulunmayan/değişmiş sayfayı sessiz sıfır yerine kaynak
+hatası sayar. Evreka, MechSoft ve Layermark'ın robots-uyumlu açık sayfaları bu
+adapter'la en fazla günde bir taranır.
 
 ## İlan analizi
 

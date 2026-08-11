@@ -78,11 +78,64 @@ func TestProductionSourcesContainCanonicalPrimaryCompaniesWithCoverage(t *testin
 			t.Errorf("canonical primary company %q is missing", company)
 		}
 	}
-	if len(sources.CanonicalAliases) != 1 || sources.CanonicalAliases["Commensis"] != "Commencis" {
-		t.Fatalf("Commensis alias was not canonicalized: %#v", sources.CanonicalAliases)
+	wantAliases := map[string]string{
+		"Commensis": "Commencis", "İnova": "İnnova", "ÜşüSebit": "Sebit", "MechSoft AI": "MechSoft",
+	}
+	if len(sources.CanonicalAliases) != len(wantAliases) {
+		t.Fatalf("unexpected canonical aliases: %#v", sources.CanonicalAliases)
+	}
+	for alias, canonical := range wantAliases {
+		if sources.CanonicalAliases[alias] != canonical {
+			t.Fatalf("alias %q was not canonicalized to %q: %#v", alias, canonical, sources.CanonicalAliases)
+		}
 	}
 	if got := sources.CanonicalCompanyName(" Commensis "); got != "Commencis" {
 		t.Fatalf("canonical company name=%q, want Commencis", got)
+	}
+}
+
+func TestProductionSourcesContainApprovedPhase16SecondaryCompaniesWithCoverage(t *testing.T) {
+	sources, err := LoadSources("../../configs/sources.json")
+	if err != nil {
+		t.Fatalf("load production sources: %v", err)
+	}
+	want := map[string]bool{
+		"İnnova": false, "İntertech": false, "Sebit": false, "DenizBank": false,
+		"Mobiliz": false, "AI Studio": false, "Belsis": false, "Evreka": false,
+		"Viseur AI": false, "MechSoft": false, "Layermark": false, "Actioner": false,
+		"Bilishim": false, "Otsimo": false,
+	}
+	for _, company := range sources.Companies {
+		if _, phase16 := want[company.Name]; !phase16 {
+			continue
+		}
+		if company.PriorityGroup != "secondary" {
+			t.Fatalf("company %q is not secondary", company.Name)
+		}
+		if len(company.Sources) == 0 {
+			t.Fatalf("company %q has no verified source", company.Name)
+		}
+		want[company.Name] = true
+		for _, source := range company.Sources {
+			if source.EffectiveCoverageStatus() == "" || source.EffectiveTrustLevel() == "" {
+				t.Fatalf("source %q lacks coverage/trust classification", source.ID)
+			}
+			if source.EffectiveCoverageStatus() != "automatic" && strings.TrimSpace(source.CoverageReason) == "" {
+				t.Fatalf("non-automatic source %q lacks a coverage reason", source.ID)
+			}
+		}
+	}
+	for company, found := range want {
+		if !found {
+			t.Errorf("approved Phase 16 company %q is missing", company)
+		}
+	}
+	for _, rejected := range []string{"ÜşüSebit", "İnova", "MechSoft AI"} {
+		for _, company := range sources.Companies {
+			if company.Name == rejected {
+				t.Errorf("unapproved or non-canonical company identity %q remains active", rejected)
+			}
+		}
 	}
 }
 

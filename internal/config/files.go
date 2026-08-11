@@ -121,16 +121,18 @@ func (c CompanyConfig) EffectiveTrackingStatus() string {
 }
 
 type SourceConfig struct {
-	ID             string `json:"id"`
-	Type           string `json:"type"`
-	URL            string `json:"url"`
-	Adapter        string `json:"adapter"`
-	Strategy       string `json:"strategy,omitempty"`
-	PageName       string `json:"page_name,omitempty"`
-	Enabled        bool   `json:"enabled"`
-	CoverageStatus string `json:"coverage_status,omitempty"`
-	CoverageReason string `json:"coverage_reason,omitempty"`
-	TrustLevel     string `json:"trust_level,omitempty"`
+	ID                 string `json:"id"`
+	Type               string `json:"type"`
+	URL                string `json:"url"`
+	Adapter            string `json:"adapter"`
+	Strategy           string `json:"strategy,omitempty"`
+	PageName           string `json:"page_name,omitempty"`
+	ListingContainerID string `json:"listing_container_id,omitempty"`
+	ListingPathPrefix  string `json:"listing_path_prefix,omitempty"`
+	Enabled            bool   `json:"enabled"`
+	CoverageStatus     string `json:"coverage_status,omitempty"`
+	CoverageReason     string `json:"coverage_reason,omitempty"`
+	TrustLevel         string `json:"trust_level,omitempty"`
 }
 
 func (s SourceConfig) EffectiveCoverageStatus() string {
@@ -171,6 +173,7 @@ var legacyHTMLAdapters = map[string]struct{}{
 // staj-takip-spec-v2.md §16). Explicit "strategy" in config still wins.
 var adapterDefaultStrategy = map[string]string{
 	"json_ld":          "json_ld",
+	"career_links":     "static_links",
 	"greenhouse":       "ats_api",
 	"llm_generic":      "llm_generic",
 	"learned_selector": "learned_selector",
@@ -182,6 +185,7 @@ var adapterDefaultStrategy = map[string]string{
 // predate the strategy abstraction.
 var validSourceStrategies = map[string]struct{}{
 	"legacy_html":      {},
+	"static_links":     {},
 	"json_ld":          {},
 	"ats_api":          {},
 	"learned_selector": {},
@@ -428,6 +432,9 @@ func (s SourceConfig) validate() error {
 	}
 	if strings.TrimSpace(s.Adapter) == "" {
 		return errors.New("adapter is required")
+	}
+	if s.Adapter == "career_links" && !strings.HasPrefix(strings.TrimSpace(s.ListingPathPrefix), "/") {
+		return errors.New("career_links adapter requires listing_path_prefix starting with /")
 	}
 	parsedURL, err := url.ParseRequestURI(s.URL)
 	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {

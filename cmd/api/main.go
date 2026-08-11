@@ -254,11 +254,13 @@ func configureSources(
 				return nil, fmt.Errorf("source %q uses unsupported adapter %q", sourceConfig.ID, sourceConfig.Adapter)
 			}
 			source, err := scraper.NewSource(sourceConfig.Adapter, scraper.SourceSpec{
-				ID:           sourceConfig.ID,
-				Company:      company.Name,
-				PageName:     sourceConfig.PageName,
-				URL:          sourceConfig.URL,
-				AccessPolicy: runtimePolicy,
+				ID:                 sourceConfig.ID,
+				Company:            company.Name,
+				PageName:           sourceConfig.PageName,
+				URL:                sourceConfig.URL,
+				ListingContainerID: sourceConfig.ListingContainerID,
+				ListingPathPrefix:  sourceConfig.ListingPathPrefix,
+				AccessPolicy:       runtimePolicy,
 			}, deps)
 			if err != nil {
 				return nil, fmt.Errorf("configure source %q: %w", sourceConfig.ID, err)

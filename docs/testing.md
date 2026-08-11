@@ -12,6 +12,15 @@ alias kararını ve her kaynağın kapsama/güven sınıfını production config
 doğrular. Tutarsız otomatik/disabled sınıflandırması startup'ta reddedilir;
 SQLite testi sınıflandırmanın kaynak sağlık kaydına taşındığını kanıtlar.
 
+Faz 16 katalog testi kullanıcı tarafından onaylanan `Sebit`, `AI Studio`
+(`aistudio.com.tr`) ve `Bilishim` (`bilishim.ai`) kararları dahil on dört
+kanonik ikincil şirketi production config'inden doğrular. Her kaynak ayrı
+kapsama/güven sınıfına ve otomatik değilse görünür gerekçeye sahip olmalıdır.
+`careerlinks/secondary-careers.html` fixture'ı adapter'ın yalnız yapılandırılan
+container/path içindeki ilanları çıkardığını, query/fragment normalizasyonunu,
+URL dedup'ını ve beklenmeyen sayfada tipli hata verdiğini canlı ağa bağlanmadan
+sınar.
+
 Kapsama repository testi yalnız birincil şirketleri raporlar, beş durumun
 sayımını ve manuel kaynağın otomatik kapsama paydasından çıkarılmasını gerçek
 SQLite ile doğrular. HTTP testi `/api/v1/coverage` JSON sözleşmesini fake

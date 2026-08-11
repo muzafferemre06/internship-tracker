@@ -2,11 +2,17 @@
 
 ## Aktif faz
 
-Faz 15 davranışı, fixture kabulü ve tam repository kalite paketi tamamlandı.
-`ba4677d6918029916bdf23ef642bd100a4b0e9be` revision'ı race, vet, güvenlik,
-frontend, deployment sözleşmeleri ve gerçek Docker/Compose kontrollerinden
-geçti. Aktif teslim kapısı ayrı production deploy kullanıcı onayıdır; bu onay
-olmadan snapshot veya production mutasyonu yapılmaz.
+Faz 16 test-first uygulaması sürüyor. Kullanıcı 11 Ağustos 2026'da kapsamı ve
+kimlik kararlarını onayladı: `ÜşüSebit` kanonik `Sebit`, `AI Studio`
+`aistudio.com.tr`, `Bilishim` ise `bilishim.ai` olarak izlenecek. Resmî kanıt ve
+erişim sınıfları `docs/research/phase-16-sources-2026-08-11.md` dosyasındadır.
+
+On dört Faz 16 şirketi production kataloğuna eklendi. Açık ve robots-uyumlu
+Evreka, MechSoft ve Layermark kariyer indeksleri fixture-first deterministik
+`career_links` adapter'ıyla otomatik izlenir. Oturum/toplayıcı yolu kullanan veya
+açık ilan akışı bulunmayan diğer on bir kaynak manuel ya da araştırılıyor olarak
+gerekçesiyle görünür tutulur. Öncelik kırılımlı coverage, ikincil güçlü eşleşme
+bildirim kapısı ve uçtan uca Faz 16 kabulü sıradaki aktif dilimlerdir.
 
 11 Ağustos 2026'da kullanıcı, spec'teki `Commensis` yazımının resmî `Commencis`
 kimliğiyle birleştirilmesini ve Turkcell için sentetik ilan yerine ayrı minimal

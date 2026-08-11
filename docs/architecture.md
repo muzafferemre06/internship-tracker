@@ -350,6 +350,14 @@ kaynağın nedenini saklar. Kaynak config'indeki `canonical_aliases` yalnız mev
 bir kanonik şirketi hedefleyebilir; `Commensis` girdisi bu nedenle ayrı şirket
 oluşturmadan `Commencis` kimliğine bağlanır.
 
+Faz 16 kaynak keşfinde `career_links`, resmî açık kariyer indeksleri için
+deterministik bir ara katmandır. Zorunlu `listing_path_prefix` yalnız aynı-origin
+ilan URL'lerini kabul eder; isteğe bağlı `listing_container_id` DOM yürüyüşünü
+ilan bölümüne sınırlar. Başlık en yakın ilan kartının heading öğesinden, ham
+analiz metni aynı kartın normalize içeriğinden üretilir. Query/fragment temizliği
+ve URL dedup'u adapter içinde yapılır. Hiç eşleşme veya beklenen container'ın
+kaybı `ErrUnexpectedPage` üretir; layout kırılması başarılı sıfır ilan sayılmaz.
+
 `GET /api/v1/coverage`, yalnız birincil şirketleri kaynaklarıyla gruplar ve aynı
 raporda dönemsel program pencerelerini döndürür. Özet sayımları beş kapsama
 durumunu ayrı tutar. Otomatik kapsama oranının payı `automatic + feed`, paydası
