@@ -2,10 +2,12 @@
 
 ## Aktif faz
 
-Faz 16 tamamlandı ve tam kalite kapısı geçti. Doğrulanmış revision'ın
-production deploy'u, repository kuralındaki ayrı kullanıcı onayını bekliyor.
-Faz 17 yalnız üçüncül şirket araştırmasıdır; production deploy tamamlandıktan
-sonra ayrıca planlanıp onaylanmadan başlamaz.
+Faz 16 tamamlandı, tam kalite kapısı geçti ve ayrı kullanıcı onayından sonra
+`b66c5b2c110c179b2e2052b04fe187bb9ce1b061` revision'ı yerel Docker +
+Cloudflare Tunnel production ortamına deploy edildi. Snapshot/restorecheck,
+health/smoke, HTTP/2 ve kalıcı `internship_tracker_data` kimliği doğrulandı;
+ayrıntılar `docs/acceptance/phase-16-2026-08-11.md` dosyasındadır. Faz 17 yalnız
+üçüncül şirket araştırmasıdır ve ayrıca planlanıp onaylanmadan başlamaz.
 
 Kullanıcı 11 Ağustos 2026'da kapsamı ve kimlik kararlarını onayladı:
 `ÜşüSebit` kanonik `Sebit`, `AI Studio` `aistudio.com.tr`, `Bilishim` ise
@@ -228,9 +230,9 @@ penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
 
 ## Sıradaki iş
 
-Faz 15 birincil ve Faz 16 ikincil şirket kapsamı tamamlandı. Production deploy
-ayrı onay ve operasyon kapısındadır. Sonraki ürün işi Faz 17'de yalnız üçüncül
-şirket araştırması, ardından Faz 18'de onaylanan şirketlerin eklenmesidir.
+Faz 15 birincil ve Faz 16 ikincil şirket kapsamı tamamlandı; Faz 16 production
+deploy'u snapshot ve kalıcılık kanıtıyla doğrulandı. Sonraki ürün işi Faz 17'de
+yalnız üçüncül şirket araştırması, ardından Faz 18'de onaylanan şirketlerin eklenmesidir.
 RSS/e-posta ve geniş fırsat türleri Faz 19–21'de, analitik/öğrenme ise Faz 23'te
 ele alınır; ayrıntılar `docs/roadmap.md` içindedir.
 
