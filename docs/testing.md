@@ -19,7 +19,9 @@ kapsama/güven sınıfına ve otomatik değilse görünür gerekçeye sahip olma
 `careerlinks/secondary-careers.html` fixture'ı adapter'ın yalnız yapılandırılan
 container/path içindeki ilanları çıkardığını, query/fragment normalizasyonunu,
 URL dedup'ını ve beklenmeyen sayfada tipli hata verdiğini canlı ağa bağlanmadan
-sınar.
+sınar. Ayrı Evreka, MechSoft ve Layermark production-shape fixture'ları üç
+etkin kaynağın gerçek kart yapısını ve heading kullanmayan Evreka başlığının
+konum/kategori metniyle birleşmediğini korur.
 
 Kapsama repository testi birincil ve ikincil şirketleri aynı yanıtta raporlar;
 genel özet ile iki `priority_summaries` kırılımında beş durumun sayımını ve
@@ -43,6 +45,13 @@ geçici SQLite'a kaydeder; Commencis Lever ve toplayıcı fixture'larını iki t
 işler. İki görünür listing'e karşı yalnız yüksek güvenli kaynaktan tek fake push,
 12 şirketlik kapsama JSON'u ve ayrı kapalı Turkcell program penceresi beklenir.
 Zaman damgalı sonuç `docs/acceptance/phase-15-2026-08-11.md` içindedir.
+
+`TestPhase16SecondaryCatalogCoverageAndStrongMatchNotificationEndToEnd`, bütün
+production kataloğunu gerçek geçici SQLite'a kaydeder ve robots kontrollü Evreka
+fixture'ını iki taramada işler. İki görünür ikincil fırsata karşı yalnız backend
+odak eşleşmesinden tek fake push; tekrarda sıfır yeni kayıt ve API'de 15 mevcut
+ikincil şirketin 4 otomatik, 5 manuel, 6 araştırılıyor / `%40` kırılımını bekler.
+Faz 16'nın yeni 14 şirketi ayrıca katalog testinde eski STM kaydından ayrıdır.
 
 ```bash
 go test ./...

@@ -57,3 +57,35 @@ func TestCareerLinksSourceRejectsUnexpectedPage(t *testing.T) {
 		t.Fatalf("expected an unexpected-page error, got %v", err)
 	}
 }
+
+func TestCareerLinksSourceProductionShapes(t *testing.T) {
+	tests := []struct {
+		name, fixture, pageURL, containerID, pathPrefix, wantTitle, wantURL string
+	}{
+		{name: "Evreka", fixture: "testdata/careerlinks/evreka-career.html", pageURL: "https://evreka.co/career/", pathPrefix: "/career/", wantTitle: "Mandatory Internship", wantURL: "https://evreka.co/career/mandatory-internship/"},
+		{name: "MechSoft", fixture: "testdata/careerlinks/mechsoft-jobs.html", pageURL: "https://www.mechsoft.com.tr/jobs", pathPrefix: "/jobs/detail/", wantTitle: "Yenileme Uzmanı (Renewal Specialist)", wantURL: "https://www.mechsoft.com.tr/jobs/detail/yenileme-uzman-renewal-specialist-114"},
+		{name: "Layermark", fixture: "testdata/careerlinks/layermark-careers.html", pageURL: "https://www.layermark.com/careers/", containerID: "open-positions", pathPrefix: "/", wantTitle: "Business Development Intern", wantURL: "https://www.layermark.com/business-development-intern/"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fixture, err := os.ReadFile(test.fixture)
+			if err != nil {
+				t.Fatal(err)
+			}
+			client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(string(fixture)))}, nil
+			})}
+			source, err := NewCareerLinksSource(test.name, test.name, test.pageURL, test.containerID, test.pathPrefix, client)
+			if err != nil {
+				t.Fatal(err)
+			}
+			listings, err := source.FetchListings(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(listings) != 1 || listings[0].Title != test.wantTitle || listings[0].URL != test.wantURL {
+				t.Fatalf("production shape mismatch: %#v", listings)
+			}
+		})
+	}
+}

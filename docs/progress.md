@@ -16,7 +16,10 @@ birincil ve ikincil grupların şirket, kaynak, durum ve otomatik oranlarını a
 gösterir; manuel kaynak her iki oranın da paydasından çıkarılır. İkincil fırsat
 yalnız boş olmayan odak eşleşmesi, sabit `0.7` güven ve yüksek kaynak güvenini
 birlikte sağladığında ayrı sürümlü event ile push üretir. Uçtan uca Faz 16
-kabulü sıradaki aktif dilimdir.
+kabul testi de production kataloğunu, üç production-shape fixture'ını, iki
+tarama dedup'ını, zayıf aday görünürlüğünü, tek güçlü push'ı ve ikincil coverage
+kırılımını doğrular. Tam repository kalite paketi ve acceptance kanıt kaydı
+sıradaki teslim kapısıdır.
 
 11 Ağustos 2026'da kullanıcı, spec'teki `Commensis` yazımının resmî `Commencis`
 kimliğiyle birleştirilmesini ve Turkcell için sentetik ilan yerine ayrı minimal

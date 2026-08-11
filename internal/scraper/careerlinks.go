@@ -156,11 +156,20 @@ func careerLinkTitleAndCard(anchor, scope *html.Node) (string, *html.Node) {
 			}
 		}
 	}
-	text := normalizedText(anchor)
+	text := firstCareerLinkLabel(anchor)
 	switch strings.ToLower(text) {
 	case "", "detay", "başvur", "başvurun", "şimdi başvur", "read more", "apply", "apply now":
 		return "", anchor
 	default:
 		return text, anchor
 	}
+}
+
+func firstCareerLinkLabel(anchor *html.Node) string {
+	for child := anchor.FirstChild; child != nil; child = child.NextSibling {
+		if text := normalizedText(child); text != "" {
+			return text
+		}
+	}
+	return ""
 }
