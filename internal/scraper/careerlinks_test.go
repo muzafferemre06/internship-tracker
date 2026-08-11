@@ -61,10 +61,13 @@ func TestCareerLinksSourceRejectsUnexpectedPage(t *testing.T) {
 func TestCareerLinksSourceProductionShapes(t *testing.T) {
 	tests := []struct {
 		name, fixture, pageURL, containerID, pathPrefix, wantTitle, wantURL string
+		allowedHosts                                                        []string
+		wantCount                                                           int
 	}{
-		{name: "Evreka", fixture: "testdata/careerlinks/evreka-career.html", pageURL: "https://evreka.co/career/", pathPrefix: "/career/", wantTitle: "Mandatory Internship", wantURL: "https://evreka.co/career/mandatory-internship/"},
-		{name: "MechSoft", fixture: "testdata/careerlinks/mechsoft-jobs.html", pageURL: "https://www.mechsoft.com.tr/jobs", pathPrefix: "/jobs/detail/", wantTitle: "Yenileme Uzmanı (Renewal Specialist)", wantURL: "https://www.mechsoft.com.tr/jobs/detail/yenileme-uzman-renewal-specialist-114"},
-		{name: "Layermark", fixture: "testdata/careerlinks/layermark-careers.html", pageURL: "https://www.layermark.com/careers/", containerID: "open-positions", pathPrefix: "/", wantTitle: "Business Development Intern", wantURL: "https://www.layermark.com/business-development-intern/"},
+		{name: "Evreka", fixture: "testdata/careerlinks/evreka-career.html", pageURL: "https://evreka.co/career/", pathPrefix: "/career/", wantTitle: "Mandatory Internship", wantURL: "https://evreka.co/career/mandatory-internship/", wantCount: 1},
+		{name: "MechSoft", fixture: "testdata/careerlinks/mechsoft-jobs.html", pageURL: "https://www.mechsoft.com.tr/jobs", pathPrefix: "/jobs/detail/", wantTitle: "Yenileme Uzmanı (Renewal Specialist)", wantURL: "https://www.mechsoft.com.tr/jobs/detail/yenileme-uzman-renewal-specialist-114", wantCount: 1},
+		{name: "Layermark", fixture: "testdata/careerlinks/layermark-careers.html", pageURL: "https://www.layermark.com/careers/", containerID: "open-positions", pathPrefix: "/", wantTitle: "Business Development Intern", wantURL: "https://www.layermark.com/business-development-intern/", wantCount: 1},
+		{name: "Etiya", fixture: "testdata/careerlinks/etiya-positions.html", pageURL: "https://www.etiya.com/en/career/all-open-positions", containerID: "open-positions", pathPrefix: "/portal/open-positions/", allowedHosts: []string{"etiya.peoplebox.biz"}, wantTitle: "Senior Specialist, Data Analytics", wantURL: "https://etiya.peoplebox.biz/portal/open-positions/1074", wantCount: 2},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -75,7 +78,7 @@ func TestCareerLinksSourceProductionShapes(t *testing.T) {
 			client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
 				return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(string(fixture)))}, nil
 			})}
-			source, err := NewCareerLinksSource(test.name, test.name, test.pageURL, test.containerID, test.pathPrefix, client)
+			source, err := NewCareerLinksSourceWithAllowedHosts(test.name, test.name, test.pageURL, test.containerID, test.pathPrefix, test.allowedHosts, client)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -83,7 +86,7 @@ func TestCareerLinksSourceProductionShapes(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(listings) != 1 || listings[0].Title != test.wantTitle || listings[0].URL != test.wantURL {
+			if len(listings) != test.wantCount || listings[0].Title != test.wantTitle || listings[0].URL != test.wantURL {
 				t.Fatalf("production shape mismatch: %#v", listings)
 			}
 		})

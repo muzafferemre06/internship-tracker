@@ -125,11 +125,13 @@ func (s *GreenhouseSource) FetchListings(ctx context.Context) ([]domain.RawListi
 		if title == "" {
 			return nil, fmt.Errorf("%w: Greenhouse job has no title", ErrUnexpectedPage)
 		}
-		listingURL := strings.TrimSpace(job.AbsoluteURL)
-		parsed, err := url.Parse(listingURL)
+		parsed, err := url.Parse(strings.TrimSpace(job.AbsoluteURL))
 		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
 			return nil, fmt.Errorf("%w: Greenhouse job %q has no valid absolute_url", ErrUnexpectedPage, title)
 		}
+		parsed.RawQuery = ""
+		parsed.Fragment = ""
+		listingURL := parsed.String()
 		if _, exists := seen[listingURL]; exists {
 			continue
 		}

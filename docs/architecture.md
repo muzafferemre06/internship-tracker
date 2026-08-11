@@ -274,8 +274,11 @@ dedup/analiz yoluna girer:
   açık Greenhouse board API'sini (`boards-api.greenhouse.io/v1/boards/{token}/
   jobs`) tüketir; scraping değil yapılandırılmış JSON. `content=true` zorlanır,
   her ilanın HTML-escape'li `content` alanı bir kez unescape edilip tag'leri
-  sökülerek metne indirilir. Başlıksız veya geçersiz `absolute_url`'lu ilan hata
-  verir; boş board (`{"jobs":[]}`) ise geçerli deterministik bir sonuçtur.
+  sökülerek metne indirilir. `absolute_url` query/fragment parçaları çıkarılarak
+  aynı ilan için ATS takip parametrelerinden bağımsız kimlik üretilir. Başlıksız
+  veya geçersiz URL'li ilan hata verir; boş board (`{"jobs":[]}`) ise geçerli
+  deterministik bir sonuçtur. Faz 18'de Udemy'nin resmî kariyer scriptinde
+  kullanılan `udemy` board'u bu adapter'a bağlanmıştır.
 
 Yeni adapter'lar `adapterDefaultStrategy` üzerinden stratejilerini kendiliğinden
 çıkarır, böylece kaynak eklemek yalnızca bir kayıt (adapter + URL) olur.
@@ -395,6 +398,14 @@ ilan üretmeden `program_windows.status = unknown` taşır.
 Lever panosuyla otomatik izler. `Insider One`, kanonik `Insider` şirket adına
 alias'tır. Genel tam zamanlı roller fırsat olarak görünür ve dedup edilir; staj
 veya uzun dönem staj türü olmadan öğrenci push'ı üretmez.
+
+Üçüncü batch Etiya'nın açık pozisyon tablosundaki PeopleBox hedeflerini
+`career_links` ile normalize eder. Tablo biçiminde link etiketi genel bir
+“View & Apply” olduğunda gerçek başlık aynı satırın ilk hücresinden, ham bağlam
+ise satırın tamamından alınır. Adapter yalnız Etiya sayfasını fetch eder;
+allowlist'teki PeopleBox hedefini saklar ama ziyaret etmez. Udemy resmî
+Greenhouse API'sinden izlenir. OBSS/LinkedIn, T2/mailto ve 403 döndüren
+TaleWorlds manuel; HTTP 500/koruma döndüren LOTEC araştırılıyor kalır.
 
 `GET /api/v1/coverage`, birincil ve ikincil şirketleri kaynaklarıyla gruplar ve
 aynı raporda dönemsel program pencerelerini döndürür. `summary` iki grubun

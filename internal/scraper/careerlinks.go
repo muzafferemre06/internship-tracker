@@ -173,6 +173,12 @@ func careerLinkTitleAndCard(anchor, scope *html.Node) (string, *html.Node) {
 				return title, candidate
 			}
 		}
+		if candidate.Data == "tr" {
+			cell := firstElement(candidate, func(node *html.Node) bool { return node.Data == "td" })
+			if title := normalizedText(cell); title != "" {
+				return title, candidate
+			}
+		}
 	}
 	text := firstCareerLinkLabel(anchor)
 	switch strings.ToLower(text) {

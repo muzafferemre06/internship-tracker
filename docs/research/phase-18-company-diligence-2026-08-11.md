@@ -77,3 +77,16 @@ Bu batch yalnız onaylanan dört şirketi production kaynak kataloğuna taşır.
 Diğer 11 şirket hakkındaki araştırma tamamlanmış olsa da onaylı batch dışında
 config, tarama veya bildirim akışına eklenmez. Başvuru formları gönderilmez,
 bot challenge aşılmaz ve üçüncü taraf ilan resmî kanıt yerine kullanılmaz.
+
+## Sonraki batch uygulama sonucu
+
+Kullanıcının Faz 18'in kalanını uygulama onayından sonra resmî kaynaklar yeniden
+doğrulandı. Binalyze/Ashby ve Insider One/Lever ikinci batch'te; Etiya'nın
+sunucu taraflı PeopleBox bağlantılı tablosu ile Udemy sayfasının kullandığı
+Greenhouse public API üçüncü batch'te otomatikleştirildi. OBSS yalnız LinkedIn,
+T2 yalnız mailto sunduğu için manuel; TaleWorlds güvenli istemciye HTTP 403
+döndürdüğü için manuel; LOTEC HTTP 500/koruma verdiği için araştırılıyor kaldı.
+Udemy sayfası Coursera ve Udemy'nin artık tek şirket olduğunu bildirirken
+resmî `udemy` Greenhouse board'u çalışmaya devam etmektedir; kaynak bu kanonik
+board kimliğiyle tutulur. Hiçbir LinkedIn/apply/e-posta hedefi fetch edilmez veya
+otomatik gönderilmez, challenge aşılmaz.

@@ -107,8 +107,8 @@ func TestPhase18ApprovedBatchCoverageAndFalseNotificationGuardEndToEnd(t *testin
 		t.Fatal(err)
 	}
 	secondary := coverage.PrioritySummaries["secondary"]
-	if secondary.TotalCompanies != 21 || secondary.TotalSources != 21 || secondary.AutomaticSources != 8 ||
-		secondary.ManualSources != 7 || secondary.ResearchingSources != 6 || secondary.AutomaticCoveragePercent != 57.142857142857146 {
+	if secondary.TotalCompanies != 27 || secondary.TotalSources != 27 || secondary.AutomaticSources != 10 ||
+		secondary.ManualSources != 10 || secondary.ResearchingSources != 7 || secondary.AutomaticCoveragePercent != 58.8235294117647 {
 		t.Fatalf("unexpected Phase 18 secondary coverage: %#v", secondary)
 	}
 	foundProgram := false

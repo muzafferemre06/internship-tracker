@@ -100,6 +100,15 @@ ziyaret etmez. Binalyze bu yolla otomatik izlenir. SİMSOFT'un CAPTCHA/CV formu,
 programı ve Bilişim AŞ'nin staj süreci sayfası `manual_only` kalır; Netaş COOP
 başvuru durumu kanıt olmadığı sürece `unknown` gösterilir.
 
+Faz 18'in üçüncü batch'inde Etiya'nın sunucu taraflı resmî açık pozisyon
+tablosu, dış PeopleBox ilan hedefleri fetch edilmeden `career_links` ile;
+Udemy'nin resmî kariyer scriptinin kullandığı `udemy` Greenhouse board'u
+`greenhouse` ile otomatik izlenir. Greenhouse ilan URL'lerindeki `gh_jid` ve
+fragment kanonik kimlikten çıkarılır. OBSS, T2 Software ve TaleWorlds resmî
+bağlantıları manuel; LOTEC'in korumalı sayfası araştırılıyor olarak görünür.
+LinkedIn veya başvuru e-postası otomatik kullanılmaz ve erişim challenge'ı
+aşılmaz.
+
 Faz 16'nın `career_links` adapter'ı açık kariyer indekslerinde
 ilan kartlarını deterministik olarak çıkarır. `listing_path_prefix` zorunludur;
 gerektiğinde `listing_container_id` taramayı kararlı ilan bölümüne sınırlar.

@@ -2,13 +2,20 @@
 
 ## Aktif faz
 
-Faz 18'in ilk batch'i production'dadır; ikinci batch uygulaması Binalyze'ın
+Faz 18'in ilk batch'i production'dadır. İkinci batch Binalyze'ın
 resmî Ashby public API panosunu ve Insider One'ın resmî Lever panosunu otomatik
 izlemeye alır. Fixture tabanlı adapter, iki taramalı dedup ve yanlış öğrenci
 bildirimi korumaları `docs/acceptance/phase-18-batch-2-2026-08-11.md`
 dosyasındadır. Kodlama öncesindeki katalog 31 şirket/33 kaynak/12 otomatik
 kaynak/11 otomatik şirketken ikinci batch ile 33 şirket/35 kaynak/14 otomatik
-kaynak/13 otomatik şirkete çıkar.
+kaynak/13 otomatik şirkete çıktı.
+
+Üçüncü batch Etiya ve Udemy'yi otomatik; OBSS, T2 Software ve TaleWorlds'ü
+manuel; LOTEC'i araştırılıyor olarak ekler. Etiya tablo satırı ve Udemy
+Greenhouse URL kanonikleştirmesi fixture-first doğrulandı; iki otomatik kaynağın
+çift taraması dört görünür ilan, sıfır duplicate ve yalnız bir güçlü staj push'ı
+üretti. Katalog bu batch ile 39 şirket/41 kaynak/16 otomatik kaynak/15 otomatik
+şirkettir. Kanıt `docs/acceptance/phase-18-batch-3-2026-08-11.md` dosyasındadır.
 
 On beş Faz 17
 şirketinin ayrıntılı durum tespiti `03dc03f`; MobileAction, SİMSOFT, Netaş ve

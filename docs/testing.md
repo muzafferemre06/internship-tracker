@@ -105,6 +105,14 @@ ağsız doğrular. İkinci batch kabulü Binalyze ve Insider kaynaklarını ayn�
 SQLite orchestrator'ında iki kez tarar; dört tam zamanlı rolün tekilleşip görünür
 kalmasını ve hiç öğrenci push'ı üretmemesini zorunlu tutar.
 
+Üçüncü batch Etiya fixture'ı resmî tablo satırı biçimini, dış PeopleBox
+allowlist'ini, gerçek rol başlığını ve query/fragment temizliğini doğrular.
+Greenhouse fixture'ı `gh_jid`/fragment içeren URL'nin kanonikleşmesini korur.
+Etiya ve Udemy aynı gerçek SQLite orchestrator'ında iki kez taranır; dört ilan
+tekilleşir ve yalnız backend odaklı gerçek staj fixture'ı tek güçlü ikincil push
+üretir. Dört devre dışı kaynak için gerekçe kodu, tarih ve `manual_only`
+politikası production config kabulünde zorunludur.
+
 Kariyer.net adapter testi bellek içi sahte bir HTTP taşıma katmanı kullanır;
 iki ilan, tekrarlı bağlantı, sıfır ilan, eksik başlık, değişmiş sayfa işareti,
 HTTP 403/418/429/5xx, timeout ve iptal edilen istek senaryolarını kapsar.

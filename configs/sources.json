@@ -22,6 +22,13 @@
       "maximum_cooldown_seconds": 3600
     },
     {
+      "domain": "boards-api.greenhouse.io",
+      "mode": "public_api",
+      "minimum_interval_seconds": 1,
+      "base_cooldown_seconds": 60,
+      "maximum_cooldown_seconds": 3600
+    },
+    {
       "domain": "kariyer.net",
       "mode": "robots",
       "minimum_interval_seconds": 86400,
@@ -52,7 +59,12 @@
     { "domain": "otsimo.com", "mode": "manual_only" },
     { "domain": "simsoft.com.tr", "mode": "manual_only" },
     { "domain": "netas.com.tr", "mode": "manual_only" },
-    { "domain": "bilisim.com.tr", "mode": "manual_only" }
+    { "domain": "bilisim.com.tr", "mode": "manual_only" },
+    { "domain": "etiya.com", "mode": "robots", "minimum_interval_seconds": 86400, "base_cooldown_seconds": 3600, "maximum_cooldown_seconds": 86400 },
+    { "domain": "obss.tech", "mode": "manual_only" },
+    { "domain": "t2.com.tr", "mode": "manual_only" },
+    { "domain": "taleworlds.com", "mode": "manual_only" },
+    { "domain": "lotec.com.tr", "mode": "manual_only" }
   ],
   "companies": [
     {
@@ -614,6 +626,121 @@
           "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_ats",
           "enabled": true
+        }
+      ]
+    },
+    {
+      "name": "Etiya",
+      "priority_group": "secondary",
+      "sources": [
+        {
+          "id": "etiya-official-open-positions",
+          "type": "career_page",
+          "url": "https://www.etiya.com/en/career/all-open-positions",
+          "adapter": "career_links",
+          "listing_container_id": "open-positions",
+          "listing_path_prefix": "/portal/open-positions/",
+          "listing_allowed_hosts": ["etiya.peoplebox.biz"],
+          "coverage_status": "automatic",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_company",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "name": "Udemy",
+      "priority_group": "secondary",
+      "sources": [
+        {
+          "id": "udemy-greenhouse-board",
+          "type": "official_ats_board",
+          "url": "https://boards-api.greenhouse.io/v1/boards/udemy/jobs",
+          "adapter": "greenhouse",
+          "coverage_status": "automatic",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_ats",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "name": "OBSS",
+      "priority_group": "secondary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "obss-official-career-development",
+          "type": "career_page",
+          "url": "https://obss.tech/en/career-development/",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Resmî kariyer sayfası açık pozisyonlar için yalnız LinkedIn şirket sayfasına yönlendiriyor; üçüncü taraf liste otomatik veya yüksek güvenli kaynak yapılmaz.",
+          "coverage_reason_code": "third_party_restricted",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "T2 Software",
+      "priority_group": "secondary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "t2-official-careers-email",
+          "type": "career_page",
+          "url": "https://www.t2.com.tr/tr/careers",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Resmî sayfadaki roller yalnız mailto başvurusu kullanıyor ve her rol için kararlı ayrı URL sunmuyor; e-posta otomatik gönderilmeden sayfa elle izlenir.",
+          "coverage_reason_code": "no_public_job_source",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "TaleWorlds Entertainment",
+      "priority_group": "secondary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "taleworlds-official-career",
+          "type": "career_page",
+          "url": "https://www.taleworlds.com/en/Career",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Resmî kariyer sayfası ilan dışı staj başvurusunu açıklıyor ancak güvenli istemci isteği HTTP 403 dönüyor; koruma aşılmadan bağlantı elle izlenir.",
+          "coverage_reason_code": "source_unreachable",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "LOTEC",
+      "priority_group": "secondary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "lotec-official-career",
+          "type": "career_page",
+          "url": "https://lotec.com.tr/kariyer/",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "researching",
+          "coverage_reason": "Resmî kariyer sayfası güvenli istemciye HTTP 500/koruma yanıtı veriyor; bot challenge aşılmadan kararlı ilan kaynağı araştırılıyor.",
+          "coverage_reason_code": "source_unreachable",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_company",
+          "enabled": false
         }
       ]
     },
