@@ -21,15 +21,16 @@ container/path içindeki ilanları çıkardığını, query/fragment normalizasy
 URL dedup'ını ve beklenmeyen sayfada tipli hata verdiğini canlı ağa bağlanmadan
 sınar.
 
-Kapsama repository testi yalnız birincil şirketleri raporlar, beş durumun
-sayımını ve manuel kaynağın otomatik kapsama paydasından çıkarılmasını gerçek
-SQLite ile doğrular. HTTP testi `/api/v1/coverage` JSON sözleşmesini fake
-repository ile ağsız sınar.
+Kapsama repository testi birincil ve ikincil şirketleri aynı yanıtta raporlar;
+genel özet ile iki `priority_summaries` kırılımında beş durumun sayımını ve
+manuel kaynağın otomatik kapsama paydasından çıkarılmasını gerçek SQLite ile
+doğrular. HTTP testi `/api/v1/coverage` JSON sözleşmesini fake repository ile
+ağsız sınar.
 
 Frontend kapsama helper testi beş backend durumunun ayrı Türkçe etiket ve görsel
-tonunu, bozuk durumun tehlike tonunu, yerel yüzde biçimini ve program durum
-etiketlerini doğrular. Typecheck ve production build, endpoint sözleşmesinin
-responsive PWA paneline eksiksiz bağlandığını denetler.
+tonunu, bozuk durumun tehlike tonunu, yerel yüzde biçimini, program durumunu ve
+birincil/ikincil özetlerin ayrılığını doğrular. Typecheck ve production build,
+endpoint sözleşmesinin responsive PWA paneline eksiksiz bağlandığını denetler.
 
 `TestPhase15PrimaryCoverageTrustAndProgramWindowEndToEnd`, production config'ini
 geçici SQLite'a kaydeder; Commencis Lever ve toplayıcı fixture'larını iki taramada

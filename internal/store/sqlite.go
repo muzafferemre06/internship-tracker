@@ -1293,14 +1293,17 @@ func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error)
 			company_sources.coverage_reason, company_sources.trust_level, company_sources.enabled,
 			company_sources.last_success_at, COALESCE(company_sources.last_error, '')
 		FROM companies JOIN company_sources ON company_sources.company_id = companies.id
-		WHERE companies.priority_group = 'primary'
-		ORDER BY companies.name, company_sources.source_key
+		WHERE companies.priority_group IN ('primary', 'secondary')
+		ORDER BY companies.priority_group = 'primary' DESC, companies.name, company_sources.source_key
 	`)
 	if err != nil {
 		return CoverageReport{}, fmt.Errorf("query source coverage: %w", err)
 	}
 	defer rows.Close()
-	report := CoverageReport{Companies: make([]CompanyCoverage, 0), Programs: make([]ProgramCoverage, 0)}
+	report := CoverageReport{
+		PrioritySummaries: map[string]CoverageSummary{"primary": {}, "secondary": {}},
+		Companies:         make([]CompanyCoverage, 0), Programs: make([]ProgramCoverage, 0),
+	}
 	companyIndex := make(map[string]int)
 	for rows.Next() {
 		var company CompanyCoverage
@@ -1323,29 +1326,24 @@ func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error)
 			companyIndex[company.Name] = index
 			company.Sources = make([]CoverageSource, 0)
 			report.Companies = append(report.Companies, company)
+			report.Summary.TotalCompanies++
+			prioritySummary := report.PrioritySummaries[company.Priority]
+			prioritySummary.TotalCompanies++
+			report.PrioritySummaries[company.Priority] = prioritySummary
 		}
 		report.Companies[index].Sources = append(report.Companies[index].Sources, source)
-		report.Summary.TotalSources++
-		switch source.Status {
-		case "automatic":
-			report.Summary.AutomaticSources++
-		case "feed":
-			report.Summary.FeedSources++
-		case "manual":
-			report.Summary.ManualSources++
-		case "researching":
-			report.Summary.ResearchingSources++
-		case "broken":
-			report.Summary.BrokenSources++
-		}
+		addCoverageSource(&report.Summary, source.Status)
+		prioritySummary := report.PrioritySummaries[company.Priority]
+		addCoverageSource(&prioritySummary, source.Status)
+		report.PrioritySummaries[company.Priority] = prioritySummary
 	}
 	if err := rows.Err(); err != nil {
 		return CoverageReport{}, fmt.Errorf("read source coverage: %w", err)
 	}
-	report.Summary.TotalCompanies = len(report.Companies)
-	report.Summary.AutomaticEligibleSources = report.Summary.AutomaticSources + report.Summary.FeedSources + report.Summary.ResearchingSources + report.Summary.BrokenSources
-	if report.Summary.AutomaticEligibleSources > 0 {
-		report.Summary.AutomaticCoveragePercent = float64(report.Summary.AutomaticSources+report.Summary.FeedSources) * 100 / float64(report.Summary.AutomaticEligibleSources)
+	finalizeCoverageSummary(&report.Summary)
+	for priority, summary := range report.PrioritySummaries {
+		finalizeCoverageSummary(&summary)
+		report.PrioritySummaries[priority] = summary
 	}
 
 	programRows, err := r.db.QueryContext(ctx, `
@@ -1353,8 +1351,8 @@ func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error)
 			program_windows.program_type, program_windows.url, program_windows.status,
 			program_windows.opens_at, program_windows.closes_at, program_windows.last_verified_at
 		FROM program_windows JOIN companies ON companies.id = program_windows.company_id
-		WHERE companies.priority_group = 'primary'
-		ORDER BY companies.name, program_windows.program_key
+		WHERE companies.priority_group IN ('primary', 'secondary')
+		ORDER BY companies.priority_group = 'primary' DESC, companies.name, program_windows.program_key
 	`)
 	if err != nil {
 		return CoverageReport{}, fmt.Errorf("query program coverage: %w", err)
@@ -1382,6 +1380,29 @@ func (r *SQLiteRepository) Coverage(ctx context.Context) (CoverageReport, error)
 		return CoverageReport{}, fmt.Errorf("read program coverage: %w", err)
 	}
 	return report, nil
+}
+
+func addCoverageSource(summary *CoverageSummary, status string) {
+	summary.TotalSources++
+	switch status {
+	case "automatic":
+		summary.AutomaticSources++
+	case "feed":
+		summary.FeedSources++
+	case "manual":
+		summary.ManualSources++
+	case "researching":
+		summary.ResearchingSources++
+	case "broken":
+		summary.BrokenSources++
+	}
+}
+
+func finalizeCoverageSummary(summary *CoverageSummary) {
+	summary.AutomaticEligibleSources = summary.AutomaticSources + summary.FeedSources + summary.ResearchingSources + summary.BrokenSources
+	if summary.AutomaticEligibleSources > 0 {
+		summary.AutomaticCoveragePercent = float64(summary.AutomaticSources+summary.FeedSources) * 100 / float64(summary.AutomaticEligibleSources)
+	}
 }
 
 // manualChecks surfaces sources the scraper attempted and failed on. It

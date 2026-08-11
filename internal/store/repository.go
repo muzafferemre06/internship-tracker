@@ -149,9 +149,10 @@ type CoverageSummary struct {
 }
 
 type CoverageReport struct {
-	Summary   CoverageSummary   `json:"summary"`
-	Companies []CompanyCoverage `json:"companies"`
-	Programs  []ProgramCoverage `json:"programs"`
+	Summary           CoverageSummary            `json:"summary"`
+	PrioritySummaries map[string]CoverageSummary `json:"priority_summaries"`
+	Companies         []CompanyCoverage          `json:"companies"`
+	Programs          []ProgramCoverage          `json:"programs"`
 }
 
 type ListingRepository interface {

@@ -1033,7 +1033,7 @@ func suitablePrimaryAnalysis() domain.ListingAnalysis {
 	return domain.ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.95}
 }
 
-func TestCoverageReportsPrimarySourcesAndExcludesManualFromAutomaticDenominator(t *testing.T) {
+func TestCoverageReportsPrimaryAndSecondarySourcesSeparatelyAndExcludesManualFromAutomaticDenominator(t *testing.T) {
 	repository, _ := newTestRepository(t)
 	ctx := context.Background()
 	registrations := []domain.SourceRegistration{
@@ -1054,13 +1054,22 @@ func TestCoverageReportsPrimarySourcesAndExcludesManualFromAutomaticDenominator(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Summary.TotalCompanies != 3 || report.Summary.TotalSources != 3 || report.Summary.ManualSources != 1 || report.Summary.ResearchingSources != 1 {
+	if report.Summary.TotalCompanies != 4 || report.Summary.TotalSources != 4 || report.Summary.AutomaticSources != 2 || report.Summary.ManualSources != 1 || report.Summary.ResearchingSources != 1 {
 		t.Fatalf("unexpected coverage summary: %#v", report.Summary)
 	}
-	if report.Summary.AutomaticEligibleSources != 2 || report.Summary.AutomaticCoveragePercent != 50 {
+	if report.Summary.AutomaticEligibleSources != 3 || report.Summary.AutomaticCoveragePercent < 66.6 || report.Summary.AutomaticCoveragePercent > 66.7 {
 		t.Fatalf("manual source must be excluded from automatic denominator: %#v", report.Summary)
 	}
-	if len(report.Companies) != 3 || len(report.Programs) != 1 || report.Programs[0].Status != "closed" {
+	primary := report.PrioritySummaries["primary"]
+	if primary.TotalCompanies != 3 || primary.AutomaticSources != 1 || primary.ManualSources != 1 ||
+		primary.ResearchingSources != 1 || primary.AutomaticEligibleSources != 2 || primary.AutomaticCoveragePercent != 50 {
+		t.Fatalf("unexpected primary coverage: %#v", primary)
+	}
+	secondary := report.PrioritySummaries["secondary"]
+	if secondary.TotalCompanies != 1 || secondary.AutomaticSources != 1 || secondary.AutomaticEligibleSources != 1 || secondary.AutomaticCoveragePercent != 100 {
+		t.Fatalf("unexpected secondary coverage: %#v", secondary)
+	}
+	if len(report.Companies) != 4 || len(report.Programs) != 1 || report.Programs[0].Status != "closed" {
 		t.Fatalf("unexpected coverage detail: %#v", report)
 	}
 }

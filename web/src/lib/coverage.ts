@@ -1,5 +1,6 @@
 export type CoverageStatus = "automatic" | "feed" | "manual" | "researching" | "broken";
 export type ProgramStatus = "open" | "closed" | "unknown";
+export type CoveragePriority = "primary" | "secondary";
 
 export type CoverageSource = {
   source_id: string;
@@ -15,21 +16,24 @@ export type CoverageSource = {
   last_error?: string;
 };
 
+export type CoverageSummary = {
+  total_companies: number;
+  total_sources: number;
+  automatic_sources: number;
+  feed_sources: number;
+  manual_sources: number;
+  researching_sources: number;
+  broken_sources: number;
+  automatic_eligible_sources: number;
+  automatic_coverage_percent: number;
+};
+
 export type CoverageResponse = {
-  summary: {
-    total_companies: number;
-    total_sources: number;
-    automatic_sources: number;
-    feed_sources: number;
-    manual_sources: number;
-    researching_sources: number;
-    broken_sources: number;
-    automatic_eligible_sources: number;
-    automatic_coverage_percent: number;
-  };
+  summary: CoverageSummary;
+  priority_summaries: Record<CoveragePriority, CoverageSummary>;
   companies: Array<{
     name: string;
-    priority: string;
+    priority: CoveragePriority;
     tracking_status: string;
     sources: CoverageSource[];
   }>;
@@ -45,6 +49,10 @@ export type CoverageResponse = {
     last_verified_at?: string;
   }>;
 };
+
+export function coverageForPriority(coverage: CoverageResponse, priority: CoveragePriority): CoverageSummary {
+  return coverage.priority_summaries[priority];
+}
 
 export const coverageStatusLabels: Record<CoverageStatus, string> = {
   automatic: "Otomatik",

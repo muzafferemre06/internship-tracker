@@ -358,17 +358,20 @@ analiz metni aynı kartın normalize içeriğinden üretilir. Query/fragment tem
 ve URL dedup'u adapter içinde yapılır. Hiç eşleşme veya beklenen container'ın
 kaybı `ErrUnexpectedPage` üretir; layout kırılması başarılı sıfır ilan sayılmaz.
 
-`GET /api/v1/coverage`, yalnız birincil şirketleri kaynaklarıyla gruplar ve aynı
-raporda dönemsel program pencerelerini döndürür. Özet sayımları beş kapsama
-durumunu ayrı tutar. Otomatik kapsama oranının payı `automatic + feed`, paydası
-`automatic + feed + researching + broken` kaynaklarıdır; bilinçli `manual`
-kaynaklar katalog toplamında görünür ancak bu oranın paydasına girmez.
+`GET /api/v1/coverage`, birincil ve ikincil şirketleri kaynaklarıyla gruplar ve
+aynı raporda dönemsel program pencerelerini döndürür. `summary` iki grubun
+toplamını, `priority_summaries.primary` ve `.secondary` aynı sözleşmenin ayrı
+kırılımlarını taşır. Her özet beş kapsama durumunu ayrı tutar. Otomatik kapsama
+oranının payı `automatic + feed`, paydası `automatic + feed + researching +
+broken` kaynaklarıdır; bilinçli `manual` kaynaklar katalog toplamında görünür
+ancak genel veya grup oranının paydasına girmez.
 
 PWA açılışta dashboard ve fırsat geçmişinden bağımsız olarak kapsama endpoint'ini
 yükler; taramadan sonra üç görünümü de yeniler. Kapsama paneli backend enumlarını
-birleştirmeden ayrı rozetlerle sunar, gerekçe/sağlık bilgisini resmî kaynak
-bağlantısında görünür tutar ve `program_windows` kayıtlarını listing kartlarına
-karıştırmadan ayrı bir bölümde gösterir.
+birleştirmeden ayrı rozetlerle, birincil ve ikincil grup özetlerini birbirine
+karıştırmadan sunar. Sabit şirket sayısı kullanmaz; backend toplamını gösterir,
+gerekçe/sağlık bilgisini resmî kaynak bağlantısında görünür tutar ve
+`program_windows` kayıtlarını listing kartlarına karıştırmadan ayrı gösterir.
 
 Bildirim outbox kapısı listing'in bağlı `company_sources.trust_level` değerini
 aynı transaction içinde okur. Yalnız resmî şirket, resmî ATS veya doğrulanmış

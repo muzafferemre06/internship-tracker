@@ -17,6 +17,7 @@ import { disablePush, enablePush, getPushStatus, type PushStatus } from "./lib/p
 import {
   coverageStatusLabels,
   coverageTone,
+  coverageForPriority,
   formatCoveragePercent,
   programStatusLabels,
   type CoverageResponse,
@@ -392,33 +393,44 @@ export default function App() {
         <section className="panel coverage-panel">
           <div className="panel-heading">
             <div>
-              <h2>Birincil şirket kapsamı</h2>
+              <h2>Şirket kaynak kapsamı</h2>
               <p className="coverage-caption">Manuel kaynaklar otomatik kapsama oranının paydasına girmez.</p>
             </div>
-            <span>{coverage ? `${coverage.summary.total_companies}/12` : "—"}</span>
+            <span>{coverage ? coverage.summary.total_companies : "—"}</span>
           </div>
           {coverage ? (
             <>
-              <div className="coverage-summary">
-                <strong>{formatCoveragePercent(coverage.summary.automatic_coverage_percent)}</strong>
-                <span>otomatik kapsama</span>
-                <small>{coverage.summary.automatic_sources} otomatik · {coverage.summary.feed_sources} akış · {coverage.summary.manual_sources} manuel · {coverage.summary.researching_sources} araştırılıyor · {coverage.summary.broken_sources} bozuk</small>
-              </div>
-              <ul className="coverage-list">
-                {coverage.companies.map((company) => (
-                  <li key={company.name}>
-                    <strong>{company.name}</strong>
-                    <div className="coverage-sources">
-                      {company.sources.map((source) => (
-                        <a key={source.source_id} href={source.url} target="_blank" rel="noreferrer" title={source.reason || source.last_error}>
-                          <span className={`coverage-badge ${coverageTone(source.status)}`}>{coverageStatusLabels[source.status]}</span>
-                          <small>{source.reason || source.last_error || source.trust_level}</small>
-                        </a>
-                      ))}
+              {(["primary", "secondary"] as const).map((priority) => {
+                const summary = coverageForPriority(coverage, priority);
+                return (
+                  <div className="coverage-group" key={priority}>
+                    <div className="coverage-group-heading">
+                      <h3>{priority === "primary" ? "Birincil şirketler" : "İkincil şirketler"}</h3>
+                      <span>{summary.total_companies} şirket</span>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                    <div className="coverage-summary">
+                      <strong>{formatCoveragePercent(summary.automatic_coverage_percent)}</strong>
+                      <span>otomatik kapsama</span>
+                      <small>{summary.automatic_sources} otomatik · {summary.feed_sources} akış · {summary.manual_sources} manuel · {summary.researching_sources} araştırılıyor · {summary.broken_sources} bozuk</small>
+                    </div>
+                    <ul className="coverage-list">
+                      {coverage.companies.filter((company) => company.priority === priority).map((company) => (
+                        <li key={company.name}>
+                          <strong>{company.name}</strong>
+                          <div className="coverage-sources">
+                            {company.sources.map((source) => (
+                              <a key={source.source_id} href={source.url} target="_blank" rel="noreferrer" title={source.reason || source.last_error}>
+                                <span className={`coverage-badge ${coverageTone(source.status)}`}>{coverageStatusLabels[source.status]}</span>
+                                <small>{source.reason || source.last_error || source.trust_level}</small>
+                              </a>
+                            ))}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
               {coverage.programs.length > 0 ? (
                 <div className="program-windows">
                   <h3>Dönemsel programlar</h3>

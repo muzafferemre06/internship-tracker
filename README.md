@@ -308,10 +308,10 @@ immutable revision dizinine kurulur. Ayrıntılar deployment runbook'undadır.
   tarama raporu
 - `POST /api/v1/scan`: etkin kaynakları hemen tarar; toplam bulunan/yeni ilan
   sayılarını, kalıcı tarama kimliğini/durumunu ve kaynak bazlı hataları döndürür;
-- `GET /api/v1/coverage`: on iki birincil şirketin kaynak durumunu, güven
-  sınıfını, manuel/araştırma gerekçesini, dönemsel programlarını ve manuel
-  kaynakları paydadan çıkaran otomatik kapsama oranını döndürür;
   başka bir tarama çalışıyorsa `409` döner
+- `GET /api/v1/coverage`: birincil ve ikincil şirketlerin kaynak durumunu, güven
+  sınıfını, manuel/araştırma gerekçesini, dönemsel programlarını ve manuel
+  kaynakları paydadan çıkaran genel/öncelik kırılımlı otomatik oranları döndürür
 - `POST /api/v1/analyses/retry`: en fazla 25 `pending` analizi, kaynak siteye
   yeniden bağlanmadan saklanan ham ilan metni üzerinden işler; işlenen ve tekrar
   başarısız olan kayıt sayılarını döndürür

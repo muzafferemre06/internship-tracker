@@ -11,8 +11,10 @@ On dört Faz 16 şirketi production kataloğuna eklendi. Açık ve robots-uyumlu
 Evreka, MechSoft ve Layermark kariyer indeksleri fixture-first deterministik
 `career_links` adapter'ıyla otomatik izlenir. Oturum/toplayıcı yolu kullanan veya
 açık ilan akışı bulunmayan diğer on bir kaynak manuel ya da araştırılıyor olarak
-gerekçesiyle görünür tutulur. Öncelik kırılımlı coverage, ikincil güçlü eşleşme
-bildirim kapısı ve uçtan uca Faz 16 kabulü sıradaki aktif dilimlerdir.
+gerekçesiyle görünür tutulur. Coverage API/PWA artık genel toplamın yanında
+birincil ve ikincil grupların şirket, kaynak, durum ve otomatik oranlarını ayrı
+gösterir; manuel kaynak her iki oranın da paydasından çıkarılır. İkincil güçlü
+eşleşme bildirim kapısı ve uçtan uca Faz 16 kabulü sıradaki aktif dilimlerdir.
 
 11 Ağustos 2026'da kullanıcı, spec'teki `Commensis` yazımının resmî `Commencis`
 kimliğiyle birleştirilmesini ve Turkcell için sentetik ilan yerine ayrı minimal
@@ -23,13 +25,14 @@ Commencis birincil gruba alındı; Türk Telekom, Jotform, Akınsoft ve Roketsan
 doğrulanmış resmî URL ve açık manuel/araştırılıyor gerekçeleriyle eklendi.
 Kaynak kapsama ve güven sınıfları SQLite'a kalıcı yazılır.
 
-Minimal `GET /api/v1/coverage` endpoint'i birincil şirketleri, kaynak sağlık ve
-kapsama ayrıntılarını, dönemsel programları ve manuel kaynakları dışlayan
-otomatik kapsama oranını sunar.
+Minimal `GET /api/v1/coverage` endpoint'i birincil ve ikincil şirketleri, kaynak
+sağlık/kapsama ayrıntılarını, dönemsel programları ve manuel kaynakları dışlayan
+genel ve öncelik kırılımlı otomatik kapsama oranlarını sunar.
 
-PWA'da birincil şirket kapsama paneli eklendi. Panel beş kaynak durumunu,
-otomatik oranı, açık gerekçeleri ve Turkcell dahil dönemsel programların
-açık/kapalı/bilinmiyor durumunu mobilde tek kolona inen görünümde sunar.
+PWA kapsama paneli birincil ve ikincil şirketleri ayrı grup başlıkları ve
+otomatik oranlarla sunar. Panel beş kaynak durumunu, açık gerekçeleri ve Turkcell
+dahil dönemsel programların açık/kapalı/bilinmiyor durumunu mobilde tek kolona
+inen görünümde korur.
 
 Kaynak güveni bildirim kapısına bağlandı: resmî şirket/ATS veya doğrulanmış
 bülten güçlü birincil eşleşmede push üretebilir; toplayıcı adaylar görünür kalır

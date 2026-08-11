@@ -140,9 +140,10 @@ func TestPhase15PrimaryCoverageTrustAndProgramWindowEndToEnd(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &coverage); err != nil {
 		t.Fatal(err)
 	}
-	if coverage.Summary.TotalCompanies != 12 || coverage.Summary.AutomaticSources != 6 ||
-		coverage.Summary.ManualSources != 4 || coverage.Summary.ResearchingSources != 4 {
-		t.Fatalf("unexpected primary coverage: %#v", coverage.Summary)
+	primaryCoverage := coverage.PrioritySummaries["primary"]
+	if primaryCoverage.TotalCompanies != 12 || primaryCoverage.AutomaticSources != 6 ||
+		primaryCoverage.ManualSources != 4 || primaryCoverage.ResearchingSources != 4 {
+		t.Fatalf("unexpected primary coverage: %#v", primaryCoverage)
 	}
 	if len(coverage.Programs) != 1 || coverage.Programs[0].Company != "Turkcell" || coverage.Programs[0].Status != "closed" {
 		t.Fatalf("Turkcell program window missing: %#v", coverage.Programs)
