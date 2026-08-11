@@ -2,10 +2,11 @@
 
 ## Aktif faz
 
-Faz 15 davranışı ve fixture kabulü tamamlandı. Aktif teslim kapısı, commit/push
-sonrası tam repository kalite paketinin (race, vet, güvenlik, deployment ve
-gerçek Docker/Compose kontrolleri dahil) çalıştırılmasıdır. Bu kapı yeşil olmadan
-Faz 16 başlamaz veya production deploy onayı istenmez.
+Faz 15 davranışı, fixture kabulü ve tam repository kalite paketi tamamlandı.
+`ba4677d6918029916bdf23ef642bd100a4b0e9be` revision'ı race, vet, güvenlik,
+frontend, deployment sözleşmeleri ve gerçek Docker/Compose kontrollerinden
+geçti. Aktif teslim kapısı ayrı production deploy kullanıcı onayıdır; bu onay
+olmadan snapshot veya production mutasyonu yapılmaz.
 
 11 Ağustos 2026'da kullanıcı, spec'teki `Commensis` yazımının resmî `Commencis`
 kimliğiyle birleştirilmesini ve Turkcell için sentetik ilan yerine ayrı minimal
