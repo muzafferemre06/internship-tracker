@@ -200,15 +200,23 @@ Lever'ın herkese açık robots politikasındaki bir saniyelik crawl aralığı 
 kalıcı domain erişim bütçesiyle uygulanır. 403/429/challenge yanıtları kısa ve
 güvenli teşhislerle devre kesiciyi tetikler; yanıt gövdesi saklanmaz.
 
+Faz 18'deki `lever_board` adapter'ı aynı güvenli alan ve erişim bütçesiyle bir
+şirketin herkese açık Lever panosunu okur. Yalnız panodaki aynı şirket slug'ına
+ait iki parçalı ilan yollarını kabul eder; query/fragment temizler, tekrarlı ve
+başka şirkete ait bağlantıları atar. Tanınan boş `postings-wrapper` gerçek sıfır
+ilan sonucudur; container kaybı layout değişimi sayılır. Adapter her ilan
+sayfasını ayrıca fetch etmeden başlık ve pano kartı bağlamını normalize eder.
+
 ### Kaynak strateji dispatch'i (Faz 9)
 
-`internal/scraper/registry.go`, adapter adını (`kariyer_net`, `lever`, ...) bir
+`internal/scraper/registry.go`, adapter adını (`kariyer_net`, `lever`,
+`lever_board`, ...) bir
 `SourceFactory`'ye eşleyen veri-odaklı bir tablo (`adapterFactories`) tutar.
 `cmd/api/main.go`'daki `configureSources`, sabit kodlu bir `switch` yerine
 `scraper.NewSource(adapter, spec)` ile bu tabloyu kullanır. Her kaynak ayrıca
 bir `strategy` alanı taşır (`internal/config.SourceConfig.EffectiveStrategy`):
-açıkça belirtilmemişse, Faz 9 öncesi elle yazılmış adapter'lar (`kariyer_net`,
-`lever`) `legacy_html` stratejisine varsayılan olarak atanır. Strateji,
+açıkça belirtilmemişse, elle yazılmış HTML adapter'ları (`kariyer_net`, `lever`,
+`lever_board`) `legacy_html` stratejisine varsayılan olarak atanır. Strateji,
 `company_sources.strategy` sütununda (`migrations/006_source_strategy.sql`)
 kalıcı hale gelir. Faz 10-12'nin ekleyeceği `json_ld`, `ats_api`,
 `learned_selector`, `llm_generic` ve el ile takip edilen `manual` stratejileri
@@ -369,6 +377,12 @@ kodları hesap gereksinimi, kısıtlı üçüncü taraf, açık ilan kaynağı y
 doğrulanmamış istemci-render akışı, dönemsel program ve güvenli istemciyle
 erişilemeyen kaynak ayrımlarını taşır; serbest metin gerekçe ayrıntıyı korur.
 
+Faz 18'in ilk batch'i MobileAction'ı resmî Lever panosuyla otomatik; SİMSOFT'u
+resmî aday mühendis/stajyer formuyla, Netaş'ı tarihsiz COOP programıyla ve
+Bilişim AŞ'yi resmî staj süreci sayfasıyla manuel izler. Manuel kaynaklarda HTTP
+isteği veya form gönderimi yapılmaz. Netaş COOP, açık tarih kanıtı olmadığı için
+ilan üretmeden `program_windows.status = unknown` taşır.
+
 `GET /api/v1/coverage`, birincil ve ikincil şirketleri kaynaklarıyla gruplar ve
 aynı raporda dönemsel program pencerelerini döndürür. `summary` iki grubun
 toplamını, `priority_summaries.primary` ve `.secondary` aynı sözleşmenin ayrı
@@ -394,8 +408,11 @@ resmî kaynak bağlantısında görünür tutar ve
 Bildirim outbox kapısı listing'in bağlı `company_sources.trust_level` değerini
 aynı transaction içinde okur. Yalnız resmî şirket, resmî ATS veya doğrulanmış
 bülten kaynakları event üretebilir. Birincil fırsat mevcut açık/ilgili/uygun
-koşullarını korur. İkincil fırsat ayrıca `MatchingAreas` listesinin boş olmaması
-ve deterministik analizcinin sabit `0.7` güvenini sağlamalıdır. Skaler eşleşme
+koşullarını korur. İkincil fırsat ayrıca staj türlerinden biri (`staj`,
+`uzun_donem_staj`) olmalı, `MatchingAreas` listesi
+boş olmamalı ve deterministik analizcinin sabit `0.7` güvenini sağlamalıdır.
+Tam zamanlı genel/kıdemli roller Fırsatlar'da görünür kalır ancak “uygun staj”
+push'ı üretmez. Skaler eşleşme
 puanı veya tercih eval'i eklenmez; bu işler Faz 19'dadır. İkincil olay
 `new_secondary_strong_match_v1` ve fırsat düzeyli ayrı dedup anahtarı kullanır.
 Toplayıcı veya zayıf ikincil listing kalıcı tutulur ve Fırsatlar'a girer, fakat

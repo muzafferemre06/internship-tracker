@@ -90,6 +90,14 @@ olarak kabul edilmediğini doğrular.
 Adapter'ın `jobs.lever.co` için bir saniyelik kalıcı erişim bütçesi bildirdiği de
 test edilir; fixture kabul testindeki saat ikinci taramadan önce bu kadar ilerler.
 
+Faz 18 `lever_board` testi MobileAction'a benzeyen küçük bir pano fixture'ıyla
+aynı şirket ilanlarını, göreli URL'yi, query/fragment temizliğini, haricî şirket
+ve `/apply` bağlantılarının reddini, tanınan boş panoyu ve layout bozulmasını
+ağsız doğrular. Uçtan uca kabul testi production config'inde dört onaylı şirketi,
+üç `manual_only` invariant'ını, Netaş'ın `unknown` program penceresini, iki
+taramada ilan dedup'unu ve genel/kıdemli tam zamanlı rollerin görünür kalırken
+push üretmemesini gerçek SQLite ve coverage handler'ıyla sınar.
+
 Kariyer.net adapter testi bellek içi sahte bir HTTP taşıma katmanı kullanır;
 iki ilan, tekrarlı bağlantı, sıfır ilan, eksik başlık, değişmiş sayfa işareti,
 HTTP 403/418/429/5xx, timeout ve iptal edilen istek senaryolarını kapsar.

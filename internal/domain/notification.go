@@ -43,7 +43,8 @@ func NewListingNotification(
 		eventType = NewPrimarySuitableEvent
 		dedupSuffix = "new-primary-suitable:v1"
 	case "secondary":
-		if len(analysis.MatchingAreas) == 0 || analysis.Confidence < SecondaryStrongMatchMinimumConfidence {
+		if !secondaryNotificationOpportunity(analysis.OpportunityType) ||
+			len(analysis.MatchingAreas) == 0 || analysis.Confidence < SecondaryStrongMatchMinimumConfidence {
 			return Notification{}, false
 		}
 		eventType = NewSecondaryStrongMatchEvent
@@ -63,6 +64,15 @@ func NewListingNotification(
 		TargetURL: "/?listing=" + url.QueryEscape(listingID),
 		Topic:     "opp-" + base64.RawURLEncoding.EncodeToString(topicHash[:18]),
 	}, true
+}
+
+func secondaryNotificationOpportunity(opportunityType string) bool {
+	switch strings.TrimSpace(opportunityType) {
+	case "staj", "uzun_donem_staj":
+		return true
+	default:
+		return false
+	}
 }
 
 func truncateRunes(value string, limit int) string {

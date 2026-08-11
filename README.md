@@ -91,6 +91,12 @@ Commencis'in resmî Lever ilanı bu adapter'ın yapılandırmasını gösterir.
 Lever istekleri alanın robots politikasındaki bir saniyelik minimum aralıkla
 kalıcı erişim bütçesinden geçirilir.
 
+Faz 18'in `lever_board` adapter'ı `https://jobs.lever.co/<şirket>` panosundaki
+aynı şirkete ait ilan kartlarını tek istekle kanonikleştirir. MobileAction bu
+yolla otomatik izlenir. SİMSOFT'un CAPTCHA/CV formu, Netaş'ın tarihsiz COOP
+programı ve Bilişim AŞ'nin staj süreci sayfası `manual_only` kalır; Netaş COOP
+başvuru durumu kanıt olmadığı sürece `unknown` gösterilir.
+
 Faz 16'nın `career_links` adapter'ı açık kariyer indekslerinde
 ilan kartlarını deterministik olarak çıkarır. `listing_path_prefix` zorunludur;
 gerektiğinde `listing_container_id` taramayı kararlı ilan bölümüne sınırlar.
@@ -213,8 +219,10 @@ secret sistemi kullanılmalıdır.
 
 İlk başarılı analizde birincil şirkete ait başvurusu açık, ilgili ve `uygun`
 fırsat için versionlanmış tek bildirim olayı oluşur. Faz 16 ikincil fırsatı buna
-ek olarak en az bir `MatchingAreas` odak eşleşmesi ve deterministik analizcinin
-sabit `0.7` güvenini sağlamalıdır; bu bir skaler eşleşme skoru değildir. Analiz,
+ek olarak `staj` veya `uzun_donem_staj` türünde olmalı, en az bir `MatchingAreas` odak
+eşleşmesi ve deterministik analizcinin sabit `0.7` güvenini sağlamalıdır. Genel
+tam zamanlı/kıdemli rol görünür kalır fakat “uygun staj” push'ı üretmez; bu bir
+skaler eşleşme skoru değildir. Analiz,
 fırsat çözümleme ve olay/outbox aynı SQLite transaction'ındadır. Birincil dedup
 anahtarı `opportunity:<id>:new-primary-suitable:v1`, ikincil anahtarı
 `opportunity:<id>:new-secondary-strong-match:v1` olur. Gönderici geçici

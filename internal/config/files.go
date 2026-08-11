@@ -179,6 +179,7 @@ func (s SourceConfig) EffectiveTrustLevel() string {
 var legacyHTMLAdapters = map[string]struct{}{
 	"kariyer_net": {},
 	"lever":       {},
+	"lever_board": {},
 }
 
 // adapterDefaultStrategy maps Faz 10+ adapters to their tier strategy so a

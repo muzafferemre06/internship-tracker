@@ -41,7 +41,10 @@
     { "domain": "layermark.com", "mode": "robots", "minimum_interval_seconds": 86400, "base_cooldown_seconds": 3600, "maximum_cooldown_seconds": 86400 },
     { "domain": "actioner.com", "mode": "manual_only" },
     { "domain": "bilishim.ai", "mode": "manual_only" },
-    { "domain": "otsimo.com", "mode": "manual_only" }
+    { "domain": "otsimo.com", "mode": "manual_only" },
+    { "domain": "simsoft.com.tr", "mode": "manual_only" },
+    { "domain": "netas.com.tr", "mode": "manual_only" },
+    { "domain": "bilisim.com.tr", "mode": "manual_only" }
   ],
   "companies": [
     {
@@ -552,6 +555,92 @@
           "coverage_status": "manual",
           "coverage_reason": "Resmî kariyer sayfası ilanları Indeed'e yönlendiriyor; toplayıcı/hesap yolu otomatik taranmıyor.",
           "coverage_reason_code": "third_party_restricted",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "MobileAction",
+      "priority_group": "secondary",
+      "sources": [
+        {
+          "id": "mobileaction-lever-board",
+          "type": "official_ats_board",
+          "url": "https://jobs.lever.co/mobile-action",
+          "adapter": "lever_board",
+          "coverage_status": "automatic",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_ats",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "name": "SİMSOFT",
+      "priority_group": "secondary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "simsoft-candidate-engineer-intern-form",
+          "type": "application_form",
+          "url": "https://www.simsoft.com.tr/tr/insan-kaynaklari/aday-muhendis-ve-stajyer-basvuru-formu",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Resmî aday mühendis/stajyer formu CAPTCHA ve CV yükleme içeriyor; form gönderilmez ve ayrı ilan akışı olmadığı için bağlantı elle izlenir.",
+          "coverage_reason_code": "no_public_job_source",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "Netaş",
+      "priority_group": "secondary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "netas-coop-program",
+          "type": "program_page",
+          "url": "https://netas.com.tr/coop-staj-programi",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Resmî COOP programı dönemsel; sayfa güncel bir başvuru açılış/kapanış tarihi vermediği için durum elle doğrulanır.",
+          "coverage_reason_code": "periodic_program",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ],
+      "programs": [
+        {
+          "id": "netas-coop-internship",
+          "name": "Netaş COOP Staj Programı",
+          "type": "internship",
+          "url": "https://netas.com.tr/coop-staj-programi",
+          "status": "unknown",
+          "last_verified_at": "2026-08-11T00:00:00+03:00"
+        }
+      ]
+    },
+    {
+      "name": "Bilişim AŞ",
+      "priority_group": "secondary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "bilisim-internship-process",
+          "type": "program_page",
+          "url": "https://bilisim.com.tr/insan-kaynaklari-surecleri/",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Resmî sayfa staj kabul sürecini açıklıyor ancak açık kontenjan, ilan listesi veya ayrı başvuru formu sunmuyor; süreç elle izlenir.",
+          "coverage_reason_code": "no_public_job_source",
           "last_verified_at": "2026-08-11T00:00:00+03:00",
           "trust_level": "official_company",
           "enabled": false

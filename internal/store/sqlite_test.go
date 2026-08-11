@@ -1085,7 +1085,7 @@ func TestSecondaryNotificationRequiresStrongFocusMatchAndHighTrustSource(t *test
 		if err != nil {
 			t.Fatal(err)
 		}
-		analysis := domain.ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.7}
+		analysis := domain.ListingAnalysis{OpportunityType: "staj", ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.7}
 		if test.strong {
 			analysis.MatchingAreas = []string{"backend"}
 		}

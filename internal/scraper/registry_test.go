@@ -58,6 +58,14 @@ func TestNewSourceDispatchesRegisteredAdapters(t *testing.T) {
 			},
 		},
 		{
+			adapter: "lever_board",
+			spec: SourceSpec{
+				ID:      "mobileaction-lever-board",
+				Company: "MobileAction",
+				URL:     "https://jobs.lever.co/mobile-action",
+			},
+		},
+		{
 			adapter: "json_ld",
 			spec: SourceSpec{
 				ID:      "northstar-careers",

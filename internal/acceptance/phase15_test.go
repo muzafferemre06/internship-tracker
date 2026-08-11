@@ -145,7 +145,13 @@ func TestPhase15PrimaryCoverageTrustAndProgramWindowEndToEnd(t *testing.T) {
 		primaryCoverage.ManualSources != 4 || primaryCoverage.ResearchingSources != 4 {
 		t.Fatalf("unexpected primary coverage: %#v", primaryCoverage)
 	}
-	if len(coverage.Programs) != 1 || coverage.Programs[0].Company != "Turkcell" || coverage.Programs[0].Status != "closed" {
+	turkcellFound := false
+	for _, program := range coverage.Programs {
+		if program.Company == "Turkcell" && program.Status == "closed" {
+			turkcellFound = true
+		}
+	}
+	if !turkcellFound {
 		t.Fatalf("Turkcell program window missing: %#v", coverage.Programs)
 	}
 }

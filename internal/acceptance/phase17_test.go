@@ -94,9 +94,15 @@ func TestPhase17ResearchCatalogIsFiniteEvidenceBackedAndRuntimeIsolated(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
+	phase18Approved := map[string]struct{}{
+		"MobileAction": {}, "SİMSOFT": {}, "Netaş": {}, "Bilişim AŞ": {},
+	}
 	for company := range seenCompanies {
+		if _, approved := phase18Approved[company]; approved {
+			continue
+		}
 		if strings.Contains(string(production), `"name": "`+company+`"`) {
-			t.Errorf("research-only Phase 17 company %q leaked into production sources", company)
+			t.Errorf("unapproved Phase 17 company %q leaked into production sources", company)
 		}
 	}
 }

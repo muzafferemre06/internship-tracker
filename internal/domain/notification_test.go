@@ -25,7 +25,7 @@ func TestNewListingNotificationAllowsStrongSecondaryMatchWithSeparateEventIdenti
 	notification, ok := NewListingNotification(
 		"opp-secondary", "listing-secondary", "Evreka", "Backend Intern", "secondary",
 		ListingAnalysis{
-			ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
+			OpportunityType: "staj", ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
 			MatchingAreas: []string{"backend"}, Confidence: 0.7,
 		}, true,
 	)
@@ -40,6 +40,19 @@ func TestNewListingNotificationAllowsStrongSecondaryMatchWithSeparateEventIdenti
 	}
 }
 
+func TestNewListingNotificationRejectsSecondaryFullTimeRole(t *testing.T) {
+	_, ok := NewListingNotification(
+		"opp-secondary-full-time", "listing-secondary-full-time", "MobileAction", "Software Engineer", "secondary",
+		ListingAnalysis{
+			OpportunityType: "diger", ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
+			MatchingAreas: []string{"backend"}, Confidence: 0.95,
+		}, true,
+	)
+	if ok {
+		t.Fatal("a full-time secondary role must remain visible without producing an internship push")
+	}
+}
+
 func TestNewListingNotificationRejectsWeakSecondaryMatch(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -47,12 +60,12 @@ func TestNewListingNotificationRejectsWeakSecondaryMatch(t *testing.T) {
 	}{
 		{
 			name: "no focus-area match",
-			analysis: ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
+			analysis: ListingAnalysis{OpportunityType: "staj", ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
 				Confidence: 0.95},
 		},
 		{
 			name: "below fixed confidence",
-			analysis: ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
+			analysis: ListingAnalysis{OpportunityType: "staj", ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
 				MatchingAreas: []string{"backend"}, Confidence: 0.69},
 		},
 	}

@@ -47,6 +47,9 @@ var adapterFactories = map[string]SourceFactory{
 	"lever": func(spec SourceSpec, _ SourceDeps) (Source, error) {
 		return NewLeverSource(spec.ID, spec.Company, spec.URL, nil)
 	},
+	"lever_board": func(spec SourceSpec, _ SourceDeps) (Source, error) {
+		return NewLeverBoardSource(spec.ID, spec.Company, spec.URL, nil)
+	},
 	// Faz 10 structured-data-first adapters (deterministic, AI-free).
 	"json_ld": func(spec SourceSpec, _ SourceDeps) (Source, error) {
 		return NewJSONLDSource(spec.ID, spec.Company, spec.URL, nil)

@@ -1079,6 +1079,13 @@ Faz 17'de onaylanan şirketler küçük, ayrı onaylanan batch'lerle eklenir. He
 batch erişim politikası, fixture/fake kabulü, kaynak sağlığı ve yanlış bildirim
 guard'larıyla tamamlanır; doğrulanmamış URL kullanılmaz.
 
+İlk onaylı batch MobileAction, SİMSOFT, Netaş ve Bilişim AŞ'dir. MobileAction
+resmî Lever panosundan otomatik izlenir. CAPTCHA/form, tarihsiz dönemsel program
+ve yalnız süreç açıklaması sunan diğer üç kaynak manuel kalır; Netaş COOP açık
+tarih kanıtı olmadığında `unknown` program penceresidir. İkincil genel/kıdemli
+tam zamanlı roller görünür olabilir fakat staj türü taşımadan staj push'ı
+üretemez.
+
 #### Faz 19 — Genel fırsat modeli ve bildirim katmanları
 
 Staj, uzun dönem staj, part-time öğrenci pozisyonu, yeni mezun programı,
