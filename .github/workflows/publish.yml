@@ -114,9 +114,9 @@ jobs:
           IMAGE_NAME: ${{ steps.image.outputs.name }}
         run: |
           set -euo pipefail
-          if docker buildx imagetools inspect "${IMAGE_NAME}:${GITHUB_SHA}" >/dev/null 2>&1; then
-            digest=$(docker buildx imagetools inspect "${IMAGE_NAME}:${GITHUB_SHA}" | \
-              awk '$1 == "Digest:" { print $2; exit }')
+          if inspect_output=$(docker buildx imagetools inspect "${IMAGE_NAME}:${GITHUB_SHA}"); then
+            digest=$(printf '%s\n' "$inspect_output" | \
+              awk '$1 == "Digest:" && !found { digest=$2; found=1 } END { if (found) print digest }')
             [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
             echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "digest=$digest" >> "$GITHUB_OUTPUT"

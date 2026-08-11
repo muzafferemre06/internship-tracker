@@ -26,7 +26,10 @@ DEPLOY_REVISION=<40-karakter-küçük-harf-git-commit-sha>
 Deploy preflight'i etiketi, eksik digest'i veya tam commit SHA olmayan deploy
 revision'ını reddeder. `publish.yml`, API ve web
 image'larını `linux/amd64` ile `linux/arm64` için tam commit SHA etiketiyle bir kez
-yayımlar; var olan commit etiketini ezmez. BuildKit provenance/SBOM ve GitHub
+yayımlar; var olan commit etiketini ezmez. Aynı revision için tekrar çalıştırılan
+workflow, registry inceleme çıktısını tamamen aldıktan sonra mevcut digest'i
+yeniden kullanır; böylece immutable etiketi yeniden build etmez. BuildKit
+provenance/SBOM ve GitHub
 artifact attestation image digest'ine bağlanır. Artifact içindeki API/web digest
 kayıtları, seçilmiş `cloudflared` digest'i eklenmeden production manifesti değildir.
 

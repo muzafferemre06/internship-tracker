@@ -66,6 +66,13 @@ grep -F 'deploy/nginx.production.conf' "$REPOSITORY_ROOT/.github/workflows/publi
 grep -F "git ls-files 'deploy/scripts/*.sh'" "$REPOSITORY_ROOT/.github/workflows/publish.yml" >/dev/null
 grep -F 'DEPLOY_REVISION=%s' "$REPOSITORY_ROOT/.github/workflows/publish.yml" >/dev/null
 grep -F 'sha256sum "$incoming_bundle"' "$REPOSITORY_ROOT/.github/workflows/publish.yml" >/dev/null
+grep -F 'inspect_output=$(docker buildx imagetools inspect "${IMAGE_NAME}:${GITHUB_SHA}")' \
+    "$REPOSITORY_ROOT/.github/workflows/publish.yml" >/dev/null
+if grep -F 'print $2; exit' \
+    "$REPOSITORY_ROOT/.github/workflows/publish.yml" >/dev/null; then
+    printf '%s\n' "immutable image digest parser exits before imagetools completes" >&2
+    exit 1
+fi
 grep -F 'deploy/releases/<commit-sha>' "$REPOSITORY_ROOT/docs/deployment.md" >/dev/null
 
 printf '%s\n' "exact-commit deployment bundle contract passed"
