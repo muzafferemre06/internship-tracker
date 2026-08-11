@@ -13,8 +13,10 @@ Evreka, MechSoft ve Layermark kariyer indeksleri fixture-first deterministik
 açık ilan akışı bulunmayan diğer on bir kaynak manuel ya da araştırılıyor olarak
 gerekçesiyle görünür tutulur. Coverage API/PWA artık genel toplamın yanında
 birincil ve ikincil grupların şirket, kaynak, durum ve otomatik oranlarını ayrı
-gösterir; manuel kaynak her iki oranın da paydasından çıkarılır. İkincil güçlü
-eşleşme bildirim kapısı ve uçtan uca Faz 16 kabulü sıradaki aktif dilimlerdir.
+gösterir; manuel kaynak her iki oranın da paydasından çıkarılır. İkincil fırsat
+yalnız boş olmayan odak eşleşmesi, sabit `0.7` güven ve yüksek kaynak güvenini
+birlikte sağladığında ayrı sürümlü event ile push üretir. Uçtan uca Faz 16
+kabulü sıradaki aktif dilimdir.
 
 11 Ağustos 2026'da kullanıcı, spec'teki `Commensis` yazımının resmî `Commencis`
 kimliğiyle birleştirilmesini ve Turkcell için sentetik ilan yerine ayrı minimal
@@ -35,8 +37,9 @@ dahil dönemsel programların açık/kapalı/bilinmiyor durumunu mobilde tek kol
 inen görünümde korur.
 
 Kaynak güveni bildirim kapısına bağlandı: resmî şirket/ATS veya doğrulanmış
-bülten güçlü birincil eşleşmede push üretebilir; toplayıcı adaylar görünür kalır
-ama push üretmez. Faz 15 fixture kabulü 12 şirket, 14 kaynak, Turkcell program
+bülten güçlü birincil eşleşmede; Faz 16'dan itibaren odak alanı ve sabit güven
+koşulunu da sağlayan güçlü ikincil eşleşmede push üretebilir. Toplayıcı adaylar
+görünür kalır ama push üretmez. Faz 15 fixture kabulü 12 şirket, 14 kaynak, Turkcell program
 penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
 
 ## Tamamlananlar

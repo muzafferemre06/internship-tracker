@@ -7,7 +7,11 @@ import (
 	"strings"
 )
 
-const NewPrimarySuitableEvent = "new_primary_suitable_v1"
+const (
+	NewPrimarySuitableEvent               = "new_primary_suitable_v1"
+	NewSecondaryStrongMatchEvent          = "new_secondary_strong_match_v1"
+	SecondaryStrongMatchMinimumConfidence = 0.7
+)
 
 type Notification struct {
 	EventType string
@@ -27,16 +31,32 @@ func NewListingNotification(
 	analysis ListingAnalysis,
 	firstSuccessfulAnalysis bool,
 ) (Notification, bool) {
-	if !firstSuccessfulAnalysis || priorityGroup != "primary" || !analysis.ApplicationOpen ||
+	if !firstSuccessfulAnalysis || !analysis.ApplicationOpen ||
 		!analysis.Relevant || analysis.Eligibility != EligibilitySuitable {
 		return Notification{}, false
 	}
 
-	dedupKey := "opportunity:" + opportunityID + ":new-primary-suitable:v1"
+	eventType := ""
+	dedupSuffix := ""
+	switch priorityGroup {
+	case "primary":
+		eventType = NewPrimarySuitableEvent
+		dedupSuffix = "new-primary-suitable:v1"
+	case "secondary":
+		if len(analysis.MatchingAreas) == 0 || analysis.Confidence < SecondaryStrongMatchMinimumConfidence {
+			return Notification{}, false
+		}
+		eventType = NewSecondaryStrongMatchEvent
+		dedupSuffix = "new-secondary-strong-match:v1"
+	default:
+		return Notification{}, false
+	}
+
+	dedupKey := "opportunity:" + opportunityID + ":" + dedupSuffix
 	topicHash := sha256.Sum256([]byte(dedupKey))
 	body := truncateRunes(strings.TrimSpace(company)+" — "+strings.TrimSpace(title), 240)
 	return Notification{
-		EventType: NewPrimarySuitableEvent,
+		EventType: eventType,
 		DedupKey:  dedupKey,
 		Title:     "Yeni uygun staj ilanı",
 		Body:      body,

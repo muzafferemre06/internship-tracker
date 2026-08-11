@@ -375,9 +375,13 @@ gerekçe/sağlık bilgisini resmî kaynak bağlantısında görünür tutar ve
 
 Bildirim outbox kapısı listing'in bağlı `company_sources.trust_level` değerini
 aynı transaction içinde okur. Yalnız resmî şirket, resmî ATS veya doğrulanmış
-bülten kaynakları mevcut primary/açık/ilgili/uygun koşullarını sağladığında event
-üretebilir. Toplayıcı listing'i ve analizi kalıcı tutulur, dashboard/Fırsatlar'a
-girer, ancak push outbox'ına yazılmaz.
+bülten kaynakları event üretebilir. Birincil fırsat mevcut açık/ilgili/uygun
+koşullarını korur. İkincil fırsat ayrıca `MatchingAreas` listesinin boş olmaması
+ve deterministik analizcinin sabit `0.7` güvenini sağlamalıdır. Skaler eşleşme
+puanı veya tercih eval'i eklenmez; bu işler Faz 19'dadır. İkincil olay
+`new_secondary_strong_match_v1` ve fırsat düzeyli ayrı dedup anahtarı kullanır.
+Toplayıcı veya zayıf ikincil listing kalıcı tutulur ve Fırsatlar'a girer, fakat
+push outbox'ına yazılmaz.
 
 Dashboard iki ayrı, kesişmeyen liste sunar. `manual_checks`
 (`company_sources.last_error IS NOT NULL AND companies.tracking_status !=

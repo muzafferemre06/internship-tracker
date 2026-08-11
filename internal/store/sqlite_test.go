@@ -1029,6 +1029,46 @@ func TestNotificationRequiresHighTrustSource(t *testing.T) {
 	}
 }
 
+func TestSecondaryNotificationRequiresStrongFocusMatchAndHighTrustSource(t *testing.T) {
+	repository, db := newTestRepository(t)
+	ctx := context.Background()
+	tests := []struct {
+		source domain.SourceRegistration
+		strong bool
+	}{
+		{source: domain.SourceRegistration{Key: "official-strong", Company: "Official Strong", PriorityGroup: "secondary", Type: "career_page", URL: "https://official.test/jobs/strong", Adapter: "career_links", Enabled: true, TrustLevel: "official_company"}, strong: true},
+		{source: domain.SourceRegistration{Key: "official-weak", Company: "Official Weak", PriorityGroup: "secondary", Type: "career_page", URL: "https://official.test/jobs/weak", Adapter: "career_links", Enabled: true, TrustLevel: "official_company"}},
+		{source: domain.SourceRegistration{Key: "aggregator-strong", Company: "Aggregator Strong", PriorityGroup: "secondary", Type: "career_page", URL: "https://aggregator.test/jobs/strong", Adapter: "kariyer_net", Enabled: true, TrustLevel: "aggregator"}, strong: true},
+	}
+	for _, test := range tests {
+		if err := repository.RegisterSource(ctx, test.source); err != nil {
+			t.Fatal(err)
+		}
+		listingID, _, err := repository.UpsertRawListing(ctx, domain.RawListing{
+			Company: test.source.Company, SourceID: test.source.Key, Title: "Backend Intern",
+			URL: test.source.URL, RawText: "Backend internship",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		analysis := domain.ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.7}
+		if test.strong {
+			analysis.MatchingAreas = []string{"backend"}
+		}
+		if err := repository.SaveAnalysis(ctx, listingID, analysis); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var notifications int
+	var eventType string
+	if err := db.QueryRow("SELECT COUNT(*), MIN(event_type) FROM notifications").Scan(&notifications, &eventType); err != nil {
+		t.Fatal(err)
+	}
+	if notifications != 1 || eventType != domain.NewSecondaryStrongMatchEvent {
+		t.Fatalf("only high-trust strong secondary match should notify: count=%d event=%q", notifications, eventType)
+	}
+}
+
 func suitablePrimaryAnalysis() domain.ListingAnalysis {
 	return domain.ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.95}
 }

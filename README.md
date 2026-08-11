@@ -209,12 +209,14 @@ Etkin ayarda public/private anahtarların P-256 biçimi ve birbiriyle eşleşmes
 key PWA bundle'ına veya API yanıtına girmez; production'da `.env` yerine deployment
 secret sistemi kullanılmalıdır.
 
-İlk başarılı analizde yalnızca birincil şirkete ait, başvurusu açık, ilgili ve
-`uygun` fırsat için versionlanmış tek bildirim olayı oluşur. Analiz, fırsat
-çözümleme ve olay/outbox aynı SQLite transaction'ındadır. Olay mevcut cihaz
-aboneliklerine ayrı delivery kayıtlarıyla dağıtılır; aynı fırsatın başka
-kaynaktaki listing'i `opportunity:<id>:new-primary-suitable:v1` anahtarı nedeniyle
-yeni olay oluşturmaz. Gönderici geçici ağ/408/425/429/5xx hatalarını en fazla beş toplam
+İlk başarılı analizde birincil şirkete ait başvurusu açık, ilgili ve `uygun`
+fırsat için versionlanmış tek bildirim olayı oluşur. Faz 16 ikincil fırsatı buna
+ek olarak en az bir `MatchingAreas` odak eşleşmesi ve deterministik analizcinin
+sabit `0.7` güvenini sağlamalıdır; bu bir skaler eşleşme skoru değildir. Analiz,
+fırsat çözümleme ve olay/outbox aynı SQLite transaction'ındadır. Birincil dedup
+anahtarı `opportunity:<id>:new-primary-suitable:v1`, ikincil anahtarı
+`opportunity:<id>:new-secondary-strong-match:v1` olur. Gönderici geçici
+ağ/408/425/429/5xx hatalarını en fazla beş toplam
 denemeyle erteler, `Retry-After` değerini en fazla 24 saatle sınırlar ve 404/410
 dönen aboneliği diğer cihazlara dokunmadan kaldırır.
 

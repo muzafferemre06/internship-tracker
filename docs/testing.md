@@ -32,6 +32,12 @@ tonunu, bozuk durumun tehlike tonunu, yerel yüzde biçimini, program durumunu v
 birincil/ikincil özetlerin ayrılığını doğrular. Typecheck ve production build,
 endpoint sözleşmesinin responsive PWA paneline eksiksiz bağlandığını denetler.
 
+Bildirim domain tablosu güçlü ikincil eşleşmenin ayrı event/dedup kimliğini;
+boş `MatchingAreas` ve `0.7` altı güvenin reddini doğrular. Gerçek SQLite testi
+resmî güçlü ikincil kaynağın tek event ürettiğini, aynı analizdeki zayıf resmî
+ve güçlü fakat `aggregator` kaynakların push üretmediğini kanıtlar. Birincil
+`new_primary_suitable_v1` regresyon sözleşmesi değiştirilmez.
+
 `TestPhase15PrimaryCoverageTrustAndProgramWindowEndToEnd`, production config'ini
 geçici SQLite'a kaydeder; Commencis Lever ve toplayıcı fixture'larını iki taramada
 işler. İki görünür listing'e karşı yalnız yüksek güvenli kaynaktan tek fake push,
