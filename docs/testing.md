@@ -22,6 +22,12 @@ tonunu, bozuk durumun tehlike tonunu, yerel yüzde biçimini ve program durum
 etiketlerini doğrular. Typecheck ve production build, endpoint sözleşmesinin
 responsive PWA paneline eksiksiz bağlandığını denetler.
 
+`TestPhase15PrimaryCoverageTrustAndProgramWindowEndToEnd`, production config'ini
+geçici SQLite'a kaydeder; Commencis Lever ve toplayıcı fixture'larını iki taramada
+işler. İki görünür listing'e karşı yalnız yüksek güvenli kaynaktan tek fake push,
+12 şirketlik kapsama JSON'u ve ayrı kapalı Turkcell program penceresi beklenir.
+Zaman damgalı sonuç `docs/acceptance/phase-15-2026-08-11.md` içindedir.
+
 ```bash
 go test ./...
 go vet ./...

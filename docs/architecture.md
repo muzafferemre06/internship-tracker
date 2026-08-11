@@ -362,6 +362,12 @@ birleştirmeden ayrı rozetlerle sunar, gerekçe/sağlık bilgisini resmî kayna
 bağlantısında görünür tutar ve `program_windows` kayıtlarını listing kartlarına
 karıştırmadan ayrı bir bölümde gösterir.
 
+Bildirim outbox kapısı listing'in bağlı `company_sources.trust_level` değerini
+aynı transaction içinde okur. Yalnız resmî şirket, resmî ATS veya doğrulanmış
+bülten kaynakları mevcut primary/açık/ilgili/uygun koşullarını sağladığında event
+üretebilir. Toplayıcı listing'i ve analizi kalıcı tutulur, dashboard/Fırsatlar'a
+girer, ancak push outbox'ına yazılmaz.
+
 Dashboard iki ayrı, kesişmeyen liste sunar. `manual_checks`
 (`company_sources.last_error IS NOT NULL AND companies.tracking_status !=
 'manual'`) yalnız scraper'ın deneyip başarısız olduğu kaynakları gösterir —

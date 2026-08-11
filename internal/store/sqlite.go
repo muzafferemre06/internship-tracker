@@ -742,15 +742,20 @@ func (r *SQLiteRepository) enqueueListingNotification(
 	analysis domain.ListingAnalysis,
 	firstSuccessfulAnalysis bool,
 ) error {
-	var opportunityID, company, title, priorityGroup string
+	var opportunityID, company, title, priorityGroup, trustLevel string
 	if err := tx.QueryRowContext(ctx, `
-		SELECT listing_opportunities.opportunity_id, companies.name, listings.title, companies.priority_group
+		SELECT listing_opportunities.opportunity_id, companies.name, listings.title,
+			companies.priority_group, company_sources.trust_level
 		FROM listings
 		JOIN companies ON companies.id = listings.company_id
+		JOIN company_sources ON company_sources.id = listings.source_id
 		JOIN listing_opportunities ON listing_opportunities.listing_id = listings.id
 		WHERE listings.id = ?
-	`, listingID).Scan(&opportunityID, &company, &title, &priorityGroup); err != nil {
+	`, listingID).Scan(&opportunityID, &company, &title, &priorityGroup, &trustLevel); err != nil {
 		return fmt.Errorf("load notification listing: %w", err)
+	}
+	if trustLevel != "official_company" && trustLevel != "official_ats" && trustLevel != "verified_newsletter" {
+		return nil
 	}
 	notification, eligible := domain.NewListingNotification(
 		opportunityID, listingID, company, title, priorityGroup, analysis, firstSuccessfulAnalysis,

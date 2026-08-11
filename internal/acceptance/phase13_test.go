@@ -161,7 +161,7 @@ func registerPhase13Fixture(t *testing.T, repository *store.SQLiteRepository, fi
 		if err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
 			Key: item.SourceID, Company: "Meteksan Savunma", PriorityGroup: priority,
 			Type: "fixture", URL: "https://source.example.test/" + item.SourceID,
-			Adapter: "fixture", Enabled: true,
+			Adapter: "fixture", Enabled: true, TrustLevel: "official_company",
 		}); err != nil {
 			t.Fatal(err)
 		}

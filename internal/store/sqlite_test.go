@@ -1002,6 +1002,37 @@ func TestRegisterSourcePersistsCoverageAndTrust(t *testing.T) {
 	}
 }
 
+func TestNotificationRequiresHighTrustSource(t *testing.T) {
+	repository, db := newTestRepository(t)
+	ctx := context.Background()
+	for _, source := range []domain.SourceRegistration{
+		{Key: "official", Company: "Official Co", PriorityGroup: "primary", Type: "official_ats_posting", URL: "https://official.test/jobs/1", Adapter: "lever", Enabled: true, TrustLevel: "official_ats"},
+		{Key: "aggregator", Company: "Aggregator Co", PriorityGroup: "primary", Type: "career_page", URL: "https://aggregator.test/company", Adapter: "kariyer_net", Enabled: true, TrustLevel: "aggregator"},
+	} {
+		if err := repository.RegisterSource(ctx, source); err != nil {
+			t.Fatal(err)
+		}
+		listingID, _, err := repository.UpsertRawListing(ctx, domain.RawListing{Company: source.Company, SourceID: source.Key, Title: "Backend Stajyeri", URL: source.URL, RawText: "Backend staj"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := repository.SaveAnalysis(ctx, listingID, suitablePrimaryAnalysis()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var notifications int
+	if err := db.QueryRow("SELECT COUNT(*) FROM notifications").Scan(&notifications); err != nil {
+		t.Fatal(err)
+	}
+	if notifications != 1 {
+		t.Fatalf("only the high-trust source should notify, got %d events", notifications)
+	}
+}
+
+func suitablePrimaryAnalysis() domain.ListingAnalysis {
+	return domain.ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.95}
+}
+
 func TestCoverageReportsPrimarySourcesAndExcludesManualFromAutomaticDenominator(t *testing.T) {
 	repository, _ := newTestRepository(t)
 	ctx := context.Background()
@@ -1040,6 +1071,7 @@ func registerMeteksanSources(t *testing.T, repository *SQLiteRepository) {
 	if err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
 		Key: "meteksan-careers", Company: "Meteksan Savunma", PriorityGroup: "primary",
 		Type: "career_page", URL: "https://careers.example.test/meteksan", Adapter: "json_ld", Enabled: true,
+		TrustLevel: "official_company",
 	}); err != nil {
 		t.Fatalf("register second source: %v", err)
 	}
@@ -1076,6 +1108,7 @@ func registerMeteksan(t *testing.T, repository *SQLiteRepository) {
 	err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
 		Key: "meteksan-kariyer-net", Company: "Meteksan Savunma", PriorityGroup: "primary",
 		Type: "career_page", URL: "https://www.kariyer.net/firma-profil/meteksan", Adapter: "kariyer_net", Enabled: true,
+		TrustLevel: "official_company",
 	})
 	if err != nil {
 		t.Fatalf("register source: %v", err)

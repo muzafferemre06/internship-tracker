@@ -161,6 +161,16 @@ durumuyla uygulamadadır. İzinli otomatik kaynaklar uçtan uca taranır; manuel
 araştırma gerektirenler açıkça ayrılır. Yüksek güvenli ve güçlü eşleşen birincil
 fırsat tek push üretir, diğer adaylar bildirim üretmeden Fırsatlar'a gider.
 
+### Tamamlanma (11 Ağustos 2026)
+
+On iki kanonik şirket production kataloğuna doğrulanmış resmî URL, kalıcı güven
+ve ayrı kapsama durumuyla alındı. `Commensis`, resmî `Commencis` kimliğine alias
+olarak bağlandı. Turkcell GNÇYTNK sentetik ilan yerine ayrı dönemsel program
+penceresinde tutuldu. Minimal kapsama API/PWA görünümü, manuel kaynakların oran
+paydasından çıkarılması ve yüksek güvenli tek push guard'ı fixture/fake tabanlı
+Faz 15 kabulüyle doğrulandı; kanıt `docs/acceptance/phase-15-2026-08-11.md`
+dosyasındadır.
+
 ## Faz 16 — İkincil şirketlerin tamamlanması
 
 ### Kapsam

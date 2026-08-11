@@ -209,6 +209,11 @@ yeni olay oluşturmaz. Gönderici geçici ağ/408/425/429/5xx hatalarını en fa
 denemeyle erteler, `Retry-After` değerini en fazla 24 saatle sınırlar ve 404/410
 dönen aboneliği diğer cihazlara dokunmadan kaldırır.
 
+Faz 15'ten itibaren bu kapı ayrıca listing'in kaynak güvenini kontrol eder.
+`official_company`, `official_ats` ve `verified_newsletter` bildirim üretebilir;
+`aggregator` kaynağındaki uygun aday Fırsatlar'da görünür fakat anlık push
+üretmez.
+
 ## Test
 
 ```bash

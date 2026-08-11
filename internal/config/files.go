@@ -42,6 +42,21 @@ type SourcesConfig struct {
 	Companies        []CompanyConfig      `json:"companies"`
 }
 
+func (c SourcesConfig) CanonicalCompanyName(value string) string {
+	name := strings.TrimSpace(value)
+	for alias, canonical := range c.CanonicalAliases {
+		if strings.EqualFold(strings.TrimSpace(alias), name) {
+			return canonical
+		}
+	}
+	for _, company := range c.Companies {
+		if strings.EqualFold(company.Name, name) {
+			return company.Name
+		}
+	}
+	return name
+}
+
 type DomainAccessPolicy struct {
 	Domain                 string `json:"domain"`
 	Mode                   string `json:"mode"`

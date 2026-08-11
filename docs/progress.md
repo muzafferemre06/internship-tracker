@@ -2,14 +2,14 @@
 
 ## Aktif faz
 
-Faz 14.1 tamamlandı. Sıradaki çalışma Faz 15'tir: spec'teki birincil şirketlerin
-kanonik kimlik, resmî kaynak, erişim politikası, fixture ve dürüst otomatik/manuel
-kapsama durumuyla tamamlanması. Faz 15'in somut batch/test/commit planı kullanıcıya
-sunulup açık onay alınmadan davranış veya production kaynak config'i değişmez.
+Faz 15 davranışı ve fixture kabulü tamamlandı. Aktif teslim kapısı, commit/push
+sonrası tam repository kalite paketinin (race, vet, güvenlik, deployment ve
+gerçek Docker/Compose kontrolleri dahil) çalıştırılmasıdır. Bu kapı yeşil olmadan
+Faz 16 başlamaz veya production deploy onayı istenmez.
 
 11 Ağustos 2026'da kullanıcı, spec'teki `Commensis` yazımının resmî `Commencis`
 kimliğiyle birleştirilmesini ve Turkcell için sentetik ilan yerine ayrı minimal
-`program_windows` modelini onayladı. Faz 15 test-first uygulaması başlamıştır.
+`program_windows` modelini onayladı.
 
 On iki kanonik birincil şirket production kaynak kataloğunda tanımlandı.
 Commencis birincil gruba alındı; Türk Telekom, Jotform, Akınsoft ve Roketsan
@@ -23,6 +23,11 @@ otomatik kapsama oranını sunar.
 PWA'da birincil şirket kapsama paneli eklendi. Panel beş kaynak durumunu,
 otomatik oranı, açık gerekçeleri ve Turkcell dahil dönemsel programların
 açık/kapalı/bilinmiyor durumunu mobilde tek kolona inen görünümde sunar.
+
+Kaynak güveni bildirim kapısına bağlandı: resmî şirket/ATS veya doğrulanmış
+bülten güçlü birincil eşleşmede push üretebilir; toplayıcı adaylar görünür kalır
+ama push üretmez. Faz 15 fixture kabulü 12 şirket, 14 kaynak, Turkcell program
+penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
 
 ## Tamamlananlar
 

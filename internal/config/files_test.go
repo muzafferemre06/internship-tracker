@@ -81,6 +81,9 @@ func TestProductionSourcesContainCanonicalPrimaryCompaniesWithCoverage(t *testin
 	if len(sources.CanonicalAliases) != 1 || sources.CanonicalAliases["Commensis"] != "Commencis" {
 		t.Fatalf("Commensis alias was not canonicalized: %#v", sources.CanonicalAliases)
 	}
+	if got := sources.CanonicalCompanyName(" Commensis "); got != "Commencis" {
+		t.Fatalf("canonical company name=%q, want Commencis", got)
+	}
 }
 
 func TestLoadSourcesRejectsInconsistentCoverageClassification(t *testing.T) {

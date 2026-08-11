@@ -53,7 +53,7 @@ func TestPhase5FixtureQueuesAndDispatchesOneDeepLinkedPush(t *testing.T) {
 	db, repository := openRepository(t)
 	if err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
 		Key: "commencis-lever-spring-boot-camp-2026", Company: "Commencis", PriorityGroup: "primary",
-		Type: "official_ats_posting", URL: commencisURL, Adapter: "lever", Enabled: true,
+		Type: "official_ats_posting", URL: commencisURL, Adapter: "lever", Enabled: true, TrustLevel: "official_ats",
 	}); err != nil {
 		t.Fatal(err)
 	}
