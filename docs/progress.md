@@ -2,9 +2,10 @@
 
 ## Aktif faz
 
-Faz 16.5 davranışı geliştirildi ve fixture kabulü geçti; tam kalite kapısı ve
-commit/push doğrulaması sürüyor. Production deploy edilmedi ve ayrı onay kapısı
-korunuyor. Önceki Faz 16 tamamlandı, tam kalite kapısı geçti ve ayrı kullanıcı onayından sonra
+Faz 16.5 davranışı `27277f68db9fa5a0e03008faa8d9b1c593bf0ea8`
+revision'ında geliştirildi, tam kalite kapısından geçti ve upstream `main`e
+gönderildi. Production deploy edilmedi ve ayrı onay kapısı korunuyor. Önceki
+Faz 16 tamamlandı, tam kalite kapısı geçti ve ayrı kullanıcı onayından sonra
 `b66c5b2c110c179b2e2052b04fe187bb9ce1b061` revision'ı yerel Docker +
 Cloudflare Tunnel production ortamına deploy edildi. Snapshot/restorecheck,
 health/smoke, HTTP/2 ve kalıcı `internship_tracker_data` kimliği doğrulandı;
@@ -248,8 +249,8 @@ penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
 ## Sıradaki iş
 
 Faz 15 birincil ve Faz 16 ikincil şirket kapsamı tamamlandı; Faz 16 production
-deploy'u snapshot ve kalıcılık kanıtıyla doğrulandı. Faz 16.5 kalite/push ve ayrı
-production onay kapısındadır. Sonraki ürün işi Faz 17'de
+deploy'u snapshot ve kalıcılık kanıtıyla doğrulandı. Faz 16.5 tam kalite ve push
+kapısını geçti; yalnız ayrı production onayı bekleniyor. Sonraki ürün işi Faz 17'de
 yalnız üçüncül şirket araştırması, ardından Faz 18'de onaylanan şirketlerin eklenmesidir.
 RSS/e-posta ve geniş fırsat türleri Faz 19–21'de, analitik/öğrenme ise Faz 23'te
 ele alınır; ayrıntılar `docs/roadmap.md` içindedir.

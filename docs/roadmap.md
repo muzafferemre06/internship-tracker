@@ -238,10 +238,10 @@ fixture tabanlı uçtan uca kabul testinden geçer.
 
 ### Uygulama durumu (11 Ağustos 2026)
 
-Davranış ve fixture kabulü tamamlandı. Ayrıntılı resmî kaynak matrisi
+Davranış, fixture kabulü, tam kalite paketi ve upstream push tamamlandı. Ayrıntılı resmî kaynak matrisi
 `docs/research/phase-16.5-sources-2026-08-11.md`, doğrulama kaydı
-`docs/acceptance/phase-16.5-2026-08-11.md` dosyasındadır. Production yayını tam
-kalite kapısından ve ayrı kullanıcı onayından sonra yapılır.
+`docs/acceptance/phase-16.5-2026-08-11.md` dosyasındadır. Production yayını için
+ayrı kullanıcı onayı beklenir.
 
 ## Faz 17 — Üçüncül şirket araştırması
 
