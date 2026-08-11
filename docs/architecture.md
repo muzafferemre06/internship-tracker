@@ -335,6 +335,14 @@ kaynağı, learner bulunmadığını belirten fail-fast başlangıç hatası ver
 
 ### İzleme listesi ve taranamayan kaynaklar (Faz 6 ön hazırlığı)
 
+Faz 15'te dönemsel başvuru programları ilanlardan ayrılmıştır.
+`program_windows`, programın kanonik anahtarını, resmî başvuru URL'sini,
+`open`/`closed`/`unknown` durumunu, biliniyorsa açılış-kapanış zamanlarını ve son
+doğrulama zamanını saklar. Böylece Turkcell GNÇYTNK gibi sürekli tanıtım sayfası
+bulunan fakat başvurusu dönemsel açılan programlar sahte bir iş ilanına
+dönüştürülmez. Program kayıtları kaynak config'inden startup sırasında idempotent
+olarak uzlaştırılır.
+
 Dashboard iki ayrı, kesişmeyen liste sunar. `manual_checks`
 (`company_sources.last_error IS NOT NULL AND companies.tracking_status !=
 'manual'`) yalnız scraper'ın deneyip başarısız olduğu kaynakları gösterir —

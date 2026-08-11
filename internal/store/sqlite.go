@@ -155,6 +155,43 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 	return nil
 }
 
+func (r *SQLiteRepository) RegisterProgramWindow(ctx context.Context, program domain.ProgramWindow) error {
+	if strings.TrimSpace(program.Key) == "" || strings.TrimSpace(program.Company) == "" ||
+		strings.TrimSpace(program.Name) == "" || strings.TrimSpace(program.Type) == "" {
+		return errors.New("program key, company, name and type are required")
+	}
+	parsedURL, err := url.ParseRequestURI(program.URL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
+		return errors.New("program URL must be an absolute HTTP(S) URL")
+	}
+	if program.Status != "open" && program.Status != "closed" && program.Status != "unknown" {
+		return fmt.Errorf("invalid program status %q", program.Status)
+	}
+	if program.OpensAt != nil && program.ClosesAt != nil && program.OpensAt.After(*program.ClosesAt) {
+		return errors.New("program opens_at must not be after closes_at")
+	}
+	var companyID int64
+	if err := r.db.QueryRowContext(ctx, "SELECT id FROM companies WHERE name = ?", program.Company).Scan(&companyID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("program company %q is not registered", program.Company)
+		}
+		return fmt.Errorf("find program company %q: %w", program.Company, err)
+	}
+	_, err = r.db.ExecContext(ctx, `
+		INSERT INTO program_windows(company_id, program_key, name, program_type, url, status, opens_at, closes_at, last_verified_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(program_key) DO UPDATE SET company_id = excluded.company_id, name = excluded.name,
+			program_type = excluded.program_type, url = excluded.url, status = excluded.status,
+			opens_at = excluded.opens_at, closes_at = excluded.closes_at,
+			last_verified_at = excluded.last_verified_at, updated_at = CURRENT_TIMESTAMP
+	`, companyID, strings.TrimSpace(program.Key), strings.TrimSpace(program.Name), strings.TrimSpace(program.Type),
+		program.URL, program.Status, nullableTime(program.OpensAt), nullableTime(program.ClosesAt), nullableTime(program.LastVerifiedAt))
+	if err != nil {
+		return fmt.Errorf("upsert program window %q: %w", program.Key, err)
+	}
+	return nil
+}
+
 // LoadSourceRecipe returns the one active learned recipe for a source.
 func (r *SQLiteRepository) LoadSourceRecipe(ctx context.Context, sourceKey string) (domain.SourceRecipe, bool, error) {
 	var recipe domain.SourceRecipe

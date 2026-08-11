@@ -7,6 +7,10 @@ kanonik kimlik, resmî kaynak, erişim politikası, fixture ve dürüst otomatik
 kapsama durumuyla tamamlanması. Faz 15'in somut batch/test/commit planı kullanıcıya
 sunulup açık onay alınmadan davranış veya production kaynak config'i değişmez.
 
+11 Ağustos 2026'da kullanıcı, spec'teki `Commensis` yazımının resmî `Commencis`
+kimliğiyle birleştirilmesini ve Turkcell için sentetik ilan yerine ayrı minimal
+`program_windows` modelini onayladı. Faz 15 test-first uygulaması başlamıştır.
+
 ## Tamamlananlar
 
 - Ürün ve teknik kararları içeren v2 spec

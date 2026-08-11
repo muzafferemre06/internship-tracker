@@ -22,6 +22,7 @@ func TestOpenAppliesMigrationsOnlyOnce(t *testing.T) {
 		t.Fatalf("list migrations: %v", err)
 	}
 	assertTableExists(t, db, "listings")
+	assertTableExists(t, db, "program_windows")
 	assertMigrationCount(t, db, len(migrationNames))
 	if err := db.Close(); err != nil {
 		t.Fatalf("close database: %v", err)

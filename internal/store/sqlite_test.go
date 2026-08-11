@@ -948,6 +948,40 @@ func TestSQLiteRepositoryNeverMatchesAcrossCompanies(t *testing.T) {
 	}
 }
 
+func TestRegisterProgramWindowUpsertsCurrentState(t *testing.T) {
+	repository, db := newTestRepository(t)
+	ctx := context.Background()
+	if err := repository.RegisterSource(ctx, domain.SourceRegistration{
+		Key: "turkcell-program", Company: "Turkcell", PriorityGroup: "primary",
+		Type: "program_page", URL: "https://example.test/program", Adapter: "manual",
+		Strategy: "manual", TrackingStatus: "manual", Enabled: false,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	opens := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	closes := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	window := domain.ProgramWindow{
+		Key: "gncytnk-staj", Company: "Turkcell", Name: "GNÇYTNK Staj",
+		Type: "internship", URL: "https://example.test/apply", Status: "closed",
+		OpensAt: &opens, ClosesAt: &closes,
+	}
+	if err := repository.RegisterProgramWindow(ctx, window); err != nil {
+		t.Fatalf("register program window: %v", err)
+	}
+	window.Status = "open"
+	if err := repository.RegisterProgramWindow(ctx, window); err != nil {
+		t.Fatalf("update program window: %v", err)
+	}
+	var count int
+	var status, sourceURL string
+	if err := db.QueryRow(`SELECT COUNT(*), status, url FROM program_windows WHERE program_key = ?`, window.Key).Scan(&count, &status, &sourceURL); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 || status != "open" || sourceURL != window.URL {
+		t.Fatalf("unexpected persisted program: count=%d status=%q url=%q", count, status, sourceURL)
+	}
+}
+
 func registerMeteksanSources(t *testing.T, repository *SQLiteRepository) {
 	t.Helper()
 	registerMeteksan(t, repository)

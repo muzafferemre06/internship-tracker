@@ -2,6 +2,11 @@
 
 ## Backend
 
+Faz 15 model testleri dönemsel program config doğrulamasını, geçersiz durum ve
+tarih aralığının reddini, `program_windows` migration'ını ve aynı kanonik program
+anahtarının güncel durumla idempotent biçimde güncellenmesini gerçek geçici
+SQLite üzerinde kapsar.
+
 ```bash
 go test ./...
 go vet ./...

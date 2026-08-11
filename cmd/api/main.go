@@ -262,8 +262,31 @@ func configureSources(
 			}
 			sources = append(sources, source)
 		}
+		for _, programConfig := range company.Programs {
+			program := domain.ProgramWindow{
+				Key: programConfig.ID, Company: company.Name, Name: programConfig.Name,
+				Type: programConfig.Type, URL: programConfig.URL, Status: programConfig.Status,
+			}
+			program.OpensAt, _ = parseOptionalConfigTime(programConfig.OpensAt)
+			program.ClosesAt, _ = parseOptionalConfigTime(programConfig.ClosesAt)
+			program.LastVerifiedAt, _ = parseOptionalConfigTime(programConfig.LastVerifiedAt)
+			if err := repository.RegisterProgramWindow(ctx, program); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return sources, nil
+}
+
+func parseOptionalConfigTime(value string) (*time.Time, error) {
+	if strings.TrimSpace(value) == "" {
+		return nil, nil
+	}
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return nil, err
+	}
+	return &parsed, nil
 }
 
 func analyzerProfile(profile config.CandidateProfile) analyzer.CandidateProfile {

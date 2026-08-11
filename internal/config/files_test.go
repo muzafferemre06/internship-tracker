@@ -131,6 +131,39 @@ func TestLoadSourcesAcceptsManualTrackingStatus(t *testing.T) {
 	}
 }
 
+func TestLoadSourcesAcceptsProgramWindow(t *testing.T) {
+	path := writeConfigTestFile(t, `{
+		"access_policies":[{"domain":"example.test","mode":"manual_only"}],
+		"companies":[{
+			"name":"Turkcell", "priority_group":"primary", "tracking_status":"manual",
+			"sources":[{"id":"turkcell-program","type":"program_page","url":"https://example.test/program","adapter":"manual","strategy":"manual","enabled":false}],
+			"programs":[{"id":"gncytnk-staj","name":"GNÇYTNK Staj","type":"internship","url":"https://example.test/apply","status":"closed","opens_at":"2026-01-01T00:00:00Z","closes_at":"2026-03-01T00:00:00Z"}]
+		}]
+	}`)
+	sources, err := LoadSources(path)
+	if err != nil {
+		t.Fatalf("load program window: %v", err)
+	}
+	program := sources.Companies[0].Programs[0]
+	if program.ID != "gncytnk-staj" || program.Status != "closed" || program.Type != "internship" {
+		t.Fatalf("unexpected program window: %#v", program)
+	}
+}
+
+func TestLoadSourcesRejectsInvalidProgramWindow(t *testing.T) {
+	path := writeConfigTestFile(t, `{
+		"companies":[{
+			"name":"Turkcell", "priority_group":"primary", "tracking_status":"manual",
+			"sources":[{"id":"turkcell-program","type":"program_page","url":"https://example.test/program","adapter":"manual","strategy":"manual","enabled":false}],
+			"programs":[{"id":"gncytnk-staj","name":"GNÇYTNK Staj","type":"internship","url":"https://example.test/apply","status":"sometimes"}]
+		}]
+	}`)
+	_, err := LoadSources(path)
+	if err == nil || !strings.Contains(err.Error(), "invalid status") {
+		t.Fatalf("expected invalid program status error, got %v", err)
+	}
+}
+
 func TestLoadSourcesRejectsInvalidTrackingStatus(t *testing.T) {
 	path := writeConfigTestFile(t, `{
 		"companies":[{

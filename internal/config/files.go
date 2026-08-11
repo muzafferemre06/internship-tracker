@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 type CandidateProfile struct {
@@ -76,10 +77,22 @@ func (c SourcesConfig) ResolveAccessPolicy(rawURL string) (DomainAccessPolicy, b
 }
 
 type CompanyConfig struct {
-	Name           string         `json:"name"`
-	PriorityGroup  string         `json:"priority_group"`
-	TrackingStatus string         `json:"tracking_status,omitempty"`
-	Sources        []SourceConfig `json:"sources"`
+	Name           string          `json:"name"`
+	PriorityGroup  string          `json:"priority_group"`
+	TrackingStatus string          `json:"tracking_status,omitempty"`
+	Sources        []SourceConfig  `json:"sources"`
+	Programs       []ProgramConfig `json:"programs,omitempty"`
+}
+
+type ProgramConfig struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	Type           string `json:"type"`
+	URL            string `json:"url"`
+	Status         string `json:"status"`
+	OpensAt        string `json:"opens_at,omitempty"`
+	ClosesAt       string `json:"closes_at,omitempty"`
+	LastVerifiedAt string `json:"last_verified_at,omitempty"`
 }
 
 // EffectiveTrackingStatus returns the company's declared tracking status, or
@@ -241,6 +254,7 @@ func (c SourcesConfig) validate() error {
 
 	companyNames := make(map[string]struct{}, len(c.Companies))
 	sourceIDs := make(map[string]struct{})
+	programIDs := make(map[string]struct{})
 	for companyIndex, company := range c.Companies {
 		name := strings.TrimSpace(company.Name)
 		if name == "" {
@@ -283,8 +297,58 @@ func (c SourcesConfig) validate() error {
 				}
 			}
 		}
+		for programIndex, program := range company.Programs {
+			if err := program.validate(); err != nil {
+				return fmt.Errorf("company %q program %d: %w", name, programIndex, err)
+			}
+			if _, exists := programIDs[program.ID]; exists {
+				return fmt.Errorf("program id %q is defined more than once", program.ID)
+			}
+			programIDs[program.ID] = struct{}{}
+		}
 	}
 	return nil
+}
+
+func (p ProgramConfig) validate() error {
+	if strings.TrimSpace(p.ID) == "" || strings.TrimSpace(p.Name) == "" || strings.TrimSpace(p.Type) == "" {
+		return errors.New("id, name and type are required")
+	}
+	parsedURL, err := url.ParseRequestURI(p.URL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
+		return errors.New("url must be an absolute HTTP(S) URL")
+	}
+	switch p.Status {
+	case "open", "closed", "unknown":
+	default:
+		return fmt.Errorf("invalid status %q", p.Status)
+	}
+	opensAt, err := optionalRFC3339(p.OpensAt)
+	if err != nil {
+		return fmt.Errorf("opens_at: %w", err)
+	}
+	closesAt, err := optionalRFC3339(p.ClosesAt)
+	if err != nil {
+		return fmt.Errorf("closes_at: %w", err)
+	}
+	if _, err := optionalRFC3339(p.LastVerifiedAt); err != nil {
+		return fmt.Errorf("last_verified_at: %w", err)
+	}
+	if opensAt != nil && closesAt != nil && opensAt.After(*closesAt) {
+		return errors.New("opens_at must not be after closes_at")
+	}
+	return nil
+}
+
+func optionalRFC3339(value string) (*time.Time, error) {
+	if strings.TrimSpace(value) == "" {
+		return nil, nil
+	}
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return nil, errors.New("must be an RFC3339 timestamp")
+	}
+	return &parsed, nil
 }
 
 func normalizePolicyDomain(value string) string {

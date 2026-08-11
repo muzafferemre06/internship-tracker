@@ -27,6 +27,20 @@ type SourceRegistration struct {
 	MaximumCooldown time.Duration
 }
 
+// ProgramWindow models a period-based application program independently from
+// job listings. Its public page may remain available while applications close.
+type ProgramWindow struct {
+	Key            string
+	Company        string
+	Name           string
+	Type           string
+	URL            string
+	Status         string
+	OpensAt        *time.Time
+	ClosesAt       *time.Time
+	LastVerifiedAt *time.Time
+}
+
 // SourceRecipe is a versioned deterministic extraction rule learned for one
 // source. The model proposes selectors only during setup/repair; ordinary scans
 // execute the stored recipe without a model call.
