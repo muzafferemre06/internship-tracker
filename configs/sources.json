@@ -1,4 +1,5 @@
 {
+  "canonical_aliases": { "Commensis": "Commencis" },
   "access_policies": [
     {
       "domain": "jobs.lever.co",
@@ -17,18 +18,24 @@
     { "domain": "akdogan.tech", "mode": "manual_only" },
     { "domain": "kariyerim.turkcell.com.tr", "mode": "manual_only" },
     { "domain": "kariyer.havelsan.com.tr", "mode": "manual_only" },
-    { "domain": "linkedin.com", "mode": "manual_only" }
+    { "domain": "linkedin.com", "mode": "manual_only" },
+    { "domain": "turktelekomkariyer.com.tr", "mode": "robots", "minimum_interval_seconds": 86400, "base_cooldown_seconds": 21600, "maximum_cooldown_seconds": 86400 },
+    { "domain": "jotform.com", "mode": "robots", "minimum_interval_seconds": 86400, "base_cooldown_seconds": 21600, "maximum_cooldown_seconds": 86400 },
+    { "domain": "akinsoft.com.tr", "mode": "robots", "minimum_interval_seconds": 86400, "base_cooldown_seconds": 21600, "maximum_cooldown_seconds": 86400 },
+    { "domain": "kariyer.roketsan.com.tr", "mode": "robots", "minimum_interval_seconds": 86400, "base_cooldown_seconds": 21600, "maximum_cooldown_seconds": 86400 }
   ],
   "companies": [
     {
       "name": "Commencis",
-      "priority_group": "candidate",
+      "priority_group": "primary",
       "sources": [
         {
           "id": "commencis-lever-spring-boot-camp-2026",
           "type": "official_ats_posting",
           "url": "https://jobs.lever.co/commencis/04a5cd98-ab26-4b48-bb64-3397ffe79a55",
           "adapter": "lever",
+          "coverage_status": "automatic",
+          "trust_level": "official_ats",
           "enabled": true
         }
       ]
@@ -118,6 +125,9 @@
           "url": "https://akdogan.tech/career",
           "adapter": "manual",
           "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Resmî sayfa ayrı ilan akışı sunmuyor; başvuru e-posta ile yapılıyor.",
+          "trust_level": "official_company",
           "enabled": false
         }
       ]
@@ -133,7 +143,20 @@
           "url": "https://kariyerim.turkcell.com.tr/genc-yetenek",
           "adapter": "manual",
           "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Program başvurusu dönemsel açılıyor; açık/kapalı durum program penceresinde izleniyor.",
+          "trust_level": "official_company",
           "enabled": false
+        }
+      ],
+      "programs": [
+        {
+          "id": "turkcell-gncytnk-staj",
+          "name": "GNÇYTNK Staj",
+          "type": "internship",
+          "url": "https://kariyerim.turkcell.com.tr/genc-yetenek/hizli-basvuru",
+          "status": "closed",
+          "last_verified_at": "2026-08-11T00:00:00+03:00"
         }
       ]
     },
@@ -148,6 +171,9 @@
           "url": "https://kariyer.havelsan.com.tr/",
           "adapter": "manual",
           "strategy": "manual",
+          "coverage_status": "researching",
+          "coverage_reason": "Kovan istemci tarafında render ediliyor; açık API veya güvenli adapter henüz doğrulanmadı.",
+          "trust_level": "official_company",
           "enabled": false
         },
         {
@@ -156,6 +182,81 @@
           "url": "https://www.linkedin.com/company/havelsan/",
           "adapter": "manual",
           "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Sosyal ağ erişim politikası otomatik taramaya izin vermiyor.",
+          "trust_level": "verified_newsletter",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "Türk Telekom",
+      "priority_group": "primary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "turk-telekom-kariyer",
+          "type": "career_page",
+          "url": "https://www.turktelekomkariyer.com.tr/",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "researching",
+          "coverage_reason": "Resmî kariyer sayfasındaki ilan akışının kararlı yapısı henüz fixture ile doğrulanmadı.",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "Jotform",
+      "priority_group": "primary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "jotform-ankara-careers",
+          "type": "career_page",
+          "url": "https://www.jotform.com/about/ankara/",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "researching",
+          "coverage_reason": "Resmî ofis sayfasındaki pozisyon bileşenleri için kararlı adapter henüz doğrulanmadı.",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "Akınsoft",
+      "priority_group": "primary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "akinsoft-staj",
+          "type": "program_page",
+          "url": "https://www.akinsoft.com.tr/akinsoft-insan-kaynaklari/staj-uygulamasi",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "manual",
+          "coverage_reason": "Resmî sayfa dönemsel başvuru formu sunuyor; ayrı ilan akışı bulunmuyor.",
+          "trust_level": "official_company",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "name": "Roketsan",
+      "priority_group": "primary",
+      "tracking_status": "manual",
+      "sources": [
+        {
+          "id": "roketsan-careers",
+          "type": "career_page",
+          "url": "https://kariyer.roketsan.com.tr/jobs",
+          "adapter": "manual",
+          "strategy": "manual",
+          "coverage_status": "researching",
+          "coverage_reason": "Resmî ilan listesinin kararlı seçicileri fixture ile doğrulanmadan otomasyon açılmıyor.",
+          "trust_level": "official_company",
           "enabled": false
         }
       ]

@@ -128,8 +128,9 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 		INSERT INTO company_sources(
 			company_id, source_key, source_type, url, adapter_type, strategy, enabled,
 			access_mode, access_scope, minimum_interval_seconds,
-			base_cooldown_seconds, maximum_cooldown_seconds
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			base_cooldown_seconds, maximum_cooldown_seconds,
+			coverage_status, coverage_reason, trust_level
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(source_key) DO UPDATE SET
 			company_id = excluded.company_id,
 			source_type = excluded.source_type,
@@ -142,10 +143,14 @@ func (r *SQLiteRepository) RegisterSource(ctx context.Context, source domain.Sou
 			minimum_interval_seconds = excluded.minimum_interval_seconds,
 			base_cooldown_seconds = excluded.base_cooldown_seconds,
 			maximum_cooldown_seconds = excluded.maximum_cooldown_seconds,
+			coverage_status = excluded.coverage_status,
+			coverage_reason = excluded.coverage_reason,
+			trust_level = excluded.trust_level,
 			updated_at = CURRENT_TIMESTAMP
 	`, companyID, source.Key, source.Type, source.URL, source.Adapter, strategy, boolInt(source.Enabled),
 		accessMode, strings.ToLower(strings.TrimSpace(source.AccessScope)), durationSeconds(source.MinimumInterval),
-		durationSeconds(source.BaseCooldown), durationSeconds(source.MaximumCooldown)); err != nil {
+		durationSeconds(source.BaseCooldown), durationSeconds(source.MaximumCooldown),
+		effectiveCoverageStatus(source), strings.TrimSpace(source.CoverageReason), effectiveTrustLevel(source)); err != nil {
 		return fmt.Errorf("upsert source %q: %w", source.Key, err)
 	}
 
@@ -2237,5 +2242,33 @@ func validateSourceRegistration(source domain.SourceRegistration) error {
 	default:
 		return fmt.Errorf("invalid source access mode %q", mode)
 	}
+	coverage := effectiveCoverageStatus(source)
+	if coverage != "automatic" && coverage != "feed" && coverage != "manual" && coverage != "researching" && coverage != "broken" {
+		return fmt.Errorf("invalid source coverage status %q", coverage)
+	}
+	trust := effectiveTrustLevel(source)
+	if trust != "official_company" && trust != "official_ats" && trust != "verified_newsletter" && trust != "aggregator" {
+		return fmt.Errorf("invalid source trust level %q", trust)
+	}
 	return nil
+}
+
+func effectiveCoverageStatus(source domain.SourceRegistration) string {
+	if status := strings.TrimSpace(source.CoverageStatus); status != "" {
+		return status
+	}
+	if source.Enabled {
+		return "automatic"
+	}
+	if source.Strategy == "manual" {
+		return "manual"
+	}
+	return "researching"
+}
+
+func effectiveTrustLevel(source domain.SourceRegistration) string {
+	if trust := strings.TrimSpace(source.TrustLevel); trust != "" {
+		return trust
+	}
+	return "aggregator"
 }

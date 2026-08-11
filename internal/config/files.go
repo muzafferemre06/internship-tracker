@@ -37,8 +37,9 @@ type LocationPreferences struct {
 }
 
 type SourcesConfig struct {
-	AccessPolicies []DomainAccessPolicy `json:"access_policies,omitempty"`
-	Companies      []CompanyConfig      `json:"companies"`
+	AccessPolicies   []DomainAccessPolicy `json:"access_policies,omitempty"`
+	CanonicalAliases map[string]string    `json:"canonical_aliases,omitempty"`
+	Companies        []CompanyConfig      `json:"companies"`
 }
 
 type DomainAccessPolicy struct {
@@ -105,13 +106,42 @@ func (c CompanyConfig) EffectiveTrackingStatus() string {
 }
 
 type SourceConfig struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	URL      string `json:"url"`
-	Adapter  string `json:"adapter"`
-	Strategy string `json:"strategy,omitempty"`
-	PageName string `json:"page_name,omitempty"`
-	Enabled  bool   `json:"enabled"`
+	ID             string `json:"id"`
+	Type           string `json:"type"`
+	URL            string `json:"url"`
+	Adapter        string `json:"adapter"`
+	Strategy       string `json:"strategy,omitempty"`
+	PageName       string `json:"page_name,omitempty"`
+	Enabled        bool   `json:"enabled"`
+	CoverageStatus string `json:"coverage_status,omitempty"`
+	CoverageReason string `json:"coverage_reason,omitempty"`
+	TrustLevel     string `json:"trust_level,omitempty"`
+}
+
+func (s SourceConfig) EffectiveCoverageStatus() string {
+	if status := strings.TrimSpace(s.CoverageStatus); status != "" {
+		return status
+	}
+	if s.Enabled {
+		return "automatic"
+	}
+	if s.EffectiveStrategy() == "manual" {
+		return "manual"
+	}
+	return "researching"
+}
+
+func (s SourceConfig) EffectiveTrustLevel() string {
+	if trust := strings.TrimSpace(s.TrustLevel); trust != "" {
+		return trust
+	}
+	if s.Type == "official_ats_posting" {
+		return "official_ats"
+	}
+	if strings.Contains(strings.ToLower(s.URL), "kariyer.net") {
+		return "aggregator"
+	}
+	return "official_company"
 }
 
 // legacyHTMLAdapters lists the pre-Faz-9 hand-written adapters that default
@@ -307,6 +337,17 @@ func (c SourcesConfig) validate() error {
 			programIDs[program.ID] = struct{}{}
 		}
 	}
+	for alias, canonical := range c.CanonicalAliases {
+		if strings.TrimSpace(alias) == "" || strings.TrimSpace(canonical) == "" {
+			return errors.New("canonical aliases must not be empty")
+		}
+		if _, exists := companyNames[canonical]; !exists {
+			return fmt.Errorf("canonical alias %q targets unknown company %q", alias, canonical)
+		}
+		if _, exists := companyNames[alias]; exists {
+			return fmt.Errorf("canonical alias %q conflicts with a company", alias)
+		}
+	}
 	return nil
 }
 
@@ -383,6 +424,25 @@ func (s SourceConfig) validate() error {
 	}
 	if _, ok := validSourceStrategies[strategy]; !ok {
 		return fmt.Errorf("unknown strategy %q", strategy)
+	}
+	coverage := s.EffectiveCoverageStatus()
+	switch coverage {
+	case "automatic", "feed":
+		if !s.Enabled {
+			return fmt.Errorf("%s coverage requires an enabled source", coverage)
+		}
+	case "manual", "researching":
+		if s.Enabled {
+			return fmt.Errorf("%s coverage requires a disabled source", coverage)
+		}
+	case "broken":
+	default:
+		return fmt.Errorf("invalid coverage_status %q", coverage)
+	}
+	switch s.EffectiveTrustLevel() {
+	case "official_company", "official_ats", "verified_newsletter", "aggregator":
+	default:
+		return fmt.Errorf("invalid trust_level %q", s.EffectiveTrustLevel())
 	}
 	return nil
 }

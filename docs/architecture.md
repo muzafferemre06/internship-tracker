@@ -343,6 +343,13 @@ bulunan fakat başvurusu dönemsel açılan programlar sahte bir iş ilanına
 dönüştürülmez. Program kayıtları kaynak config'inden startup sırasında idempotent
 olarak uzlaştırılır.
 
+Aynı fazda `company_sources.coverage_status`, otomatik/akış/manuel/araştırılıyor/
+bozuk ayrımını; `trust_level` ise resmî şirket, resmî ATS, doğrulanmış bülten ve
+toplayıcı güven katmanını kalıcılaştırır. `coverage_reason`, otomatik olmayan
+kaynağın nedenini saklar. Kaynak config'indeki `canonical_aliases` yalnız mevcut
+bir kanonik şirketi hedefleyebilir; `Commensis` girdisi bu nedenle ayrı şirket
+oluşturmadan `Commencis` kimliğine bağlanır.
+
 Dashboard iki ayrı, kesişmeyen liste sunar. `manual_checks`
 (`company_sources.last_error IS NOT NULL AND companies.tracking_status !=
 'manual'`) yalnız scraper'ın deneyip başarısız olduğu kaynakları gösterir —

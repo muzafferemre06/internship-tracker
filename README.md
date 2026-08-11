@@ -55,6 +55,17 @@ Her kaynak, taramalar ve veritabanı kayıtları arasında değişmeyen benzersi
 izlenebilir. İştirak profilinin sayfa başlığı ana şirket adından farklıysa
 selector doğrulaması için kaynakta `page_name` belirtilir.
 
+Faz 15 kaynakları `coverage_status` ile `automatic`, `feed`, `manual`,
+`researching` veya `broken`; `trust_level` ile `official_company`,
+`official_ats`, `verified_newsletter` veya `aggregator` olarak sınıflandırır.
+Otomatik olmayan kaynaklarda `coverage_reason` kullanıcıya nedenini açıklar.
+`canonical_aliases`, eski veya hatalı bir adı tek kanonik şirkete yönlendirir;
+`Commensis` bu yolla resmî `Commencis` kimliğinde tutulur.
+
+Dönemsel başvurular şirketin `programs[]` alanında ilanlardan ayrı tanımlanır.
+Her program kararlı `id`, ad, tür, resmî URL, `open`/`closed`/`unknown` durumu
+ve isteğe bağlı RFC3339 açılış, kapanış ve son doğrulama zamanlarını taşır.
+
 `access_policies[]` domain bazında `robots`, `public_api` veya `manual_only`
 erişim modunu ve otomatik modlar için minimum aralık/cooldown saniyelerini
 tanımlar. En uzun domain suffix'i kazanır. `manual_only` kaynak devre dışı,

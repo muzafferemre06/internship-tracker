@@ -226,6 +226,9 @@ func configureSources(
 				Strategy:       sourceConfig.EffectiveStrategy(),
 				TrackingStatus: company.EffectiveTrackingStatus(),
 				Enabled:        sourceConfig.Enabled,
+				CoverageStatus: sourceConfig.EffectiveCoverageStatus(),
+				CoverageReason: sourceConfig.CoverageReason,
+				TrustLevel:     sourceConfig.EffectiveTrustLevel(),
 			}
 			if policy, found := configured.ResolveAccessPolicy(sourceConfig.URL); found {
 				registration.AccessMode = policy.Mode

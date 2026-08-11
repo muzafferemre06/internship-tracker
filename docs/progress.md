@@ -11,6 +11,11 @@ sunulup açık onay alınmadan davranış veya production kaynak config'i deği�
 kimliğiyle birleştirilmesini ve Turkcell için sentetik ilan yerine ayrı minimal
 `program_windows` modelini onayladı. Faz 15 test-first uygulaması başlamıştır.
 
+On iki kanonik birincil şirket production kaynak kataloğunda tanımlandı.
+Commencis birincil gruba alındı; Türk Telekom, Jotform, Akınsoft ve Roketsan
+doğrulanmış resmî URL ve açık manuel/araştırılıyor gerekçeleriyle eklendi.
+Kaynak kapsama ve güven sınıfları SQLite'a kalıcı yazılır.
+
 ## Tamamlananlar
 
 - Ürün ve teknik kararları içeren v2 spec

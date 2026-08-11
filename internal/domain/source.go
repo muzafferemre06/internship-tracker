@@ -25,6 +25,9 @@ type SourceRegistration struct {
 	MinimumInterval time.Duration
 	BaseCooldown    time.Duration
 	MaximumCooldown time.Duration
+	CoverageStatus  string
+	CoverageReason  string
+	TrustLevel      string
 }
 
 // ProgramWindow models a period-based application program independently from

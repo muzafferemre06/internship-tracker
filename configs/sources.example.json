@@ -1,4 +1,5 @@
 {
+  "canonical_aliases": { "Commensis": "Commencis" },
   "access_policies": [
     {
       "domain": "jobs.lever.co",
@@ -32,13 +33,15 @@
   "companies": [
     {
       "name": "Commencis",
-      "priority_group": "candidate",
+      "priority_group": "primary",
       "sources": [
         {
           "id": "commencis-lever-spring-boot-camp-2026",
           "type": "official_ats_posting",
           "url": "https://jobs.lever.co/commencis/04a5cd98-ab26-4b48-bb64-3397ffe79a55",
           "adapter": "lever",
+          "coverage_status": "automatic",
+          "trust_level": "official_ats",
           "enabled": true
         }
       ]

@@ -982,6 +982,26 @@ func TestRegisterProgramWindowUpsertsCurrentState(t *testing.T) {
 	}
 }
 
+func TestRegisterSourcePersistsCoverageAndTrust(t *testing.T) {
+	repository, db := newTestRepository(t)
+	err := repository.RegisterSource(context.Background(), domain.SourceRegistration{
+		Key: "official", Company: "Example", PriorityGroup: "primary", Type: "career_page",
+		URL: "https://example.test/careers", Adapter: "manual", Strategy: "manual",
+		TrackingStatus: "manual", CoverageStatus: "manual", CoverageReason: "Login gerekiyor.",
+		TrustLevel: "official_company", Enabled: false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var coverage, reason, trust string
+	if err := db.QueryRow(`SELECT coverage_status, coverage_reason, trust_level FROM company_sources WHERE source_key = 'official'`).Scan(&coverage, &reason, &trust); err != nil {
+		t.Fatal(err)
+	}
+	if coverage != "manual" || reason != "Login gerekiyor." || trust != "official_company" {
+		t.Fatalf("unexpected classification: %q %q %q", coverage, reason, trust)
+	}
+}
+
 func registerMeteksanSources(t *testing.T, repository *SQLiteRepository) {
 	t.Helper()
 	registerMeteksan(t, repository)

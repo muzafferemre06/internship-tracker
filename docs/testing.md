@@ -7,6 +7,11 @@ tarih aralığının reddini, `program_windows` migration'ını ve aynı kanonik
 anahtarının güncel durumla idempotent biçimde güncellenmesini gerçek geçici
 SQLite üzerinde kapsar.
 
+Kaynak katalog testleri on iki kanonik birincil şirketin tamamını, Commencis
+alias kararını ve her kaynağın kapsama/güven sınıfını production config'inden
+doğrular. Tutarsız otomatik/disabled sınıflandırması startup'ta reddedilir;
+SQLite testi sınıflandırmanın kaynak sağlık kaydına taşındığını kanıtlar.
+
 ```bash
 go test ./...
 go vet ./...

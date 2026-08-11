@@ -46,6 +46,57 @@ func TestLoadSources(t *testing.T) {
 	}
 }
 
+func TestProductionSourcesContainCanonicalPrimaryCompaniesWithCoverage(t *testing.T) {
+	sources, err := LoadSources("../../configs/sources.json")
+	if err != nil {
+		t.Fatalf("load production sources: %v", err)
+	}
+	want := map[string]bool{
+		"Havelsan": false, "Akdoğan Tech": false, "Meteksan": false, "Baykar": false,
+		"Turkcell": false, "Türk Telekom": false, "Jotform": false, "Samsung": false,
+		"Commencis": false, "Akınsoft": false, "Roketsan": false, "ASELSAN": false,
+	}
+	for _, company := range sources.Companies {
+		if _, primary := want[company.Name]; !primary {
+			continue
+		}
+		if company.PriorityGroup != "primary" {
+			t.Fatalf("company %q is not primary", company.Name)
+		}
+		want[company.Name] = true
+		for _, source := range company.Sources {
+			if source.EffectiveCoverageStatus() == "" || source.EffectiveTrustLevel() == "" {
+				t.Fatalf("source %q lacks coverage/trust classification", source.ID)
+			}
+			if source.EffectiveCoverageStatus() != "automatic" && strings.TrimSpace(source.CoverageReason) == "" {
+				t.Fatalf("non-automatic source %q lacks a coverage reason", source.ID)
+			}
+		}
+	}
+	for company, found := range want {
+		if !found {
+			t.Errorf("canonical primary company %q is missing", company)
+		}
+	}
+	if len(sources.CanonicalAliases) != 1 || sources.CanonicalAliases["Commensis"] != "Commencis" {
+		t.Fatalf("Commensis alias was not canonicalized: %#v", sources.CanonicalAliases)
+	}
+}
+
+func TestLoadSourcesRejectsInconsistentCoverageClassification(t *testing.T) {
+	path := writeConfigTestFile(t, `{
+		"companies":[{"name":"Test","priority_group":"primary","sources":[{
+			"id":"test","type":"career_page","url":"https://example.test/jobs",
+			"adapter":"manual","strategy":"manual","enabled":false,
+			"coverage_status":"automatic","trust_level":"official_company"
+		}]}]
+	}`)
+	_, err := LoadSources(path)
+	if err == nil || !strings.Contains(err.Error(), "automatic coverage") {
+		t.Fatalf("expected inconsistent coverage error, got %v", err)
+	}
+}
+
 func TestLoadSourcesInfersStrategyFromAdapter(t *testing.T) {
 	sources, err := LoadSources("../../configs/sources.example.json")
 	if err != nil {
