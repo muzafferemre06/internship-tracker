@@ -240,8 +240,9 @@ fixture tabanlı uçtan uca kabul testinden geçer.
 
 Davranış, fixture kabulü, tam kalite paketi ve upstream push tamamlandı. Ayrıntılı resmî kaynak matrisi
 `docs/research/phase-16.5-sources-2026-08-11.md`, doğrulama kaydı
-`docs/acceptance/phase-16.5-2026-08-11.md` dosyasındadır. Production yayını için
-ayrı kullanıcı onayı beklenir.
+`docs/acceptance/phase-16.5-2026-08-11.md` dosyasındadır. Ayrı kullanıcı onayı
+sonrasında exact davranış revision'ı production'a deploy edilmiş; snapshot,
+health/readiness, migration ve kalıcı DB kimliği aynı kabul kaydında doğrulanmıştır.
 
 ## Faz 17 — Üçüncül şirket araştırması
 

@@ -49,5 +49,30 @@ Doğrulanan davranış revision'ı:
   migration doğruladı. QA container/network volume silinmeden kapatıldı;
   kalıcı kimlik `internship-tracker-phase165-qa_tracker_data` olarak korundu.
 
-Production deploy ayrı kullanıcı onayı gerektirir ve henüz bu kabul kaydının
-parçası değildir.
+## Production deploy kanıtı
+
+Kullanıcı ayrı production onayını verdikten sonra doğrulanmış davranış revision'ı
+`27277f68db9fa5a0e03008faa8d9b1c593bf0ea8` yerel Docker + Cloudflare Tunnel
+production ortamına deploy edildi.
+
+- Pre-deploy DB kimliği 27 şirket, 29 kaynak, 8 listing, 8 fırsat, 8 üyelik,
+  8 analiz, 3 scan ve 13 migration olarak kaydedildi.
+- Tutarlı snapshot
+  `internship-tracker-20260811T154910.407859512Z-7be359b75dff9692.db`
+  oluşturuldu; mevcut production image'ının uygulanmış 13 migration sözleşmesi
+  ve salt okunur bütünlük kontrolüyle doğrulandı.
+- Candidate restorecheck snapshot'ta henüz uygulanmamış migration 014'ü beklediği
+  için fail-closed durdu ve DB'ye yazmadı. Candidate startup migration 014'ü
+  uyguladı; ardından `/ready` ve `dbinspect` 14 migration'ı doğruladı.
+- API ve web exact revision etiketlerinde healthy; iç `/health` ve `/ready`
+  smoke başarılıdır.
+- Kalıcı `internship_tracker_data` volume kimliği değişmedi. Deploy sonrası
+  listing/fırsat/üyelik/analiz sayıları `8/8/8/8`, şirket/kaynak `27/29` olarak
+  korundu.
+- Canlı coverage Faz 16.5 bölümünde 11 şirket, 1 otomatik, 4 manuel, 6
+  araştırılıyor ve `%14,29`; normal ikincil bölümde 4/4 otomatik kaynak döndürdü.
+- Cloudflare dış `/ready` isteği HTTP/2 üzerinden Access'ın beklenen `302`
+  yanıtını verdi; tunnel `TUNNEL_TRANSPORT_PROTOCOL=http2` ayarını korudu.
+- `current-local.env` exact Faz 16.5 revision'ına, `previous-local.env` önceki
+  Faz 16 revision'ı `b66c5b2c110c179b2e2052b04fe187bb9ce1b061` değerine atomik
+  geçirildi.
