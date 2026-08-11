@@ -304,6 +304,16 @@ ve araştırma revision'ı upstream `main`e gönderildi; kanıt
 Onaylanan şirketler dürüst kapsama durumlarıyla çalışır; kaynak sayısındaki artış
 dedup, domain bütçesi veya diğer şirketlerin hata izolasyonunu bozmaz.
 
+Tamamlanma kanıtı (11 Ağustos 2026): Faz 17'deki 15 adayın 14'ü dört küçük
+batch'te doğrulanmış otomatik, manuel veya araştırılıyor kaynak durumuyla
+production kataloğuna alındı. Eski Alictus kimliği güncel SciPlay Games Turkey
+organizasyonunu duplicate etmemek için bilinçli olarak dışlandı. Final katalog
+41 şirket/43 kaynak/16 otomatik kaynak/15 otomatik şirkettir. Fixture tabanlı
+çift taramalar dedup, erişim bütçesi, hata izolasyonu ve yalnız güçlü staj
+eşleşmesinin push üretmesini doğruladı. Exact `ec9f4ac` revision'ında tam kalite,
+güvenlik ve gerçek Docker/Compose paketi geçti; ayrıntı
+`docs/acceptance/phase-18-final-2026-08-11.md` dosyasındadır.
+
 ## Faz 19 — Genel fırsat modeli ve bildirim katmanları
 
 ### Kapsam

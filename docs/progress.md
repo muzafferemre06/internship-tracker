@@ -2,7 +2,7 @@
 
 ## Aktif faz
 
-Faz 18'in ilk batch'i production'dadır. İkinci batch Binalyze'ın
+Faz 18'in uygulama ve kalite çıkış kriterleri tamamlandı. İlk batch production'dadır. İkinci batch Binalyze'ın
 resmî Ashby public API panosunu ve Insider One'ın resmî Lever panosunu otomatik
 izlemeye alır. Fixture tabanlı adapter, iki taramalı dedup ve yanlış öğrenci
 bildirimi korumaları `docs/acceptance/phase-18-batch-2-2026-08-11.md`
@@ -278,12 +278,18 @@ penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
 
 ## Sıradaki iş
 
-Faz 18 ilk batch kodu, araştırması ve kalite kanıtı tamamlandı. Sıradaki zorunlu
-adım ayrı onayla verified revision'ın production'a deploy edilmesi ve mevcut
-eski-image/yeni-config uyumsuzluğunun giderilmesidir. Sonraki Faz 18 batch'i yine
-ayrı plan/onay ve fixture kapısıyla ele alınır. RSS/e-posta ve geniş fırsat
-türleri Faz 19–21'de, analitik/öğrenme Faz 23'te kalır; ayrıntılar
-`docs/roadmap.md` içindedir.
+Faz 18'in dört batch'i, tam kalite paketi ve upstream push'ları tamamlandı.
+Sıradaki zorunlu adım ayrı kullanıcı onayıyla verified `ec9f4ac` revision'ının
+production'a deploy edilmesidir. Production şu anda ilk batch `eec2f63`
+binary'siyle healthy çalışır; bind-mount edilen güncel config `ashby_board`
+adapter'ını içerdiğinden deploy öncesi container restart'ı eski binary/yeni
+config uyumsuzluğu yaratabilir. Snapshot, restorecheck, exact revision rollout,
+health/smoke ve kalıcı DB kimliği deployment sırasında tekrar doğrulanmalıdır.
+
+Bu rollout tamamlandıktan sonraki ürün fazı Faz 19 genel fırsat modeli ve
+bildirim katmanlarıdır. Taksonomi, program penceresi şeması ve fixture eval altın
+kümesi koddan önce ayrı plan/onay kapısından geçer. RSS/e-posta Faz 20–21'de,
+analitik/öğrenme Faz 23'te kalır; ayrıntılar `docs/roadmap.md` içindedir.
 
 Faz 5'in production runbook'u geçerliliğini korur. Kullanıcı yerel Docker +
 Cloudflare Tunnel üzerinden telefon erişimini doğrulamıştır; off-host yedek ve
