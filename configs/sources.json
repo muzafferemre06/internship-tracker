@@ -3,12 +3,20 @@
     "Commensis": "Commencis",
     "İnova": "İnnova",
     "ÜşüSebit": "Sebit",
-    "MechSoft AI": "MechSoft"
+    "MechSoft AI": "MechSoft",
+    "Insider One": "Insider"
   },
   "access_policies": [
     {
       "domain": "jobs.lever.co",
       "mode": "robots",
+      "minimum_interval_seconds": 1,
+      "base_cooldown_seconds": 60,
+      "maximum_cooldown_seconds": 3600
+    },
+    {
+      "domain": "api.ashbyhq.com",
+      "mode": "public_api",
       "minimum_interval_seconds": 1,
       "base_cooldown_seconds": 60,
       "maximum_cooldown_seconds": 3600
@@ -569,6 +577,38 @@
           "id": "mobileaction-lever-board",
           "type": "official_ats_board",
           "url": "https://jobs.lever.co/mobile-action",
+          "adapter": "lever_board",
+          "coverage_status": "automatic",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_ats",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "name": "Binalyze",
+      "priority_group": "secondary",
+      "sources": [
+        {
+          "id": "binalyze-ashby-board",
+          "type": "official_ats_board",
+          "url": "https://api.ashbyhq.com/posting-api/job-board/binalyze",
+          "adapter": "ashby_board",
+          "coverage_status": "automatic",
+          "last_verified_at": "2026-08-11T00:00:00+03:00",
+          "trust_level": "official_ats",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "name": "Insider",
+      "priority_group": "secondary",
+      "sources": [
+        {
+          "id": "insiderone-lever-board",
+          "type": "official_ats_board",
+          "url": "https://jobs.lever.co/insiderone",
           "adapter": "lever_board",
           "coverage_status": "automatic",
           "last_verified_at": "2026-08-11T00:00:00+03:00",

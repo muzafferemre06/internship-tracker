@@ -207,6 +207,14 @@ başka şirkete ait bağlantıları atar. Tanınan boş `postings-wrapper` gerç
 ilan sonucudur; container kaybı layout değişimi sayılır. Adapter her ilan
 sayfasını ayrıca fetch etmeden başlık ve pano kartı bağlamını normalize eder.
 
+Faz 18 ikinci batch'teki `ashby_board` adapter'ı Ashby'nin resmî public job-board
+JSON uç noktasını `ats_api` stratejisiyle kullanır. Yalnız `isListed=true` olan,
+`jobs.ashbyhq.com/<aynı-board>/<ilan>` biçimindeki kayıtları kabul eder;
+query/fragment temizler, gizli ve tekrarlı kayıtları atar. Başlık, ekip, çalışma
+türü, birincil/ikincil konum ve düz açıklama analiz girdisine eklenir; apply URL
+saklanmaz veya fetch edilmez. `api.ashbyhq.com` erişimi public API modunda
+kalıcı bir saniyelik minimum aralığa tabidir.
+
 ### Kaynak strateji dispatch'i (Faz 9)
 
 `internal/scraper/registry.go`, adapter adını (`kariyer_net`, `lever`,
@@ -382,6 +390,11 @@ resmî aday mühendis/stajyer formuyla, Netaş'ı tarihsiz COOP programıyla ve
 Bilişim AŞ'yi resmî staj süreci sayfasıyla manuel izler. Manuel kaynaklarda HTTP
 isteği veya form gönderimi yapılmaz. Netaş COOP, açık tarih kanıtı olmadığı için
 ilan üretmeden `program_windows.status = unknown` taşır.
+
+İkinci batch Binalyze'ı resmî Ashby public API'si, Insider'ı güncel `insiderone`
+Lever panosuyla otomatik izler. `Insider One`, kanonik `Insider` şirket adına
+alias'tır. Genel tam zamanlı roller fırsat olarak görünür ve dedup edilir; staj
+veya uzun dönem staj türü olmadan öğrenci push'ı üretmez.
 
 `GET /api/v1/coverage`, birincil ve ikincil şirketleri kaynaklarıyla gruplar ve
 aynı raporda dönemsel program pencerelerini döndürür. `summary` iki grubun

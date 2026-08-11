@@ -2,14 +2,21 @@
 
 ## Aktif faz
 
-Faz 18'in ilk onaylı batch'i upstream `main` üzerinde tamamlandı. On beş Faz 17
+Faz 18'in ilk batch'i production'dadır; ikinci batch uygulaması Binalyze'ın
+resmî Ashby public API panosunu ve Insider One'ın resmî Lever panosunu otomatik
+izlemeye alır. Fixture tabanlı adapter, iki taramalı dedup ve yanlış öğrenci
+bildirimi korumaları `docs/acceptance/phase-18-batch-2-2026-08-11.md`
+dosyasındadır. Kodlama öncesindeki katalog 31 şirket/33 kaynak/12 otomatik
+kaynak/11 otomatik şirketken ikinci batch ile 33 şirket/35 kaynak/14 otomatik
+kaynak/13 otomatik şirkete çıkar.
+
+On beş Faz 17
 şirketinin ayrıntılı durum tespiti `03dc03f`; MobileAction, SİMSOFT, Netaş ve
 Bilişim AŞ kaynak uygulaması `b409fa1`; uzun hata mesajı taşma düzeltmesi ve tam
 kaliteye giren birleşik revision `eec2f63949f9f0de77830a0ebd62577631bce1c7`
 revision'ıdır. Tam backend/frontend/güvenlik/deployment sözleşmesi, gerçek image
 build'i ve izole Compose health/smoke kanıtı
-`docs/acceptance/phase-18-2026-08-11.md` dosyasındadır. Katalog artık 31 şirket,
-33 kaynak ve 12 otomatik kaynaktır; 11 farklı şirket otomatik izlenir.
+`docs/acceptance/phase-18-2026-08-11.md` dosyasındadır.
 
 Faz 18 ilk batch'i kullanıcıdan alınan ayrı production onayı sonrasında
 `eec2f63949f9f0de77830a0ebd62577631bce1c7` exact revision'ıyla deploy edildi.

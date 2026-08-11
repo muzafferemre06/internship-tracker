@@ -189,6 +189,7 @@ var adapterDefaultStrategy = map[string]string{
 	"json_ld":          "json_ld",
 	"career_links":     "static_links",
 	"greenhouse":       "ats_api",
+	"ashby_board":      "ats_api",
 	"llm_generic":      "llm_generic",
 	"learned_selector": "learned_selector",
 }

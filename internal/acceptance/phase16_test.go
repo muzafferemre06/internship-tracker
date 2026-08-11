@@ -121,8 +121,8 @@ func TestPhase16SecondaryCatalogCoverageAndStrongMatchNotificationEndToEnd(t *te
 		t.Fatal(err)
 	}
 	secondary := coverage.PrioritySummaries["secondary"]
-	if secondary.TotalCompanies != 19 || secondary.TotalSources != 19 || secondary.AutomaticSources != 6 ||
-		secondary.ManualSources != 7 || secondary.ResearchingSources != 6 || secondary.AutomaticCoveragePercent != 50 {
+	if secondary.TotalCompanies != 21 || secondary.TotalSources != 21 || secondary.AutomaticSources != 8 ||
+		secondary.ManualSources != 7 || secondary.ResearchingSources != 6 || secondary.AutomaticCoveragePercent != 57.142857142857146 {
 		t.Fatalf("unexpected secondary coverage: %#v", secondary)
 	}
 }

@@ -92,8 +92,11 @@ Lever istekleri alanın robots politikasındaki bir saniyelik minimum aralıkla
 kalıcı erişim bütçesinden geçirilir.
 
 Faz 18'in `lever_board` adapter'ı `https://jobs.lever.co/<şirket>` panosundaki
-aynı şirkete ait ilan kartlarını tek istekle kanonikleştirir. MobileAction bu
-yolla otomatik izlenir. SİMSOFT'un CAPTCHA/CV formu, Netaş'ın tarihsiz COOP
+aynı şirkete ait ilan kartlarını tek istekle kanonikleştirir. MobileAction ve
+Insider One bu yolla otomatik izlenir. `ashby_board` adapter'ı
+`https://api.ashbyhq.com/posting-api/job-board/<şirket>` public JSON yanıtındaki
+yalnız listelenmiş, aynı panoya ait ilanları kanonikleştirir; başvuru sayfalarını
+ziyaret etmez. Binalyze bu yolla otomatik izlenir. SİMSOFT'un CAPTCHA/CV formu, Netaş'ın tarihsiz COOP
 programı ve Bilişim AŞ'nin staj süreci sayfası `manual_only` kalır; Netaş COOP
 başvuru durumu kanıt olmadığı sürece `unknown` gösterilir.
 

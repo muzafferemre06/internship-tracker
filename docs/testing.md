@@ -90,13 +90,20 @@ olarak kabul edilmediğini doğrular.
 Adapter'ın `jobs.lever.co` için bir saniyelik kalıcı erişim bütçesi bildirdiği de
 test edilir; fixture kabul testindeki saat ikinci taramadan önce bu kadar ilerler.
 
-Faz 18 `lever_board` testi MobileAction'a benzeyen küçük bir pano fixture'ıyla
+Faz 18 `lever_board` testi MobileAction ve Insider One'a benzeyen küçük pano fixture'larıyla
 aynı şirket ilanlarını, göreli URL'yi, query/fragment temizliğini, haricî şirket
 ve `/apply` bağlantılarının reddini, tanınan boş panoyu ve layout bozulmasını
 ağsız doğrular. Uçtan uca kabul testi production config'inde dört onaylı şirketi,
 üç `manual_only` invariant'ını, Netaş'ın `unknown` program penceresini, iki
 taramada ilan dedup'unu ve genel/kıdemli tam zamanlı rollerin görünür kalırken
 push üretmemesini gerçek SQLite ve coverage handler'ıyla sınar.
+
+`ashby_board` testleri canlı yanıtın tamamını taşımayan küçük Binalyze JSON
+fixture'ıyla yalnız listelenmiş kayıtları, aynı-board URL doğrulamasını,
+query temizliğini, boş pano sözleşmesini, bozuk payload'ı ve 429 koruma hatasını
+ağsız doğrular. İkinci batch kabulü Binalyze ve Insider kaynaklarını aynı gerçek
+SQLite orchestrator'ında iki kez tarar; dört tam zamanlı rolün tekilleşip görünür
+kalmasını ve hiç öğrenci push'ı üretmemesini zorunlu tutar.
 
 Kariyer.net adapter testi bellek içi sahte bir HTTP taşıma katmanı kullanır;
 iki ilan, tekrarlı bağlantı, sıfır ilan, eksik başlık, değişmiş sayfa işareti,

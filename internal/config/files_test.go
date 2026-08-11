@@ -79,7 +79,7 @@ func TestProductionSourcesContainCanonicalPrimaryCompaniesWithCoverage(t *testin
 		}
 	}
 	wantAliases := map[string]string{
-		"Commensis": "Commencis", "İnova": "İnnova", "ÜşüSebit": "Sebit", "MechSoft AI": "MechSoft",
+		"Commensis": "Commencis", "İnova": "İnnova", "ÜşüSebit": "Sebit", "MechSoft AI": "MechSoft", "Insider One": "Insider",
 	}
 	if len(sources.CanonicalAliases) != len(wantAliases) {
 		t.Fatalf("unexpected canonical aliases: %#v", sources.CanonicalAliases)

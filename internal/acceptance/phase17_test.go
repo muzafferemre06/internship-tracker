@@ -95,7 +95,7 @@ func TestPhase17ResearchCatalogIsFiniteEvidenceBackedAndRuntimeIsolated(t *testi
 		t.Fatal(err)
 	}
 	phase18Approved := map[string]struct{}{
-		"MobileAction": {}, "SİMSOFT": {}, "Netaş": {}, "Bilişim AŞ": {},
+		"MobileAction": {}, "SİMSOFT": {}, "Netaş": {}, "Bilişim AŞ": {}, "Binalyze": {}, "Insider": {},
 	}
 	for company := range seenCompanies {
 		if _, approved := phase18Approved[company]; approved {

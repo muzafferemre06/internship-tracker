@@ -60,6 +60,9 @@ var adapterFactories = map[string]SourceFactory{
 	"greenhouse": func(spec SourceSpec, _ SourceDeps) (Source, error) {
 		return NewGreenhouseSource(spec.ID, spec.Company, spec.URL, nil)
 	},
+	"ashby_board": func(spec SourceSpec, _ SourceDeps) (Source, error) {
+		return NewAshbyBoardSource(spec.ID, spec.Company, spec.URL, nil)
+	},
 	// Faz 11 chaotic/bespoke adapter: reduce-then-LLM extraction.
 	"llm_generic": func(spec SourceSpec, deps SourceDeps) (Source, error) {
 		if deps.Extractor == nil {
