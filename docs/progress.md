@@ -11,11 +11,14 @@ build'i ve izole Compose health/smoke kanıtı
 `docs/acceptance/phase-18-2026-08-11.md` dosyasındadır. Katalog artık 31 şirket,
 33 kaynak ve 12 otomatik kaynaktır; 11 farklı şirket otomatik izlenir.
 
-Production hâlâ Faz 16.5 image revision'ındadır. Çalışma ağacındaki yeni config
-eski image'a bind-mount edildiğinden API `lever_board` adapter'ını tanımayıp
-restart döngüsüne girmiş, web unhealthy olmuştur. Faz 18 production rollout'u
-ayrı kullanıcı onayı, pre-deploy snapshot, exact revision deploy'u ve kalıcı DB
-kimliği/health/smoke kanıtı bekliyor.
+Faz 18 ilk batch'i kullanıcıdan alınan ayrı production onayı sonrasında
+`eec2f63949f9f0de77830a0ebd62577631bce1c7` exact revision'ıyla deploy edildi.
+Pre-deploy snapshot iki release'in migration setiyle restore kontrolünden geçti;
+API/web healthy, Cloudflare HTTP/2 tunnel running ve dış Access yanıtı beklenen
+HTTP 302'dir. Aynı kalıcı production volume'unda ilan/fırsat sayısı 31 olarak
+korundu; katalog 31 şirket/33 kaynak/12 otomatik kaynağa uzlaştırıldı ve 11
+benzersiz şirket otomatik izleniyor. Ayrıntılı rollout kanıtı
+`docs/acceptance/phase-18-2026-08-11.md` dosyasındadır.
 
 İnnova, İntertech, Sebit, DenizBank, Otsimo, Mobiliz, AI Studio, Belsis, Viseur
 AI, Actioner ve Bilishim iş kurallarında `secondary` kalırken API/PWA'da ayrı
