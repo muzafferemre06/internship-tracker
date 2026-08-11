@@ -2,24 +2,20 @@
 
 ## Aktif faz
 
-Faz 16.5 davranışı `27277f68db9fa5a0e03008faa8d9b1c593bf0ea8`
-revision'ında geliştirildi, tam kalite kapısından geçti, upstream `main`e
-gönderildi ve ayrı kullanıcı onayından sonra production'a deploy edildi. Snapshot,
-14 migration, health/readiness, Cloudflare HTTP/2 ve kalıcı DB kimliği kanıtı
-`docs/acceptance/phase-16.5-2026-08-11.md` dosyasındadır. Faz 17 araştırması üç
-teknokentte toplam 15 sonlu adayla tamamlandı; 12 önerilen, 1 düşük sinyal ve 2
-manuel erişim kararı `docs/research/phase-17-candidates-2026-08-11.md` ile
-makinece doğrulanan JSON kataloğunda kayıtlıdır. Adaylar production config'inden
-izole tutuldu. Kabul kaydı `docs/acceptance/phase-17-2026-08-11.md`
-dosyasındadır; tam kalite paketi geçti ve araştırma revision'ı upstream `main`e
-gönderildi. Aktif ürün işi, bu listenin küçük batch'lerle ele alınacağı Faz 18
-hazırlığıdır. Önceki
-Faz 16 tamamlandı, tam kalite kapısı geçti ve ayrı kullanıcı onayından sonra
-`b66c5b2c110c179b2e2052b04fe187bb9ce1b061` revision'ı yerel Docker +
-Cloudflare Tunnel production ortamına deploy edildi. Snapshot/restorecheck,
-health/smoke, HTTP/2 ve kalıcı `internship_tracker_data` kimliği doğrulandı;
-ayrıntılar `docs/acceptance/phase-16-2026-08-11.md` dosyasındadır. Faz 17 yalnız
-üçüncül şirket araştırmasıdır ve ayrıca planlanıp onaylanmadan başlamaz.
+Faz 18'in ilk onaylı batch'i upstream `main` üzerinde tamamlandı. On beş Faz 17
+şirketinin ayrıntılı durum tespiti `03dc03f`; MobileAction, SİMSOFT, Netaş ve
+Bilişim AŞ kaynak uygulaması `b409fa1`; uzun hata mesajı taşma düzeltmesi ve tam
+kaliteye giren birleşik revision `eec2f63949f9f0de77830a0ebd62577631bce1c7`
+revision'ıdır. Tam backend/frontend/güvenlik/deployment sözleşmesi, gerçek image
+build'i ve izole Compose health/smoke kanıtı
+`docs/acceptance/phase-18-2026-08-11.md` dosyasındadır. Katalog artık 31 şirket,
+33 kaynak ve 12 otomatik kaynaktır; 11 farklı şirket otomatik izlenir.
+
+Production hâlâ Faz 16.5 image revision'ındadır. Çalışma ağacındaki yeni config
+eski image'a bind-mount edildiğinden API `lever_board` adapter'ını tanımayıp
+restart döngüsüne girmiş, web unhealthy olmuştur. Faz 18 production rollout'u
+ayrı kullanıcı onayı, pre-deploy snapshot, exact revision deploy'u ve kalıcı DB
+kimliği/health/smoke kanıtı bekliyor.
 
 İnnova, İntertech, Sebit, DenizBank, Otsimo, Mobiliz, AI Studio, Belsis, Viseur
 AI, Actioner ve Bilishim iş kurallarında `secondary` kalırken API/PWA'da ayrı
@@ -257,12 +253,12 @@ penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
 
 ## Sıradaki iş
 
-Faz 15 birincil, Faz 16 ikincil ve Faz 16.5 ayrı araştırma/takip kapsamı
-tamamlandı; Faz 16.5 production deploy'u snapshot ve kalıcılık kanıtıyla
-doğrulandı. Aktif ürün işi Faz 17'de
-yalnız üçüncül şirket araştırması, ardından Faz 18'de onaylanan şirketlerin eklenmesidir.
-RSS/e-posta ve geniş fırsat türleri Faz 19–21'de, analitik/öğrenme ise Faz 23'te
-ele alınır; ayrıntılar `docs/roadmap.md` içindedir.
+Faz 18 ilk batch kodu, araştırması ve kalite kanıtı tamamlandı. Sıradaki zorunlu
+adım ayrı onayla verified revision'ın production'a deploy edilmesi ve mevcut
+eski-image/yeni-config uyumsuzluğunun giderilmesidir. Sonraki Faz 18 batch'i yine
+ayrı plan/onay ve fixture kapısıyla ele alınır. RSS/e-posta ve geniş fırsat
+türleri Faz 19–21'de, analitik/öğrenme Faz 23'te kalır; ayrıntılar
+`docs/roadmap.md` içindedir.
 
 Faz 5'in production runbook'u geçerliliğini korur. Kullanıcı yerel Docker +
 Cloudflare Tunnel üzerinden telefon erişimini doğrulamıştır; off-host yedek ve
