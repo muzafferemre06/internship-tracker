@@ -7,12 +7,14 @@ import (
 )
 
 type CandidateProfile struct {
-	EducationField  string
-	ClassYear       int
-	GPA             float64
-	FocusAreas      []string
-	ExperienceAreas []string
-	Locations       []string
+	EducationField              string
+	ClassYear                   int
+	GPA                         float64
+	FocusAreas                  []string
+	ExperienceAreas             []string
+	Locations                   []string
+	SummerOtherCities           bool
+	TermTimePartTimeOtherCities bool
 }
 
 type ListingAnalyzer interface {

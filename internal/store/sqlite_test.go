@@ -61,6 +61,36 @@ func TestSQLiteRepositoryDeduplicatesCanonicalURL(t *testing.T) {
 	}
 }
 
+func TestSQLiteRepositoryPersistsPhase19AssessmentOnCanonicalOpportunity(t *testing.T) {
+	repository, db := newTestRepository(t)
+	registerMeteksan(t, repository)
+	listingID, _, err := repository.UpsertRawListing(context.Background(), domain.RawListing{
+		Company: "Meteksan Savunma", SourceID: "meteksan-kariyer-net", Title: "Backend Stajyeri",
+		URL: "https://example.test/jobs/phase-19", RawText: "Ankara backend staj", FetchedAt: time.Date(2026, 8, 12, 9, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("upsert listing: %v", err)
+	}
+	if err := repository.SaveAnalysis(context.Background(), listingID, domain.ListingAnalysis{
+		OpportunityType: domain.OpportunityInternship, ApplicationOpen: true, Relevant: true,
+		Eligibility: domain.EligibilitySuitable, Confidence: 0.91,
+		Assessment: domain.MatchAssessment{Score: 100, FocusScore: 40, TypeScore: 25, LocationScore: 20, EligibilityScore: 10, RequirementScore: 5, Visibility: domain.VisibilityNotification, PushEligible: true, Reason: "strong_match"},
+	}); err != nil {
+		t.Fatalf("save analysis: %v", err)
+	}
+	var kind, layer, reason string
+	var score, evidenceCount int
+	if err := db.QueryRow(`SELECT opportunity_type, visibility_layer, assessment_reason, match_score FROM opportunities WHERE id = (SELECT opportunity_id FROM listing_opportunities WHERE listing_id = ?)`, listingID).Scan(&kind, &layer, &reason, &score); err != nil {
+		t.Fatalf("read assessment: %v", err)
+	}
+	if kind != string(domain.OpportunityInternship) || layer != string(domain.VisibilityNotification) || reason != "strong_match" || score != 100 {
+		t.Fatalf("unexpected canonical assessment: kind=%q layer=%q reason=%q score=%d", kind, layer, reason, score)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM opportunity_evidence WHERE listing_id = ? AND source_type = 'web'`, listingID).Scan(&evidenceCount); err != nil || evidenceCount != 1 {
+		t.Fatalf("listing source evidence was not persisted: count=%d err=%v", evidenceCount, err)
+	}
+}
+
 func TestSQLiteRepositoryRequiresRegisteredSource(t *testing.T) {
 	repository, _ := newTestRepository(t)
 
@@ -979,6 +1009,33 @@ func TestRegisterProgramWindowUpsertsCurrentState(t *testing.T) {
 	}
 	if count != 1 || status != "open" || sourceURL != window.URL {
 		t.Fatalf("unexpected persisted program: count=%d status=%q url=%q", count, status, sourceURL)
+	}
+}
+
+func TestRegisterProgramWindowProjectsOpenProgramAsReviewableOpportunityEvidence(t *testing.T) {
+	repository, db := newTestRepository(t)
+	ctx := context.Background()
+	if err := repository.RegisterSource(ctx, domain.SourceRegistration{Key: "program-source", Company: "Program Co", PriorityGroup: "secondary", Type: "program_page", URL: "https://example.test/program", Adapter: "manual", Strategy: "manual", TrackingStatus: "manual"}); err != nil {
+		t.Fatal(err)
+	}
+	verified := time.Date(2026, 8, 12, 9, 0, 0, 0, time.UTC)
+	if err := repository.RegisterProgramWindow(ctx, domain.ProgramWindow{Key: "program-co-intern", Company: "Program Co", Name: "Program Co Staj", Type: "internship", URL: "https://example.test/apply", Status: "open", LastVerifiedAt: &verified}); err != nil {
+		t.Fatal(err)
+	}
+	var kind, layer, sourceType string
+	var evidenceCount int
+	if err := db.QueryRow(`
+		SELECT o.opportunity_type, o.visibility_layer, e.source_type
+		FROM opportunities o JOIN opportunity_evidence e ON e.opportunity_id = o.id
+		JOIN program_windows p ON p.id = e.program_window_id WHERE p.program_key = ?
+	`, "program-co-intern").Scan(&kind, &layer, &sourceType); err != nil {
+		t.Fatalf("read program opportunity: %v", err)
+	}
+	if kind != string(domain.OpportunityInternship) || layer != string(domain.VisibilityReview) || sourceType != "program_window" {
+		t.Fatalf("unexpected program projection: kind=%q layer=%q source=%q", kind, layer, sourceType)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM opportunity_evidence WHERE program_window_id IS NOT NULL`).Scan(&evidenceCount); err != nil || evidenceCount != 1 {
+		t.Fatalf("expected one program evidence: count=%d err=%v", evidenceCount, err)
 	}
 }
 

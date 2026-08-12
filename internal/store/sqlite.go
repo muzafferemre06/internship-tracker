@@ -197,7 +197,85 @@ func (r *SQLiteRepository) RegisterProgramWindow(ctx context.Context, program do
 	if err != nil {
 		return fmt.Errorf("upsert program window %q: %w", program.Key, err)
 	}
+	if err := r.projectProgramWindow(ctx, strings.TrimSpace(program.Key)); err != nil {
+		return err
+	}
 	return nil
+}
+
+// projectProgramWindow keeps a period-based program distinct from listings
+// while exposing its current official evidence through the common opportunity
+// model. Unknown/open program facts remain reviewable rather than fabricated
+// as a job listing.
+func (r *SQLiteRepository) projectProgramWindow(ctx context.Context, key string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin program opportunity projection: %w", err)
+	}
+	defer tx.Rollback()
+	var programID, companyID int64
+	var name, programType, sourceURL, status, observedAt string
+	if err := tx.QueryRowContext(ctx, `
+		SELECT id, company_id, name, program_type, url, status,
+			COALESCE(last_verified_at, created_at)
+		FROM program_windows WHERE program_key = ?
+	`, key).Scan(&programID, &companyID, &name, &programType, &sourceURL, &status, &observedAt); err != nil {
+		return fmt.Errorf("load program window %q: %w", key, err)
+	}
+	kind := programOpportunityType(programType)
+	layer, reason := domain.VisibilityReview, "program_window_requires_review"
+	if status == "closed" {
+		layer, reason = domain.VisibilityRejected, "application_closed"
+	}
+	opportunityID := stableProgramOpportunityID(key)
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO opportunities(
+			id, company_id, normalized_title, normalized_location, opportunity_type,
+			visibility_layer, assessment_reason, assessed_at
+		) VALUES (?, ?, ?, '', ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET company_id = excluded.company_id,
+			normalized_title = excluded.normalized_title, opportunity_type = excluded.opportunity_type,
+			visibility_layer = excluded.visibility_layer, assessment_reason = excluded.assessment_reason,
+			assessed_at = excluded.assessed_at, status = 'active', updated_at = CURRENT_TIMESTAMP
+	`, opportunityID, companyID, opportunity.NormalizeTitle(name), kind, layer, reason, observedAt); err != nil {
+		return fmt.Errorf("upsert program opportunity: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO opportunity_evidence(
+			opportunity_id, program_window_id, source_type, source_url,
+			first_observed_at, last_observed_at, freshness_at
+		) VALUES (?, ?, 'program_window', ?, ?, ?, ?)
+		ON CONFLICT(program_window_id) DO UPDATE SET opportunity_id = excluded.opportunity_id,
+			source_url = excluded.source_url, last_observed_at = excluded.last_observed_at,
+			freshness_at = excluded.freshness_at
+	`, opportunityID, programID, sourceURL, observedAt, observedAt, observedAt); err != nil {
+		return fmt.Errorf("persist program evidence: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit program opportunity projection: %w", err)
+	}
+	return nil
+}
+
+func programOpportunityType(value string) domain.OpportunityType {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "internship", "staj":
+		return domain.OpportunityInternship
+	case "long_term_internship", "uzun_donem_staj":
+		return domain.OpportunityLongTermInternship
+	case "bootcamp":
+		return domain.OpportunityBootcamp
+	case "hackathon":
+		return domain.OpportunityHackathon
+	case "competition", "yarisma":
+		return domain.OpportunityCompetition
+	case "scholarship", "burs":
+		return domain.OpportunityScholarship
+	case "training", "egitim":
+		return domain.OpportunityTraining
+	default:
+		return domain.OpportunityUniversityCompanyProgram
+	}
 }
 
 // LoadSourceRecipe returns the one active learned recipe for a source.
@@ -538,7 +616,11 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 	if err != nil {
 		return fmt.Errorf("save listing analysis: %w", err)
 	}
-	if _, err := r.resolveOpportunity(ctx, tx, listingID, analysis); err != nil {
+	opportunityID, err := r.resolveOpportunity(ctx, tx, listingID, analysis)
+	if err != nil {
+		return err
+	}
+	if err := r.persistOpportunityAssessment(ctx, tx, listingID, opportunityID, analysis); err != nil {
 		return err
 	}
 	if err := r.enqueueListingNotification(ctx, tx, listingID, analysis, firstSuccessfulAnalysis); err != nil {
@@ -548,6 +630,71 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 		return fmt.Errorf("commit listing analysis and notification: %w", err)
 	}
 	return nil
+}
+
+func (r *SQLiteRepository) persistOpportunityAssessment(
+	ctx context.Context,
+	tx *sql.Tx,
+	listingID, opportunityID string,
+	analysis domain.ListingAnalysis,
+) error {
+	assessment, err := normalizedAssessment(analysis.Assessment)
+	if err != nil {
+		return err
+	}
+	if analysis.OpportunityType == "" {
+		analysis.OpportunityType = domain.OpportunityOther
+	}
+	if !analysis.OpportunityType.Valid() {
+		return fmt.Errorf("invalid opportunity type %q", analysis.OpportunityType)
+	}
+	assessedAt := r.now().UTC().Format(time.RFC3339Nano)
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE opportunities SET opportunity_type = ?, visibility_layer = ?, match_score = ?,
+			focus_score = ?, type_score = ?, location_score = ?, eligibility_score = ?,
+			requirement_score = ?, assessment_reason = ?, assessed_at = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+	`, analysis.OpportunityType, assessment.Visibility, assessment.Score, assessment.FocusScore,
+		assessment.TypeScore, assessment.LocationScore, assessment.EligibilityScore,
+		assessment.RequirementScore, assessment.Reason, assessedAt, opportunityID); err != nil {
+		return fmt.Errorf("persist opportunity assessment: %w", err)
+	}
+	var sourceURL, firstSeen, lastSeen string
+	if err := tx.QueryRowContext(ctx, `
+		SELECT canonical_url, first_seen_at, last_seen_at FROM listings WHERE id = ?
+	`, listingID).Scan(&sourceURL, &firstSeen, &lastSeen); err != nil {
+		return fmt.Errorf("load listing evidence: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO opportunity_evidence(
+			opportunity_id, listing_id, source_type, source_url, first_observed_at, last_observed_at, freshness_at
+		) VALUES (?, ?, 'web', ?, ?, ?, ?)
+		ON CONFLICT(listing_id) DO UPDATE SET opportunity_id = excluded.opportunity_id,
+			source_url = excluded.source_url, last_observed_at = excluded.last_observed_at,
+			freshness_at = excluded.freshness_at
+	`, opportunityID, listingID, sourceURL, firstSeen, lastSeen, lastSeen); err != nil {
+		return fmt.Errorf("persist listing evidence: %w", err)
+	}
+	return nil
+}
+
+func normalizedAssessment(value domain.MatchAssessment) (domain.MatchAssessment, error) {
+	if value.Visibility == "" {
+		value.Visibility = domain.VisibilityReview
+	}
+	if value.Reason == "" {
+		value.Reason = "not_assessed"
+	}
+	if !value.Visibility.Valid() || value.Score < 0 || value.Score > 100 ||
+		value.FocusScore < 0 || value.FocusScore > 40 || value.TypeScore < 0 || value.TypeScore > 25 ||
+		value.LocationScore < 0 || value.LocationScore > 20 || value.EligibilityScore < 0 || value.EligibilityScore > 10 ||
+		value.RequirementScore < 0 || value.RequirementScore > 5 {
+		return domain.MatchAssessment{}, errors.New("invalid opportunity assessment")
+	}
+	if value.Score != value.FocusScore+value.TypeScore+value.LocationScore+value.EligibilityScore+value.RequirementScore {
+		return domain.MatchAssessment{}, errors.New("opportunity assessment score must equal its components")
+	}
+	return value, nil
 }
 
 type opportunityCandidate struct {
@@ -2328,6 +2475,11 @@ func stableListingID(company string, canonicalURL string) string {
 
 func stableOpportunityID(listingID string) string {
 	return "opp-" + strings.TrimSpace(listingID)
+}
+
+func stableProgramOpportunityID(programKey string) string {
+	hash := sha256.Sum256([]byte("program:" + strings.TrimSpace(programKey)))
+	return "opp-program-" + hex.EncodeToString(hash[:12])
 }
 
 func stableSplitOpportunityID(listingID, normalizedTitle, normalizedLocation string) string {

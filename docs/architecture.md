@@ -435,7 +435,10 @@ kart sınırında kırılır. Aynı koruma üst durum mesajına da uygulanır.
 Faz 19 eşleştirme çekirdeği, çıkarım güveninden bağımsız ve açıklanabilir bir
 `0–100` aday uyum skoru üretir: odak alanı (en çok 40), fırsat türü (en çok
 25), konum (en çok 20), uygunluk (10) ve sınıf/GPA şartı (5). Her bileşen ile
-katman gerekçesi kalıcı değerlendirme için tasarlanmıştır. `confidence < 0.80`
+katman gerekçesi kanonik `opportunities` kaydında kalıcıdır. Her web listing'i
+ve dönemsel program penceresi, `opportunity_evidence` içinde ayrı kaynak URL'si,
+ilk/son gözlem ve güncellik zamanı ile aynı fırsata bağlanır; program penceresi
+asla sahte bir job listing'e dönüştürülmez. `confidence < 0.80`
 olan sinyal skoru ne olursa olsun `incelenecek`te tutulur; kapalı ya da açıkça
 ilgisiz fırsat `elenen`e, 55+ makul aday `firsatlar`a, 80+ yüksek güvenli kaynak
 ise `bildirim`e gider. Bu görünürlük, fırsat yaşam döngüsü ve başvuru durumundan

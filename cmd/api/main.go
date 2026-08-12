@@ -304,12 +304,14 @@ func analyzerProfile(profile config.CandidateProfile) analyzer.CandidateProfile 
 		experienceAreas = append(experienceAreas, experience.Areas...)
 	}
 	return analyzer.CandidateProfile{
-		EducationField:  strings.TrimSpace(profile.Education.Department),
-		ClassYear:       profile.Education.ClassYear,
-		GPA:             profile.Education.GPA,
-		FocusAreas:      append([]string(nil), profile.FocusAreas...),
-		ExperienceAreas: experienceAreas,
-		Locations:       append([]string(nil), profile.LocationPreferences.Primary...),
+		EducationField:              strings.TrimSpace(profile.Education.Department),
+		ClassYear:                   profile.Education.ClassYear,
+		GPA:                         profile.Education.GPA,
+		FocusAreas:                  append([]string(nil), profile.FocusAreas...),
+		ExperienceAreas:             experienceAreas,
+		Locations:                   append([]string(nil), profile.LocationPreferences.Primary...),
+		SummerOtherCities:           profile.LocationPreferences.SummerOtherCities,
+		TermTimePartTimeOtherCities: profile.LocationPreferences.TermTimePartTimeOtherCities,
 	}
 }
 

@@ -93,4 +93,19 @@ type ListingAnalysis struct {
 	CompletionTokens  int
 	TotalTokens       int
 	EstimatedCostUSD  float64
+	Assessment        MatchAssessment
+}
+
+// MatchAssessment is a stored explanation of profile fit, not a replacement
+// for analyzer confidence or the user's application/lifecycle choices.
+type MatchAssessment struct {
+	Score            int
+	FocusScore       int
+	TypeScore        int
+	LocationScore    int
+	EligibilityScore int
+	RequirementScore int
+	Visibility       VisibilityLayer
+	PushEligible     bool
+	Reason           string
 }

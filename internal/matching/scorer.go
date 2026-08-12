@@ -44,6 +44,15 @@ type Assessment struct {
 	Reason           string                 `json:"reason"`
 }
 
+func (a Assessment) Domain() domain.MatchAssessment {
+	return domain.MatchAssessment{
+		Score: a.Score, FocusScore: a.FocusScore, TypeScore: a.TypeScore,
+		LocationScore: a.LocationScore, EligibilityScore: a.EligibilityScore,
+		RequirementScore: a.RequirementScore, Visibility: a.Visibility,
+		PushEligible: a.PushEligible, Reason: a.Reason,
+	}
+}
+
 func Assess(profile Profile, input Input) Assessment {
 	a := input.Analysis
 	result := Assessment{

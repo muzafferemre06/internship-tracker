@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/muzaffer/internship-tracker/internal/analyzer"
+	"github.com/muzaffer/internship-tracker/internal/matching"
 	"github.com/muzaffer/internship-tracker/internal/scraper"
 	"github.com/muzaffer/internship-tracker/internal/store"
 )
@@ -191,6 +192,7 @@ func (s Service) Run(ctx context.Context, trigger string) (ScanResult, error) {
 				}
 				continue
 			}
+			analysis.Assessment = matching.Assess(matchingProfile(s.Profile), matching.Input{Analysis: analysis}).Domain()
 			if err := s.Store.SaveAnalysis(ctx, listingID, analysis); err != nil {
 				sourceResult.ProcessError++
 			}
@@ -239,6 +241,7 @@ func (s Service) ReprocessPending(ctx context.Context, limit int) (ReprocessResu
 	for _, item := range pending {
 		analysis, analyzeErr := s.Analyzer.Analyze(ctx, item.Listing, s.Profile)
 		if analyzeErr == nil {
+			analysis.Assessment = matching.Assess(matchingProfile(s.Profile), matching.Input{Analysis: analysis}).Domain()
 			analyzeErr = s.Store.SaveAnalysis(ctx, item.ListingID, analysis)
 		}
 		if analyzeErr == nil {
@@ -253,6 +256,16 @@ func (s Service) ReprocessPending(ctx context.Context, limit int) (ReprocessResu
 		}
 	}
 	return result, errors.Join(processErrors...)
+}
+
+func matchingProfile(profile analyzer.CandidateProfile) matching.Profile {
+	return matching.Profile{
+		ClassYear: profile.ClassYear, GPA: profile.GPA,
+		FocusAreas:                  append([]string(nil), profile.FocusAreas...),
+		PrimaryLocations:            append([]string(nil), profile.Locations...),
+		SummerOtherCities:           profile.SummerOtherCities,
+		TermTimePartTimeOtherCities: profile.TermTimePartTimeOtherCities,
+	}
 }
 
 type identifiedAnalyzer interface {
