@@ -66,9 +66,9 @@ func NewListingNotification(
 	}, true
 }
 
-func secondaryNotificationOpportunity(opportunityType string) bool {
-	switch strings.TrimSpace(opportunityType) {
-	case "staj", "uzun_donem_staj":
+func secondaryNotificationOpportunity(opportunityType OpportunityType) bool {
+	switch opportunityType {
+	case OpportunityInternship, OpportunityLongTermInternship:
 		return true
 	default:
 		return false

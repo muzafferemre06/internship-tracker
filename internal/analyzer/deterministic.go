@@ -90,18 +90,30 @@ func extractClassRequirement(text string) *int {
 	return &value
 }
 
-func opportunityType(text string) string {
+func opportunityType(text string) domain.OpportunityType {
 	switch {
 	case containsAny(text, "uzun dönem staj", "long term intern", "long-term intern"):
-		return "uzun_donem_staj"
-	case containsAny(text, "staj", "intern"):
-		return "staj"
+		return domain.OpportunityLongTermInternship
 	case containsAny(text, "part-time", "part time", "yarı zamanlı"):
-		return "part_time"
+		return domain.OpportunityPartTimeStudent
+	case containsAny(text, "staj", "intern"):
+		return domain.OpportunityInternship
 	case containsAny(text, "yeni mezun", "new graduate", "graduate program"):
-		return "yeni_mezun"
+		return domain.OpportunityNewGraduate
+	case containsAny(text, "bootcamp"):
+		return domain.OpportunityBootcamp
+	case containsAny(text, "hackathon"):
+		return domain.OpportunityHackathon
+	case containsAny(text, "yarışma", "yarisma", "competition"):
+		return domain.OpportunityCompetition
+	case containsAny(text, "burs", "scholarship"):
+		return domain.OpportunityScholarship
+	case containsAny(text, "teknik etkinlik", "technical event", "konferans", "conference"):
+		return domain.OpportunityTechnicalEvent
+	case containsAny(text, "eğitim", "egitim", "training"):
+		return domain.OpportunityTraining
 	default:
-		return "diger"
+		return domain.OpportunityOther
 	}
 }
 

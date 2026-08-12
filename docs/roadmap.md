@@ -348,6 +348,14 @@ güvenlik ve gerçek Docker/Compose paketi geçti; ayrıntı
 Her desteklenen fırsat türü kaynak kanıtıyla kalıcıdır; güçlü eşleşme tek push,
 diğer makul adaylar yalnız Fırsatlar/İncelenecek görünümü üretir.
 
+### Uygulama durumu
+
+Faz 19 çekirdeği, onaylanan kapalı fırsat taksonomisini ve açıklanabilir skoru
+uygulamaya başladı. Eşikler: yüksek güvenli kaynakta 80+ `bildirim`, 55+
+`firsatlar`, düşük çıkarım güveni veya belirsizlik `incelenecek`; kapalı/açıkça
+ilgisiz sinyal `elenen`dir. Kalıcılık, API/PWA, program kanıtı ve fixture eval
+bir sonraki teslim parçalarında tamamlanacaktır.
+
 ## Faz 20 — RSS/Atom ve açık akışlar
 
 ### Kapsam

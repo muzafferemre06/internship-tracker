@@ -207,7 +207,7 @@ func decodeAnalysis(content string) (domain.ListingAnalysis, error) {
 		return domain.ListingAnalysis{}, err
 	}
 	return domain.ListingAnalysis{
-		OpportunityType: payload.OpportunityType, ApplicationOpen: payload.ApplicationOpen, Relevant: payload.Relevant,
+		OpportunityType: domain.OpportunityType(payload.OpportunityType), ApplicationOpen: payload.ApplicationOpen, Relevant: payload.Relevant,
 		MatchingAreas: payload.MatchingAreas, ClassRequirement: payload.ClassRequirement, GPARequirement: payload.GPARequirement,
 		Location: payload.Location, WorkModel: payload.WorkModel, Eligibility: payload.Eligibility,
 		ApplicationDueAt: payload.ApplicationDueAt, Summary: payload.Summary, Confidence: payload.Confidence,
@@ -245,7 +245,7 @@ func decodeSingleJSONStrict(content string, target any) error {
 }
 
 func validatePayload(p analysisPayload) error {
-	if !oneOf(p.OpportunityType, "staj", "uzun_donem_staj", "part_time", "yeni_mezun", "diger") {
+	if !domain.OpportunityType(p.OpportunityType).Valid() {
 		return fmt.Errorf("invalid opportunity_type %q", p.OpportunityType)
 	}
 	if !oneOf(p.WorkModel, "is_yerinde", "hibrit", "uzaktan", "belirtilmemis") {

@@ -432,6 +432,15 @@ Kapsama ve manuel kaynak kartlarındaki hata/gerekçe metinleri tek satıra
 zorlanmaz: iç flex/grid öğeleri küçülebilir ve uzun, boşluksuz teşhis parçaları
 kart sınırında kırılır. Aynı koruma üst durum mesajına da uygulanır.
 
+Faz 19 eşleştirme çekirdeği, çıkarım güveninden bağımsız ve açıklanabilir bir
+`0–100` aday uyum skoru üretir: odak alanı (en çok 40), fırsat türü (en çok
+25), konum (en çok 20), uygunluk (10) ve sınıf/GPA şartı (5). Her bileşen ile
+katman gerekçesi kalıcı değerlendirme için tasarlanmıştır. `confidence < 0.80`
+olan sinyal skoru ne olursa olsun `incelenecek`te tutulur; kapalı ya da açıkça
+ilgisiz fırsat `elenen`e, 55+ makul aday `firsatlar`a, 80+ yüksek güvenli kaynak
+ise `bildirim`e gider. Bu görünürlük, fırsat yaşam döngüsü ve başvuru durumundan
+ayrı bir kavramdır.
+
 Bildirim outbox kapısı listing'in bağlı `company_sources.trust_level` değerini
 aynı transaction içinde okur. Yalnız resmî şirket, resmî ATS veya doğrulanmış
 bülten kaynakları event üretebilir. Birincil fırsat mevcut açık/ilgili/uygun
