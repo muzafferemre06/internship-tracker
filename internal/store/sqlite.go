@@ -620,6 +620,9 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 	if err != nil {
 		return err
 	}
+	if err := r.applyTrustedNotificationLayer(ctx, tx, listingID, &analysis); err != nil {
+		return err
+	}
 	if err := r.persistOpportunityAssessment(ctx, tx, listingID, opportunityID, analysis); err != nil {
 		return err
 	}
@@ -628,6 +631,27 @@ func (r *SQLiteRepository) SaveAnalysis(ctx context.Context, listingID string, a
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit listing analysis and notification: %w", err)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) applyTrustedNotificationLayer(ctx context.Context, tx *sql.Tx, listingID string, analysis *domain.ListingAnalysis) error {
+	if analysis == nil || analysis.Confidence < 0.80 || analysis.Assessment.Score < 80 ||
+		analysis.Assessment.Visibility == domain.VisibilityRejected || analysis.Assessment.Visibility == domain.VisibilityReview {
+		return nil
+	}
+	var trust string
+	if err := tx.QueryRowContext(ctx, `
+		SELECT company_sources.trust_level FROM listings
+		JOIN company_sources ON company_sources.id = listings.source_id WHERE listings.id = ?
+	`, listingID).Scan(&trust); err != nil {
+		return fmt.Errorf("load assessment source trust: %w", err)
+	}
+	switch trust {
+	case "official_company", "official_ats", "verified_newsletter":
+		analysis.Assessment.Visibility = domain.VisibilityNotification
+		analysis.Assessment.PushEligible = true
+		analysis.Assessment.Reason = "strong_match"
 	}
 	return nil
 }

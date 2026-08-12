@@ -1142,9 +1142,10 @@ func TestSecondaryNotificationRequiresStrongFocusMatchAndHighTrustSource(t *test
 		if err != nil {
 			t.Fatal(err)
 		}
-		analysis := domain.ListingAnalysis{OpportunityType: "staj", ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.7}
+		analysis := domain.ListingAnalysis{OpportunityType: "staj", ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.9}
 		if test.strong {
 			analysis.MatchingAreas = []string{"backend"}
+			analysis.Assessment = domain.MatchAssessment{Score: 80, FocusScore: 40, TypeScore: 25, LocationScore: 10, EligibilityScore: 0, RequirementScore: 5, Visibility: domain.VisibilityOpportunities}
 		}
 		if err := repository.SaveAnalysis(ctx, listingID, analysis); err != nil {
 			t.Fatal(err)
@@ -1155,13 +1156,14 @@ func TestSecondaryNotificationRequiresStrongFocusMatchAndHighTrustSource(t *test
 	if err := db.QueryRow("SELECT COUNT(*), MIN(event_type) FROM notifications").Scan(&notifications, &eventType); err != nil {
 		t.Fatal(err)
 	}
-	if notifications != 1 || eventType != domain.NewSecondaryStrongMatchEvent {
+	if notifications != 1 || eventType != domain.NewStrongMatchEvent {
 		t.Fatalf("only high-trust strong secondary match should notify: count=%d event=%q", notifications, eventType)
 	}
 }
 
 func suitablePrimaryAnalysis() domain.ListingAnalysis {
-	return domain.ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.95}
+	return domain.ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.95,
+		Assessment: domain.MatchAssessment{Score: 80, FocusScore: 40, TypeScore: 25, LocationScore: 10, EligibilityScore: 0, RequirementScore: 5, Visibility: domain.VisibilityOpportunities}}
 }
 
 func TestCoverageReportsPrimaryAndSecondarySourcesSeparatelyAndExcludesManualFromAutomaticDenominator(t *testing.T) {

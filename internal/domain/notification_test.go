@@ -2,15 +2,16 @@ package domain
 
 import "testing"
 
-func TestNewListingNotificationUsesOpportunityIdentityForDedup(t *testing.T) {
+func TestNewListingNotificationUsesStrongMatchIdentityForDedup(t *testing.T) {
 	notification, ok := NewListingNotification(
 		"opp-canonical", "listing-source-two", "Meteksan Savunma", "Backend Stajı", "primary",
-		ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable}, true,
+		ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
+			Assessment: MatchAssessment{Visibility: VisibilityNotification, PushEligible: true}}, true,
 	)
 	if !ok {
 		t.Fatal("expected suitable primary opportunity notification")
 	}
-	if notification.DedupKey != "opportunity:opp-canonical:new-primary-suitable:v1" {
+	if notification.DedupKey != "opportunity:opp-canonical:new-strong-match:v2" {
 		t.Fatalf("unexpected opportunity dedup key %q", notification.DedupKey)
 	}
 	if notification.TargetURL != "/?listing=listing-source-two" {
@@ -21,32 +22,28 @@ func TestNewListingNotificationUsesOpportunityIdentityForDedup(t *testing.T) {
 	}
 }
 
-func TestNewListingNotificationAllowsStrongSecondaryMatchWithSeparateEventIdentity(t *testing.T) {
+func TestNewListingNotificationAllowsStrongMatchRegardlessOfPriority(t *testing.T) {
 	notification, ok := NewListingNotification(
 		"opp-secondary", "listing-secondary", "Evreka", "Backend Intern", "secondary",
-		ListingAnalysis{
-			OpportunityType: "staj", ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
-			MatchingAreas: []string{"backend"}, Confidence: 0.7,
-		}, true,
+		ListingAnalysis{OpportunityType: "staj", ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
+			Assessment: MatchAssessment{Visibility: VisibilityNotification, PushEligible: true}}, true,
 	)
 	if !ok {
 		t.Fatal("expected strong secondary match notification")
 	}
-	if notification.EventType != NewSecondaryStrongMatchEvent {
-		t.Fatalf("unexpected secondary event type %q", notification.EventType)
+	if notification.EventType != NewStrongMatchEvent {
+		t.Fatalf("unexpected strong-match event type %q", notification.EventType)
 	}
-	if notification.DedupKey != "opportunity:opp-secondary:new-secondary-strong-match:v1" {
+	if notification.DedupKey != "opportunity:opp-secondary:new-strong-match:v2" {
 		t.Fatalf("unexpected secondary dedup key %q", notification.DedupKey)
 	}
 }
 
-func TestNewListingNotificationRejectsSecondaryFullTimeRole(t *testing.T) {
+func TestNewListingNotificationRejectsAnythingOutsideNotificationLayer(t *testing.T) {
 	_, ok := NewListingNotification(
 		"opp-secondary-full-time", "listing-secondary-full-time", "MobileAction", "Software Engineer", "secondary",
-		ListingAnalysis{
-			OpportunityType: "diger", ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
-			MatchingAreas: []string{"backend"}, Confidence: 0.95,
-		}, true,
+		ListingAnalysis{OpportunityType: "diger", ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
+			Assessment: MatchAssessment{Visibility: VisibilityOpportunities, PushEligible: false}}, true,
 	)
 	if ok {
 		t.Fatal("a full-time secondary role must remain visible without producing an internship push")
@@ -59,14 +56,14 @@ func TestNewListingNotificationRejectsWeakSecondaryMatch(t *testing.T) {
 		analysis ListingAnalysis
 	}{
 		{
-			name: "no focus-area match",
+			name: "reasonable candidate has no push",
 			analysis: ListingAnalysis{OpportunityType: "staj", ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
-				Confidence: 0.95},
+				Assessment: MatchAssessment{Visibility: VisibilityOpportunities}},
 		},
 		{
-			name: "below fixed confidence",
+			name: "review candidate has no push",
 			analysis: ListingAnalysis{OpportunityType: "staj", ApplicationOpen: true, Relevant: true, Eligibility: EligibilitySuitable,
-				MatchingAreas: []string{"backend"}, Confidence: 0.69},
+				Assessment: MatchAssessment{Visibility: VisibilityReview}},
 		},
 	}
 	for _, test := range tests {

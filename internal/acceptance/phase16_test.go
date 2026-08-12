@@ -88,8 +88,8 @@ func TestPhase16SecondaryCatalogCoverageAndStrongMatchNotificationEndToEnd(t *te
 	if err := dispatcher.DispatchPending(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if len(sender.messages) != 1 {
-		t.Fatalf("only backend focus match should push, got %d messages", len(sender.messages))
+	if len(sender.messages) != 0 {
+		t.Fatalf("deterministic low-confidence evidence must not push, got %d messages", len(sender.messages))
 	}
 	history, err := repository.OpportunityHistory(ctx, store.OpportunityHistoryQuery{Page: 1, PageSize: 20})
 	if err != nil || history.Total != 2 {
@@ -103,10 +103,10 @@ func TestPhase16SecondaryCatalogCoverageAndStrongMatchNotificationEndToEnd(t *te
 	if err := db.QueryRow("SELECT COUNT(*) FROM listing_analyses").Scan(&analyses); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.QueryRow("SELECT COUNT(*), MIN(event_type) FROM notifications").Scan(&notifications, &eventType); err != nil {
+	if err := db.QueryRow("SELECT COUNT(*), COALESCE(MIN(event_type), '') FROM notifications").Scan(&notifications, &eventType); err != nil {
 		t.Fatal(err)
 	}
-	if listings != 2 || analyses != 2 || notifications != 1 || eventType != domain.NewSecondaryStrongMatchEvent {
+	if listings != 2 || analyses != 2 || notifications != 0 || eventType != "" {
 		t.Fatalf("unexpected persisted Phase 16 state: listings=%d analyses=%d notifications=%d event=%q", listings, analyses, notifications, eventType)
 	}
 

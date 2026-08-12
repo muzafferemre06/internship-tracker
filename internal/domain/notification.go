@@ -7,11 +7,7 @@ import (
 	"strings"
 )
 
-const (
-	NewPrimarySuitableEvent               = "new_primary_suitable_v1"
-	NewSecondaryStrongMatchEvent          = "new_secondary_strong_match_v1"
-	SecondaryStrongMatchMinimumConfidence = 0.7
-)
+const NewStrongMatchEvent = "new_strong_match_v2"
 
 type Notification struct {
 	EventType string
@@ -31,48 +27,24 @@ func NewListingNotification(
 	analysis ListingAnalysis,
 	firstSuccessfulAnalysis bool,
 ) (Notification, bool) {
-	if !firstSuccessfulAnalysis || !analysis.ApplicationOpen ||
-		!analysis.Relevant || analysis.Eligibility != EligibilitySuitable {
+	if !firstSuccessfulAnalysis || !analysis.Assessment.PushEligible ||
+		analysis.Assessment.Visibility != VisibilityNotification {
 		return Notification{}, false
 	}
-
-	eventType := ""
-	dedupSuffix := ""
-	switch priorityGroup {
-	case "primary":
-		eventType = NewPrimarySuitableEvent
-		dedupSuffix = "new-primary-suitable:v1"
-	case "secondary":
-		if !secondaryNotificationOpportunity(analysis.OpportunityType) ||
-			len(analysis.MatchingAreas) == 0 || analysis.Confidence < SecondaryStrongMatchMinimumConfidence {
-			return Notification{}, false
-		}
-		eventType = NewSecondaryStrongMatchEvent
-		dedupSuffix = "new-secondary-strong-match:v1"
-	default:
+	if priorityGroup != "primary" && priorityGroup != "secondary" {
 		return Notification{}, false
 	}
-
-	dedupKey := "opportunity:" + opportunityID + ":" + dedupSuffix
+	dedupKey := "opportunity:" + opportunityID + ":new-strong-match:v2"
 	topicHash := sha256.Sum256([]byte(dedupKey))
 	body := truncateRunes(strings.TrimSpace(company)+" — "+strings.TrimSpace(title), 240)
 	return Notification{
-		EventType: eventType,
+		EventType: NewStrongMatchEvent,
 		DedupKey:  dedupKey,
 		Title:     "Yeni uygun staj ilanı",
 		Body:      body,
 		TargetURL: "/?listing=" + url.QueryEscape(listingID),
 		Topic:     "opp-" + base64.RawURLEncoding.EncodeToString(topicHash[:18]),
 	}, true
-}
-
-func secondaryNotificationOpportunity(opportunityType OpportunityType) bool {
-	switch opportunityType {
-	case OpportunityInternship, OpportunityLongTermInternship:
-		return true
-	default:
-		return false
-	}
 }
 
 func truncateRunes(value string, limit int) string {
