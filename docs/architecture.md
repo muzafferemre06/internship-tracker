@@ -446,6 +446,11 @@ ayrı bir kavramdır. `GET /api/v1/opportunities?visibility=` yalnız kapalı d�
 katman değerini kabul eder; PWA geçmişi bu filtreyi ve her fırsatın skorunu
 gösterir.
 
+Tek odak alanlı, güvenilir ve açık sinyal otomatik olarak push sayılmaz:
+`firsatlar`ta kalır. Bu kasıtlı koruma, tek bir anahtar sözcüğün bildirim
+gürültüsü üretmesini önler; push için altın kümede güçlü olarak etiketlenen
+çoklu-odak profil uyumu gerekir.
+
 Bildirim outbox kapısı listing'in bağlı `company_sources.trust_level` değerini
 aynı transaction içinde okur. Yalnız resmî şirket, resmî ATS veya doğrulanmış
 bülten kaynakları event üretebilir. Birincil fırsat mevcut açık/ilgili/uygun

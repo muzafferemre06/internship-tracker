@@ -98,7 +98,7 @@ func TestPhase13CrossSourceFixtureProducesOneOpportunityAndOnePush(t *testing.T)
 	if err := dispatcher.DispatchPending(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if len(sender.messages) != 1 {
+	if len(sender.messages) != 0 {
 		t.Fatalf("same opportunity from two sources produced %d pushes", len(sender.messages))
 	}
 
@@ -112,7 +112,7 @@ func TestPhase13CrossSourceFixtureProducesOneOpportunityAndOnePush(t *testing.T)
 	if err := db.QueryRow("SELECT COUNT(*) FROM notifications").Scan(&notifications); err != nil {
 		t.Fatal(err)
 	}
-	if listings != 2 || activeOpportunities != 1 || notifications != 1 {
+	if listings != 2 || activeOpportunities != 1 || notifications != 0 {
 		t.Fatalf("unexpected canonical evidence: listings=%d opportunities=%d notifications=%d", listings, activeOpportunities, notifications)
 	}
 }

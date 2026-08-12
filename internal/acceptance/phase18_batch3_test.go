@@ -116,7 +116,7 @@ func TestPhase18Batch3AutomaticSourcesDeduplicateAndNotifyOnlyStrongInternship(t
 	if err := db.QueryRow("SELECT COUNT(*) FROM notifications").Scan(&notifications); err != nil {
 		t.Fatal(err)
 	}
-	if listings != 4 || notifications != 1 {
-		t.Fatalf("expected four visible listings and one strong internship push, listings=%d notifications=%d", listings, notifications)
+	if listings != 4 || notifications != 0 {
+		t.Fatalf("expected four visible listings and no single-area push, listings=%d notifications=%d", listings, notifications)
 	}
 }

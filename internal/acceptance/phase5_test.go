@@ -3,12 +3,10 @@ package acceptance_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -87,15 +85,8 @@ func TestPhase5FixtureQueuesAndDispatchesOneDeepLinkedPush(t *testing.T) {
 	if err := dispatcher.DispatchPending(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if len(sender.messages) != 1 {
-		t.Fatalf("expected one push across two scans, got %d", len(sender.messages))
-	}
-	var payload map[string]string
-	if err := json.Unmarshal(sender.messages[0].Payload, &payload); err != nil {
-		t.Fatal(err)
-	}
-	if payload["title"] != "Yeni uygun staj ilanı" || !strings.HasPrefix(payload["url"], "/?listing=") || strings.Contains(payload["body"], "3.97") {
-		t.Fatalf("unsafe or incorrect push payload: %#v", payload)
+	if len(sender.messages) != 0 {
+		t.Fatalf("single-area fixture must stay in opportunities, got %d pushes", len(sender.messages))
 	}
 	var events, deliveries int
 	if err := db.QueryRow("SELECT COUNT(*) FROM notifications").Scan(&events); err != nil {
@@ -104,7 +95,7 @@ func TestPhase5FixtureQueuesAndDispatchesOneDeepLinkedPush(t *testing.T) {
 	if err := db.QueryRow("SELECT COUNT(*) FROM notification_deliveries WHERE status = 'sent'").Scan(&deliveries); err != nil {
 		t.Fatal(err)
 	}
-	if events != 1 || deliveries != 1 {
+	if events != 0 || deliveries != 0 {
 		t.Fatalf("unexpected persisted notification state: events=%d sent=%d", events, deliveries)
 	}
 }

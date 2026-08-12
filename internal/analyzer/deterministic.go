@@ -58,7 +58,9 @@ func (DeterministicAnalyzer) Analyze(
 		WorkModel:        workModel(text),
 		Eligibility:      eligibility,
 		Summary:          strings.TrimSpace(listing.Title),
-		Confidence:       0.7,
+		// Deterministic extraction has no probabilistic model uncertainty; the
+		// remaining ambiguity is captured separately by eligibility and score.
+		Confidence: 0.85,
 	}, nil
 }
 

@@ -284,7 +284,8 @@ func TestSQLiteRepositorySavesAnalysisAndNotificationOutboxAtomically(t *testing
 	}
 	analysis := domain.ListingAnalysis{
 		OpportunityType: "staj", ApplicationOpen: true, Relevant: true,
-		Eligibility: domain.EligibilitySuitable, Summary: "Uygun staj",
+		Eligibility: domain.EligibilitySuitable, Summary: "Uygun staj", Confidence: 0.9,
+		Assessment: strongPushAssessment(),
 	}
 	if err := repository.SaveAnalysis(context.Background(), listingID, analysis); err != nil {
 		t.Fatalf("save analysis and outbox: %v", err)
@@ -372,9 +373,7 @@ func TestSQLiteRepositoryNotificationEligibilityAndFailedAnalysisRecovery(t *tes
 	if err := repository.SaveAnalysisFailure(context.Background(), recoveredID, "test", "", "temporary"); err != nil {
 		t.Fatal(err)
 	}
-	if err := repository.SaveAnalysis(context.Background(), recoveredID, domain.ListingAnalysis{
-		ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable,
-	}); err != nil {
+	if err := repository.SaveAnalysis(context.Background(), recoveredID, strongPushAnalysis()); err != nil {
 		t.Fatal(err)
 	}
 	var count int
@@ -403,9 +402,7 @@ func TestSQLiteRepositoryDisablesOnlyGoneDeliverySubscription(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := repository.SaveAnalysis(context.Background(), listingID, domain.ListingAnalysis{
-		ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable,
-	}); err != nil {
+	if err := repository.SaveAnalysis(context.Background(), listingID, strongPushAnalysis()); err != nil {
 		t.Fatal(err)
 	}
 	deliveries, err := repository.ClaimPushDeliveries(context.Background(), 10, time.Now().UTC(), time.Minute)
@@ -918,7 +915,8 @@ func TestSQLiteDashboardAndNotificationsDeduplicateCanonicalOpportunity(t *testi
 	secondID := insertOpportunityListing(t, repository, "meteksan-careers", "Backend Stajı", "https://careers.example.test/dashboard/two")
 	analysis := domain.ListingAnalysis{
 		OpportunityType: "staj", ApplicationOpen: true, Relevant: true,
-		Location: "Ankara", Eligibility: domain.EligibilitySuitable, Summary: "Uygun backend stajı",
+		Location: "Ankara", Eligibility: domain.EligibilitySuitable, Summary: "Uygun backend stajı", Confidence: 0.9,
+		Assessment: strongPushAssessment(),
 	}
 	for _, listingID := range []string{firstID, secondID} {
 		if err := repository.SaveAnalysis(ctx, listingID, analysis); err != nil {
@@ -935,7 +933,7 @@ func TestSQLiteDashboardAndNotificationsDeduplicateCanonicalOpportunity(t *testi
 	}
 	var notifications, deliveries int
 	var dedupKey string
-	if err := db.QueryRow("SELECT COUNT(*), MIN(dedup_key) FROM notifications").Scan(&notifications, &dedupKey); err != nil {
+	if err := db.QueryRow("SELECT COUNT(*), COALESCE(MIN(dedup_key), '') FROM notifications").Scan(&notifications, &dedupKey); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.QueryRow("SELECT COUNT(*) FROM notification_deliveries").Scan(&deliveries); err != nil {
@@ -1164,6 +1162,14 @@ func TestSecondaryNotificationRequiresStrongFocusMatchAndHighTrustSource(t *test
 func suitablePrimaryAnalysis() domain.ListingAnalysis {
 	return domain.ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.95,
 		Assessment: domain.MatchAssessment{Score: 80, FocusScore: 40, TypeScore: 25, LocationScore: 10, EligibilityScore: 0, RequirementScore: 5, Visibility: domain.VisibilityOpportunities}}
+}
+
+func strongPushAssessment() domain.MatchAssessment {
+	return domain.MatchAssessment{Score: 80, FocusScore: 40, TypeScore: 25, LocationScore: 10, RequirementScore: 5, Visibility: domain.VisibilityOpportunities}
+}
+
+func strongPushAnalysis() domain.ListingAnalysis {
+	return domain.ListingAnalysis{OpportunityType: domain.OpportunityInternship, ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.9, Assessment: strongPushAssessment()}
 }
 
 func TestCoverageReportsPrimaryAndSecondarySourcesSeparatelyAndExcludesManualFromAutomaticDenominator(t *testing.T) {

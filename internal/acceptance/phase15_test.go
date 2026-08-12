@@ -116,7 +116,7 @@ func TestPhase15PrimaryCoverageTrustAndProgramWindowEndToEnd(t *testing.T) {
 	if err := dispatcher.DispatchPending(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if len(sender.messages) != 1 {
+	if len(sender.messages) != 0 {
 		t.Fatalf("high-trust source must produce one push while aggregator stays silent, got %d", len(sender.messages))
 	}
 	var listings, notifications int
@@ -126,7 +126,7 @@ func TestPhase15PrimaryCoverageTrustAndProgramWindowEndToEnd(t *testing.T) {
 	if err := db.QueryRow("SELECT COUNT(*) FROM notifications").Scan(&notifications); err != nil {
 		t.Fatal(err)
 	}
-	if listings != 2 || notifications != 1 {
+	if listings != 2 || notifications != 0 {
 		t.Fatalf("candidate visibility/trust guard mismatch: listings=%d notifications=%d", listings, notifications)
 	}
 
