@@ -76,7 +76,11 @@ func Assess(profile Profile, input Input) Assessment {
 		result.Visibility, result.Reason = domain.VisibilityReview, "inference_confidence_low"
 		return result
 	}
-	if result.Score >= NotificationThreshold && trustedForPush(input.TrustLevel) {
+	if a.Eligibility == domain.EligibilityPartlySuitable {
+		result.Visibility, result.Reason = domain.VisibilityReview, "eligibility_uncertain"
+		return result
+	}
+	if result.Score >= NotificationThreshold && notificationOpportunity(a.OpportunityType) && trustedForPush(input.TrustLevel) {
 		result.Visibility, result.PushEligible, result.Reason = domain.VisibilityNotification, true, "strong_match"
 		return result
 	}
@@ -90,6 +94,10 @@ func Assess(profile Profile, input Input) Assessment {
 	}
 	result.Visibility, result.Reason = domain.VisibilityReview, "uncertain_match"
 	return result
+}
+
+func notificationOpportunity(kind domain.OpportunityType) bool {
+	return kind == domain.OpportunityInternship || kind == domain.OpportunityLongTermInternship || kind == domain.OpportunityPartTimeStudent
 }
 
 func focusScore(profile, matches []string) int {

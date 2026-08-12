@@ -119,6 +119,12 @@ Aynı test 15 araştırma adayının 14'ünü production kataloğunda bulur; gü
 SciPlay Games Turkey kimliğine dönüşen Alictus'un `not_eligible` kararıyla ayrı
 production şirketi olmadığını zorunlu tutar.
 
+Faz 19 `internal/matching/testdata/phase19-gold.json`, mevcut Bilkent CTIS
+aday profiline göre etiketlenmiş 32 fırsat sinyali taşır. `TestPhase19GoldSet`,
+her fixture için asgari skoru, görünürlük katmanını ve push kararını doğrular.
+Bu küme bildirim için yanlış pozitifleri (özellikle burs/yeni-mezun/eğitim)
+ve belirsiz uygunluğu regresyon olarak yakalar.
+
 Kariyer.net adapter testi bellek içi sahte bir HTTP taşıma katmanı kullanır;
 iki ilan, tekrarlı bağlantı, sıfır ilan, eksik başlık, değişmiş sayfa işareti,
 HTTP 403/418/429/5xx, timeout ve iptal edilen istek senaryolarını kapsar.
