@@ -21,6 +21,9 @@ type DashboardListing struct {
 	TrackingDeadline  *time.Time                  `json:"tracking_deadline,omitempty"`
 	InterviewAt       *time.Time                  `json:"interview_at,omitempty"`
 	Lifecycle         domain.OpportunityLifecycle `json:"lifecycle_status"`
+	Visibility        domain.VisibilityLayer      `json:"visibility_layer"`
+	MatchScore        int                         `json:"match_score"`
+	AssessmentReason  string                      `json:"assessment_reason,omitempty"`
 }
 
 type ApplicationTracking struct {
@@ -32,28 +35,32 @@ type ApplicationTracking struct {
 
 type ListingDetail struct {
 	DashboardListing
-	OpportunityType   string               `json:"opportunity_type,omitempty"`
-	ApplicationOpen   bool                 `json:"application_open"`
-	Relevant          bool                 `json:"relevant"`
-	MatchingAreas     []string             `json:"matching_areas"`
-	ClassRequirement  *int                 `json:"class_year_requirement,omitempty"`
-	GPARequirement    *float64             `json:"gpa_requirement,omitempty"`
-	Location          string               `json:"location,omitempty"`
-	WorkModel         string               `json:"work_model,omitempty"`
-	Confidence        float64              `json:"confidence"`
-	NeedsUserDecision bool                 `json:"needs_user_decision"`
-	DecisionQuestion  string               `json:"decision_question,omitempty"`
-	FirstSeenAt       time.Time            `json:"first_seen_at"`
-	LastSeenAt        time.Time            `json:"last_seen_at"`
-	Application       *ApplicationTracking `json:"application,omitempty"`
+	OpportunityType   string                 `json:"opportunity_type,omitempty"`
+	ApplicationOpen   bool                   `json:"application_open"`
+	Relevant          bool                   `json:"relevant"`
+	MatchingAreas     []string               `json:"matching_areas"`
+	ClassRequirement  *int                   `json:"class_year_requirement,omitempty"`
+	GPARequirement    *float64               `json:"gpa_requirement,omitempty"`
+	Location          string                 `json:"location,omitempty"`
+	WorkModel         string                 `json:"work_model,omitempty"`
+	Confidence        float64                `json:"confidence"`
+	Visibility        domain.VisibilityLayer `json:"visibility_layer"`
+	MatchScore        int                    `json:"match_score"`
+	AssessmentReason  string                 `json:"assessment_reason,omitempty"`
+	NeedsUserDecision bool                   `json:"needs_user_decision"`
+	DecisionQuestion  string                 `json:"decision_question,omitempty"`
+	FirstSeenAt       time.Time              `json:"first_seen_at"`
+	LastSeenAt        time.Time              `json:"last_seen_at"`
+	Application       *ApplicationTracking   `json:"application,omitempty"`
 }
 
 type OpportunityHistoryQuery struct {
-	Page      int
-	PageSize  int
-	Lifecycle domain.OpportunityLifecycle
-	Company   string
-	Query     string
+	Page       int
+	PageSize   int
+	Lifecycle  domain.OpportunityLifecycle
+	Visibility domain.VisibilityLayer
+	Company    string
+	Query      string
 }
 
 type OpportunityHistoryPage struct {

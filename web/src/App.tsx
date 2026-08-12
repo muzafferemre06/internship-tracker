@@ -10,6 +10,8 @@ import {
   type ApplicationStatus,
   type Listing,
   type OpportunityLifecycle,
+	visibilityLayerLabels,
+	type VisibilityLayer,
 } from "./lib/listings";
 import { readJSONResponse } from "./lib/api";
 import { listingIDFromURL, urlWithListing } from "./lib/navigation";
@@ -146,6 +148,7 @@ export default function App() {
   const [checkingSourceID, setCheckingSourceID] = useState<string | null>(null);
   const [history, setHistory] = useState<OpportunityHistory>({ items: [], page: 1, page_size: 10, total: 0 });
   const [historyLifecycle, setHistoryLifecycle] = useState<"" | OpportunityLifecycle>("");
+	const [historyVisibility, setHistoryVisibility] = useState<"" | VisibilityLayer>("");
   const [historyQuery, setHistoryQuery] = useState("");
   const [lifecycleSaving, setLifecycleSaving] = useState(false);
   const [coverage, setCoverage] = useState<CoverageResponse | null>(null);
@@ -193,10 +196,11 @@ export default function App() {
     }
   }
 
-  async function loadHistory(page = history.page, lifecycle = historyLifecycle, query = historyQuery) {
+  async function loadHistory(page = history.page, lifecycle = historyLifecycle, query = historyQuery, visibility = historyVisibility) {
     try {
       const parameters = new URLSearchParams({ page: String(page), page_size: "10" });
       if (lifecycle) parameters.set("lifecycle", lifecycle);
+		if (visibility) parameters.set("visibility", visibility);
       if (query.trim()) parameters.set("q", query.trim());
       const response = await fetch(`${apiBaseUrl}/api/v1/opportunities?${parameters}`);
       setHistory(await readJSONResponse<OpportunityHistory>(response));
@@ -527,6 +531,12 @@ export default function App() {
                 {Object.entries(opportunityLifecycleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </label>
+			<label>Görünürlük
+			  <select value={historyVisibility} onChange={(event) => setHistoryVisibility(event.target.value as "" | VisibilityLayer)}>
+			    <option value="">Tüm katmanlar</option>
+			    {Object.entries(visibilityLayerLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+			  </select>
+			</label>
             <label>Başlık veya özet
               <input value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="Örn. backend" />
             </label>
@@ -537,7 +547,7 @@ export default function App() {
               {history.items.map((listing) => (
                 <li key={listing.opportunity_id ?? listing.id}>
                   <button className="listing-card" type="button" disabled={detailLoading} onClick={() => openListing(listing)}>
-                    <span className="listing-meta"><strong>{listing.company}</strong><small>{opportunityLifecycleLabels[listing.lifecycle_status ?? "yeni"]}</small></span>
+					<span className="listing-meta"><strong>{listing.company}</strong><small>{visibilityLayerLabels[listing.visibility_layer ?? "incelenecek"]} · {listing.match_score ?? 0}/100 · {opportunityLifecycleLabels[listing.lifecycle_status ?? "yeni"]}</small></span>
                     <span className="listing-title">{listing.title}</span>
                     {listing.summary ? <span className="listing-summary">{listing.summary}</span> : null}
                   </button>

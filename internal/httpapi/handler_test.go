@@ -350,6 +350,21 @@ func TestOpportunityAPIRejectsInvalidQueryAndLifecycle(t *testing.T) {
 	}
 }
 
+func TestOpportunityHistoryAcceptsVisibilityLayerFilter(t *testing.T) {
+	repository := &fakeOpportunityRepository{}
+	handler := NewHandler("http://localhost:5173", slog.New(slog.NewTextHandler(io.Discard, nil)), nil, repository, nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/opportunities?visibility=firsatlar", nil))
+	if response.Code != http.StatusOK || repository.query.Visibility != domain.VisibilityOpportunities {
+		t.Fatalf("visibility filter was not forwarded: code=%d query=%#v", response.Code, repository.query)
+	}
+	invalid := httptest.NewRecorder()
+	handler.ServeHTTP(invalid, httptest.NewRequest(http.MethodGet, "/api/v1/opportunities?visibility=unknown", nil))
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid visibility must be rejected, got %d", invalid.Code)
+	}
+}
+
 func TestScanReturnsSkippedSourceRetryTime(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	retryAt := time.Date(2026, 8, 4, 9, 0, 0, 0, time.UTC)

@@ -252,8 +252,13 @@ func (h Handler) opportunities(writer http.ResponseWriter, request *http.Request
 		return
 	}
 	query := store.OpportunityHistoryQuery{
-		Lifecycle: domain.OpportunityLifecycle(strings.TrimSpace(request.URL.Query().Get("lifecycle"))),
-		Company:   request.URL.Query().Get("company"), Query: request.URL.Query().Get("q"),
+		Lifecycle:  domain.OpportunityLifecycle(strings.TrimSpace(request.URL.Query().Get("lifecycle"))),
+		Visibility: domain.VisibilityLayer(strings.TrimSpace(request.URL.Query().Get("visibility"))),
+		Company:    request.URL.Query().Get("company"), Query: request.URL.Query().Get("q"),
+	}
+	if query.Visibility != "" && !query.Visibility.Valid() {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "visibility is invalid"})
+		return
 	}
 	var err error
 	if query.Page, err = positiveQueryInt(request, "page", 1, 1_000_000); err != nil {

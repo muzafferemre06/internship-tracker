@@ -2,6 +2,9 @@ export type Listing = {
   id: string;
   opportunity_id?: string;
   lifecycle_status?: OpportunityLifecycle;
+  visibility_layer?: VisibilityLayer;
+  match_score?: number;
+  assessment_reason?: string;
   company: string;
   title: string;
   url: string;
@@ -15,6 +18,14 @@ export type Listing = {
 };
 
 export type OpportunityLifecycle = "yeni" | "acik" | "incelendi" | "basvuruldu" | "suresi_doldu" | "kapatildi" | "arsivlendi";
+export type VisibilityLayer = "bildirim" | "firsatlar" | "incelenecek" | "elenen";
+
+export const visibilityLayerLabels: Record<VisibilityLayer, string> = {
+  bildirim: "Bildirim",
+  firsatlar: "Fırsatlar",
+  incelenecek: "İncelenecek",
+  elenen: "Elenen",
+};
 
 export const opportunityLifecycleLabels: Record<OpportunityLifecycle, string> = {
   yeni: "Yeni",

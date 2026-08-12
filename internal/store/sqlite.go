@@ -1707,7 +1707,7 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, opportunity_id, company, title, canonical_url, priority_group,
 			eligibility_status, summary, application_deadline, application_status,
-			tracking_deadline, interview_at, lifecycle_status
+			tracking_deadline, interview_at, lifecycle_status, visibility_layer, match_score, assessment_reason
 		FROM (
 			SELECT listings.id AS id,
 				listing_opportunities.opportunity_id AS opportunity_id,
@@ -1721,6 +1721,9 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 				application_tracking.deadline AS tracking_deadline,
 				application_tracking.interview_at AS interview_at,
 				opportunities.lifecycle_status AS lifecycle_status,
+				opportunities.visibility_layer AS visibility_layer,
+				opportunities.match_score AS match_score,
+				opportunities.assessment_reason AS assessment_reason,
 				listings.first_seen_at AS first_seen_at,
 				ROW_NUMBER() OVER (
 					PARTITION BY listing_opportunities.opportunity_id
@@ -1760,6 +1763,9 @@ func (r *SQLiteRepository) dashboardListings(ctx context.Context, clause string)
 			&trackingDeadline,
 			&interviewAt,
 			&listing.Lifecycle,
+			&listing.Visibility,
+			&listing.MatchScore,
+			&listing.AssessmentReason,
 		); err != nil {
 			return nil, err
 		}
@@ -1796,14 +1802,19 @@ func (r *SQLiteRepository) OpportunityHistory(ctx context.Context, query Opportu
 	if query.Lifecycle != "" && !query.Lifecycle.Valid() {
 		return OpportunityHistoryPage{}, fmt.Errorf("invalid opportunity lifecycle %q", query.Lifecycle)
 	}
+	if query.Visibility != "" && !query.Visibility.Valid() {
+		return OpportunityHistoryPage{}, fmt.Errorf("invalid opportunity visibility %q", query.Visibility)
+	}
 	company := strings.ToLower(strings.TrimSpace(query.Company))
 	search := strings.ToLower(strings.TrimSpace(query.Query))
 	lifecycle := string(query.Lifecycle)
+	visibility := string(query.Visibility)
 	where := `WHERE opportunities.status = 'active'
 		AND (? = '' OR opportunities.lifecycle_status = ?)
+		AND (? = '' OR opportunities.visibility_layer = ?)
 		AND (? = '' OR INSTR(LOWER(companies.name), ?) > 0)
 		AND (? = '' OR INSTR(LOWER(listings.title), ?) > 0 OR INSTR(LOWER(COALESCE(listing_analyses.summary, '')), ?) > 0)`
-	args := []any{lifecycle, lifecycle, company, company, search, search, search}
+	args := []any{lifecycle, lifecycle, visibility, visibility, company, company, search, search, search}
 
 	var total int
 	if err := r.db.QueryRowContext(ctx, `
@@ -1820,7 +1831,7 @@ func (r *SQLiteRepository) OpportunityHistory(ctx context.Context, query Opportu
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, opportunity_id, company, title, canonical_url, priority_group,
 			eligibility_status, summary, application_deadline, application_status,
-			tracking_deadline, interview_at, lifecycle_status
+			tracking_deadline, interview_at, lifecycle_status, visibility_layer, match_score, assessment_reason
 		FROM (
 			SELECT listings.id, opportunities.id AS opportunity_id, companies.name AS company,
 				listings.title, listings.canonical_url, companies.priority_group,
@@ -1831,6 +1842,9 @@ func (r *SQLiteRepository) OpportunityHistory(ctx context.Context, query Opportu
 				application_tracking.deadline AS tracking_deadline,
 				application_tracking.interview_at,
 				opportunities.lifecycle_status,
+				opportunities.visibility_layer,
+				opportunities.match_score,
+				opportunities.assessment_reason,
 				listings.last_seen_at,
 				ROW_NUMBER() OVER (PARTITION BY opportunities.id ORDER BY listings.last_seen_at DESC, listings.id) AS opportunity_rank
 			FROM opportunities
@@ -1855,7 +1869,7 @@ func (r *SQLiteRepository) OpportunityHistory(ctx context.Context, query Opportu
 		var applicationDue, trackingDeadline, interviewAt sql.NullString
 		if err := rows.Scan(&item.ID, &item.OpportunityID, &item.Company, &item.Title, &item.URL,
 			&item.Priority, &item.Eligibility, &item.Summary, &applicationDue, &item.ApplicationStatus,
-			&trackingDeadline, &interviewAt, &item.Lifecycle); err != nil {
+			&trackingDeadline, &interviewAt, &item.Lifecycle, &item.Visibility, &item.MatchScore, &item.AssessmentReason); err != nil {
 			return OpportunityHistoryPage{}, err
 		}
 		if item.ApplicationDueAt, err = parseStoredTime(applicationDue); err != nil {

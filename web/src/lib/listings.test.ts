@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupListings, toDateTimeLocal, upcomingDate, type Listing } from "./listings";
+import { groupListings, toDateTimeLocal, upcomingDate, visibilityLayerLabels, type Listing } from "./listings";
 
 describe("groupListings", () => {
   it("separates primary companies from the digest", () => {
@@ -12,6 +12,13 @@ describe("groupListings", () => {
 
     expect(result.priority).toHaveLength(1);
     expect(result.other).toHaveLength(1);
+  });
+});
+
+describe("visibility layers", () => {
+  it("keeps matching visibility distinct from application status", () => {
+    expect(visibilityLayerLabels.incelenecek).toBe("İncelenecek");
+    expect(visibilityLayerLabels.elenen).toBe("Elenen");
   });
 });
 
