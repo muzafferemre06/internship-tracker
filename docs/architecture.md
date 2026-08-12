@@ -442,7 +442,9 @@ asla sahte bir job listing'e dönüştürülmez. `confidence < 0.80`
 olan sinyal skoru ne olursa olsun `incelenecek`te tutulur; kapalı ya da açıkça
 ilgisiz fırsat `elenen`e, 55+ makul aday `firsatlar`a, 80+ yüksek güvenli kaynak
 ise `bildirim`e gider. Bu görünürlük, fırsat yaşam döngüsü ve başvuru durumundan
-ayrı bir kavramdır.
+ayrı bir kavramdır. `GET /api/v1/opportunities?visibility=` yalnız kapalı dört
+katman değerini kabul eder; PWA geçmişi bu filtreyi ve her fırsatın skorunu
+gösterir.
 
 Bildirim outbox kapısı listing'in bağlı `company_sources.trust_level` değerini
 aynı transaction içinde okur. Yalnız resmî şirket, resmî ATS veya doğrulanmış

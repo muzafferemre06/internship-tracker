@@ -351,11 +351,11 @@ diğer makul adaylar yalnız Fırsatlar/İncelenecek görünümü üretir.
 ### Uygulama durumu
 
 Faz 19 çekirdeği, onaylanan kapalı fırsat taksonomisini, açıklanabilir skoru ve
-kalıcı web/program kanıtını uygulamaya başladı. Eşikler: yüksek güvenli kaynakta
-80+ `bildirim`, 55+ `firsatlar`, düşük çıkarım güveni veya belirsizlik
-`incelenecek`; kapalı/açıkça ilgisiz sinyal `elenen`dir. API/PWA, bildirim
-kapısının yeni skora geçirilmesi ve fixture eval bir sonraki teslim parçalarında
-tamamlanacaktır.
+kalıcı web/program kanıtını ve API/PWA görünürlük filtresini uygulamaya başladı.
+Eşikler: yüksek güvenli kaynakta 80+ `bildirim`, 55+ `firsatlar`, düşük çıkarım
+güveni veya belirsizlik `incelenecek`; kapalı/açıkça ilgisiz sinyal `elenen`dir.
+Bildirim kapısının yeni skora geçirilmesi ve fixture eval bir sonraki teslim
+parçalarında tamamlanacaktır.
 
 ## Faz 20 — RSS/Atom ve açık akışlar
 
