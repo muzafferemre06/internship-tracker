@@ -348,14 +348,17 @@ güvenlik ve gerçek Docker/Compose paketi geçti; ayrıntı
 Her desteklenen fırsat türü kaynak kanıtıyla kalıcıdır; güçlü eşleşme tek push,
 diğer makul adaylar yalnız Fırsatlar/İncelenecek görünümü üretir.
 
-### Uygulama durumu
+### Tamamlanma (12 Ağustos 2026)
 
-Faz 19 çekirdeği, onaylanan kapalı fırsat taksonomisini, açıklanabilir skoru ve
-kalıcı web/program kanıtını ve API/PWA görünürlük filtresini uygulamaya başladı.
-Eşikler: yüksek güvenli kaynakta 80+ `bildirim`, 55+ `firsatlar`, düşük çıkarım
-güveni veya belirsizlik `incelenecek`; kapalı/açıkça ilgisiz sinyal `elenen`dir.
-Bildirim kapısının yeni skora geçirilmesi ve fixture eval bir sonraki teslim
-parçalarında tamamlanacaktır.
+Faz 19, kapalı fırsat taksonomisi, kalıcı web/program kanıtı, açıklanabilir
+skor, katman filtreli API/PWA ve güçlü eşleşme için fırsat düzeyinde tek push
+ile tamamlandı. Kullanıcı profiline göre etiketli 32 fixture'lık altın küme
+eşikleri korur: yalnız güvenilir kaynakta 80+ çoklu-odak staj/uzun dönem/öğrenci
+part-time fırsatı `bildirim`e çıkar; 55+ makul aday `firsatlar`, belirsiz aday
+`incelenecek`, kapalı veya açıkça ilgisiz aday `elenen` olur. Exact davranış
+revision'ı `c3e3c144ab70a671521db6a0a72e9700539fcdec` yerel production
+Compose kurulumuna deploy edildi; pre-deploy snapshot, servis sağlığı, Cloudflare
+Access dış davranışı ve kalıcı SQLite kimliği doğrulandı.
 
 ## Faz 20 — RSS/Atom ve açık akışlar
 
