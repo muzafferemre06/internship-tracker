@@ -385,6 +385,54 @@ Access dış davranışı ve kalıcı SQLite kimliği doğrulandı.
 Fixture RSS/Atom akışları restart sonrasında tekrar bildirim üretmeden yeni ve
 güncellenen fırsatları ortak modele aktarır.
 
+### Tamamlanma (22 Ağustos 2026)
+
+`rss_feed` adaptörü (`internal/scraper/rssfeed.go`) RSS 2.0 ve Atom'u
+`adapterFactories` tablosuna kayıtlı, deterministik/AI'sız şekilde ayrıştırır;
+ETag/If-Modified-Since ile conditional GET yapar, 304'te sıfır işlem üretir,
+öge bazlı SHA-256 içerik hash'i ile yeni/güncellenen/tekrarlanan ayrımını
+yapar (`migrations/016_feed_checkpoints.sql`: `feed_checkpoints` +
+`feed_seen_items`). Aynı-domain sınırlı feed keşfi `rss_discover` adaptörü
+olarak eklendi (`internal/scraper/rssdiscovery.go`): sayfadaki
+`<link rel="alternate">` etiketlerini okur, farklı host'a işaret eden
+bağlantıları sert filtreler. `opportunity_evidence.source_type` artık
+`company_sources.adapter_type`'a göre `'web'`/`'rss'` olarak doğru
+işaretleniyor (önceden her zaman `'web'` sabitti — Faz 19'un şema ayrımını
+gerçek kaynağa oturttu). Kabul testi
+(`internal/acceptance/phase20_test.go`) gerçek sqlite dosyasını
+kapat/yeniden-aç ile süreç restart'ini simüle eder: restart sonrası
+değişmeyen akış sıfır tekrar bildirim üretir (checkpoint'in adaptör
+belleğinde değil sqlite'ta kalıcı olduğu kanıtlanır), tek bir güncellenen
+öge ortak modele (`listings.raw_text`) yeni sayılmadan aktarılır. `go vet`
++ `go test ./...` tümü yeşil.
+
+**Kapsam dışı bırakılanlar (bilinçli, sonraki bir aşamaya bırakıldı):**
+
+- **JSON Feed desteği eklenmedi.** Karar kapısı zaten "gerçek kaynak
+  gerektiriyorsa ekle" diyordu; somut bir JSON Feed kaynağı yok, spekülatif
+  kod yazılmadı.
+- **Feed'e özgü "bozuk feed diğer kaynakları etkilemesin" davranışı ayrıca
+  test edilmedi.** Bu izolasyon zaten orchestrator seviyesinde tüm
+  adaptörler için var (`internal/orchestrator/service.go`, per-source hata
+  yakalama) ve RSS için de aynı yoldan geçiyor, ama RSS'e özgü bir kabul
+  senaryosu yazılmadı.
+- **Manuel kontrol görünürlüğü** (bozuk/keşfedilemeyen feed'lerin
+  panelde ayrı görünmesi) Faz 9/18'deki genel "kaynak hatası" listesinin
+  ötesinde RSS'e özel bir UI/rapor eklenmedi.
+- **Faz 22'ye bırakılan gerçek kapsama sağlığı raporu** ile birleşmedi;
+  `rss_feed`/`rss_discover` şu an genel kaynak sağlık mekanizmasını
+  (`RecordSourceFailure`/`RecordSourceSuccess`) kullanıyor ama RSS'e özgü
+  bir sağlık görünümü yok.
+- **Hiçbir gerçek şirket kaynağına `rss_feed`/`rss_discover` atanmadı**
+  (`configs/sources.json` değişmedi) — bu bir "kaynak ekleme" kararı olup
+  kullanıcı onayı gerektirir, Faz 20 yalnızca adaptör altyapısını kurdu.
+- **İçerik değişince otomatik yeniden analiz yapılmıyor** — bu RSS'e özgü
+  bir eksiklik değil, `AnalysisRequired` (`internal/store/sqlite.go`) tüm
+  adaptörler için yalnızca "hiç analiz edilmemiş mi" bakıyor, içerik
+  hash'ine bakmıyor. Güncellenen RSS ögesi ortak modele (raw_text) giriyor
+  ama mevcut analiz/skor yeniden hesaplanmıyor; bu sistem-geneli davranış
+  değişmedi.
+
 ## Faz 21 — Ayrı posta kutusuyla güvenli e-posta fırsat akışı
 
 ### Kapsam
