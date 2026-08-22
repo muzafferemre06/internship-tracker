@@ -394,6 +394,77 @@ func (r *SQLiteRepository) UpdateSourceRecipeSnapshot(ctx context.Context, sourc
 	return nil
 }
 
+// LoadFeedCheckpoint returns the Faz 20 conditional-GET validators stored for
+// an RSS/Atom source, if any poll has succeeded before.
+func (r *SQLiteRepository) LoadFeedCheckpoint(ctx context.Context, sourceKey string) (domain.FeedCheckpoint, bool, error) {
+	var checkpoint domain.FeedCheckpoint
+	err := r.db.QueryRowContext(ctx, `
+		SELECT source_key, etag, last_modified FROM feed_checkpoints WHERE source_key = ?
+	`, strings.TrimSpace(sourceKey)).Scan(&checkpoint.SourceKey, &checkpoint.ETag, &checkpoint.LastModified)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.FeedCheckpoint{}, false, nil
+	}
+	if err != nil {
+		return domain.FeedCheckpoint{}, false, fmt.Errorf("load feed checkpoint %q: %w", sourceKey, err)
+	}
+	return checkpoint, true, nil
+}
+
+// SaveFeedCheckpoint upserts the conditional-GET validators for a source.
+func (r *SQLiteRepository) SaveFeedCheckpoint(ctx context.Context, checkpoint domain.FeedCheckpoint) error {
+	sourceKey := strings.TrimSpace(checkpoint.SourceKey)
+	if sourceKey == "" {
+		return errors.New("feed checkpoint source key is required")
+	}
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO feed_checkpoints(source_key, etag, last_modified, updated_at)
+		VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(source_key) DO UPDATE SET
+			etag = excluded.etag, last_modified = excluded.last_modified, updated_at = CURRENT_TIMESTAMP
+	`, sourceKey, checkpoint.ETag, checkpoint.LastModified)
+	if err != nil {
+		return fmt.Errorf("save feed checkpoint %q: %w", sourceKey, err)
+	}
+	return nil
+}
+
+// LoadSeenFeedItem returns the content hash last recorded for a feed item, so
+// the adapter can classify a re-encountered entry as unchanged vs. updated.
+func (r *SQLiteRepository) LoadSeenFeedItem(ctx context.Context, sourceKey, itemKey string) (string, bool, error) {
+	var contentHash string
+	err := r.db.QueryRowContext(ctx, `
+		SELECT content_hash FROM feed_seen_items WHERE source_key = ? AND item_key = ?
+	`, strings.TrimSpace(sourceKey), strings.TrimSpace(itemKey)).Scan(&contentHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("load seen feed item %q/%q: %w", sourceKey, itemKey, err)
+	}
+	return contentHash, true, nil
+}
+
+// MarkSeenFeedItem records (or updates) the content hash observed for a feed
+// item, preserving its original first-seen timestamp.
+func (r *SQLiteRepository) MarkSeenFeedItem(ctx context.Context, sourceKey, itemKey, contentHash string, seenAt time.Time) error {
+	key := strings.TrimSpace(sourceKey)
+	item := strings.TrimSpace(itemKey)
+	if key == "" || item == "" {
+		return errors.New("feed item source key and item key are required")
+	}
+	seenAtText := seenAt.UTC().Format(time.RFC3339)
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO feed_seen_items(source_key, item_key, content_hash, first_seen_at, last_seen_at)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(source_key, item_key) DO UPDATE SET
+			content_hash = excluded.content_hash, last_seen_at = excluded.last_seen_at
+	`, key, item, contentHash, seenAtText, seenAtText)
+	if err != nil {
+		return fmt.Errorf("mark seen feed item %q/%q: %w", sourceKey, itemKey, err)
+	}
+	return nil
+}
+
 func (r *SQLiteRepository) LoadExtractionBlocks(ctx context.Context, sourceKey string, hashes []string) (map[string][]domain.RawListing, error) {
 	result := make(map[string][]domain.RawListing)
 	for _, hash := range hashes {

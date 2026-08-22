@@ -61,3 +61,13 @@ type SourceRecipe struct {
 	GoldenListingCount int
 	GoldenFingerprint  string
 }
+
+// FeedCheckpoint is the Faz 20 RSS/Atom polling state for one source: the
+// conditional-GET validators the server issued last time, so a repeat poll
+// after a restart can send If-None-Match/If-Modified-Since instead of
+// reprocessing (and re-notifying on) a feed that has not changed.
+type FeedCheckpoint struct {
+	SourceKey    string
+	ETag         string
+	LastModified string
+}
