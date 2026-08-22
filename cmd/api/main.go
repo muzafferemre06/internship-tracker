@@ -83,7 +83,7 @@ func main() {
 		os.Exit(1)
 	}
 	sources, err := configureSources(context.Background(), sourcesConfig, repository, scraper.SourceDeps{
-		Extractor: listingExtractor, RecipeStore: repository, RecipeLearner: recipeLearner, BlockCache: repository,
+		Extractor: listingExtractor, RecipeStore: repository, RecipeLearner: recipeLearner, BlockCache: repository, FeedCheckpoints: repository,
 	})
 	if err != nil {
 		logger.Error("source initialization failed", "error", err)

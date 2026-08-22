@@ -22,10 +22,11 @@ type SourceSpec struct {
 // not per-source configuration (e.g. the LLM extractor the Faz 11 "llm_generic"
 // adapter depends on). Deterministic adapters ignore it.
 type SourceDeps struct {
-	Extractor     ListingExtractor
-	RecipeStore   RecipeStore
-	RecipeLearner RecipeLearner
-	BlockCache    ExtractionBlockStore
+	Extractor       ListingExtractor
+	RecipeStore     RecipeStore
+	RecipeLearner   RecipeLearner
+	BlockCache      ExtractionBlockStore
+	FeedCheckpoints FeedCheckpointStore
 }
 
 // SourceFactory builds a Source from a SourceSpec and shared dependencies.
@@ -75,6 +76,13 @@ var adapterFactories = map[string]SourceFactory{
 			return nil, fmt.Errorf("adapter %q requires a recipe store and learner", "learned_selector")
 		}
 		return NewLearnedSelectorSource(spec.ID, spec.Company, spec.URL, deps.RecipeStore, deps.RecipeLearner, nil)
+	},
+	// Faz 20 open-feed adapter: RSS 2.0 / Atom with a persistent checkpoint.
+	"rss_feed": func(spec SourceSpec, deps SourceDeps) (Source, error) {
+		if deps.FeedCheckpoints == nil {
+			return nil, fmt.Errorf("adapter %q requires a feed checkpoint store", "rss_feed")
+		}
+		return NewRSSFeedSource(spec.ID, spec.Company, spec.URL, deps.FeedCheckpoints, nil)
 	},
 }
 
