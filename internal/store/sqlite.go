@@ -754,23 +754,38 @@ func (r *SQLiteRepository) persistOpportunityAssessment(
 		assessment.RequirementScore, assessment.Reason, assessedAt, opportunityID); err != nil {
 		return fmt.Errorf("persist opportunity assessment: %w", err)
 	}
-	var sourceURL, firstSeen, lastSeen string
+	var sourceURL, firstSeen, lastSeen, adapterType string
 	if err := tx.QueryRowContext(ctx, `
-		SELECT canonical_url, first_seen_at, last_seen_at FROM listings WHERE id = ?
-	`, listingID).Scan(&sourceURL, &firstSeen, &lastSeen); err != nil {
+		SELECT listings.canonical_url, listings.first_seen_at, listings.last_seen_at, company_sources.adapter_type
+		FROM listings JOIN company_sources ON company_sources.id = listings.source_id
+		WHERE listings.id = ?
+	`, listingID).Scan(&sourceURL, &firstSeen, &lastSeen, &adapterType); err != nil {
 		return fmt.Errorf("load listing evidence: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO opportunity_evidence(
 			opportunity_id, listing_id, source_type, source_url, first_observed_at, last_observed_at, freshness_at
-		) VALUES (?, ?, 'web', ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(listing_id) DO UPDATE SET opportunity_id = excluded.opportunity_id,
-			source_url = excluded.source_url, last_observed_at = excluded.last_observed_at,
-			freshness_at = excluded.freshness_at
-	`, opportunityID, listingID, sourceURL, firstSeen, lastSeen, lastSeen); err != nil {
+			source_type = excluded.source_type, source_url = excluded.source_url,
+			last_observed_at = excluded.last_observed_at, freshness_at = excluded.freshness_at
+	`, opportunityID, listingID, evidenceSourceType(adapterType), sourceURL, firstSeen, lastSeen, lastSeen); err != nil {
 		return fmt.Errorf("persist listing evidence: %w", err)
 	}
 	return nil
+}
+
+// evidenceSourceType maps a company_sources.adapter_type to the
+// opportunity_evidence.source_type it represents (Faz 19 schema:
+// 'web'|'program_window'|'rss'|'email'). Every scraper-driven adapter counts
+// as 'web' except the Faz 20 RSS/Atom adapters.
+func evidenceSourceType(adapterType string) string {
+	switch adapterType {
+	case "rss_feed", "rss_discover":
+		return "rss"
+	default:
+		return "web"
+	}
 }
 
 func normalizedAssessment(value domain.MatchAssessment) (domain.MatchAssessment, error) {
