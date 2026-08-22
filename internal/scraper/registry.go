@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"context"
 	"fmt"
 	"strings"
 )
@@ -83,6 +84,14 @@ var adapterFactories = map[string]SourceFactory{
 			return nil, fmt.Errorf("adapter %q requires a feed checkpoint store", "rss_feed")
 		}
 		return NewRSSFeedSource(spec.ID, spec.Company, spec.URL, deps.FeedCheckpoints, nil)
+	},
+	// Faz 20 same-domain feed discovery: spec.URL is a career/news page, not a
+	// feed URL directly; the feed link is discovered from it at setup time.
+	"rss_discover": func(spec SourceSpec, deps SourceDeps) (Source, error) {
+		if deps.FeedCheckpoints == nil {
+			return nil, fmt.Errorf("adapter %q requires a feed checkpoint store", "rss_discover")
+		}
+		return NewRSSFeedSourceFromPage(context.Background(), spec.ID, spec.Company, spec.URL, deps.FeedCheckpoints, nil)
 	},
 }
 
