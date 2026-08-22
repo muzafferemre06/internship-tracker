@@ -68,6 +68,10 @@ func Assess(profile Profile, input Input) Assessment {
 		result.Visibility, result.Reason = domain.VisibilityRejected, "application_closed"
 		return result
 	}
+	if !strings.EqualFold(a.WorkModel, "uzaktan") && !isRemoteLocation(a.Location) && !isDomesticLocation(a.Location) {
+		result.Visibility, result.Reason = domain.VisibilityRejected, "foreign_non_remote_location"
+		return result
+	}
 	if !a.Relevant || a.Eligibility == domain.EligibilityUnsuitable {
 		result.Visibility, result.Reason = domain.VisibilityRejected, "explicitly_irrelevant"
 		return result
@@ -188,3 +192,44 @@ func trustedForPush(level string) bool {
 	}
 }
 func normalize(value string) string { return strings.ToLower(strings.TrimSpace(value)) }
+
+var turkishFoldReplacer = strings.NewReplacer("İ", "i", "I", "i", "ı", "i", "Ğ", "g", "ğ", "g", "Ü", "u", "ü", "u", "Ş", "s", "ş", "s", "Ö", "o", "ö", "o", "Ç", "c", "ç", "c")
+
+// turkishProvinces lists all 81 il names plus country name variants, used to
+// recognize domestic (Turkey-based) listings from free-form location text.
+var turkishProvinces = []string{
+	"adana", "adiyaman", "afyonkarahisar", "agri", "amasya", "ankara", "antalya", "artvin",
+	"aydin", "balikesir", "bilecik", "bingol", "bitlis", "bolu", "burdur", "bursa",
+	"canakkale", "cankiri", "corum", "denizli", "diyarbakir", "edirne", "elazig", "erzincan",
+	"erzurum", "eskisehir", "gaziantep", "giresun", "gumushane", "hakkari", "hatay", "isparta",
+	"mersin", "istanbul", "izmir", "kars", "kastamonu", "kayseri", "kirklareli", "kirsehir",
+	"kocaeli", "konya", "kutahya", "malatya", "manisa", "kahramanmaras", "mardin", "mugla",
+	"mus", "nevsehir", "nigde", "ordu", "rize", "sakarya", "samsun", "siirt", "sinop", "sivas",
+	"tekirdag", "tokat", "trabzon", "tunceli", "sanliurfa", "usak", "van", "yozgat", "zonguldak",
+	"aksaray", "bayburt", "karaman", "kirikkale", "batman", "sirnak", "bartin", "ardahan",
+	"igdir", "yalova", "karabuk", "kilis", "osmaniye", "duzce", "turkiye", "turkey",
+}
+
+// isRemoteLocation reports whether the location text itself denotes a remote
+// position (some sources put "remote"/"uzaktan" in Location instead of
+// WorkModel).
+func isRemoteLocation(location string) bool {
+	loc := strings.ToLower(strings.TrimSpace(location))
+	return loc == "remote" || loc == "uzaktan"
+}
+
+// isDomesticLocation reports whether a free-form location string refers to
+// Turkey or is unspecified. Unspecified locations are treated as domestic so
+// unknown-location listings are not silently dropped.
+func isDomesticLocation(location string) bool {
+	loc := strings.ToLower(strings.TrimSpace(turkishFoldReplacer.Replace(location)))
+	if loc == "" || loc == "belirtilmemis" {
+		return true
+	}
+	for _, province := range turkishProvinces {
+		if strings.Contains(loc, province) {
+			return true
+		}
+	}
+	return false
+}
