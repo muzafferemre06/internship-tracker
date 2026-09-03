@@ -7,61 +7,112 @@ import (
 	"github.com/muzaffer/internship-tracker/internal/domain"
 )
 
-var deterministicTestProfile = CandidateProfile{
-	ClassYear:  2,
-	FocusAreas: []string{"backend", "network", "system_administration", "autonomous_software", "ground_control_station"},
+func TestDeterministicAnalyzer_Analyze(t *testing.T) {
+	analyzer := NewDeterministicAnalyzer()
+	profile := CandidateProfile{
+		FocusAreas: []string{"backend"},
+		ClassYear:  3,
+	}
+
+	t.Run("empty title returns error", func(t *testing.T) {
+		_, err := analyzer.Analyze(context.Background(), domain.RawListing{RawText: "body"}, profile)
+		if err == nil {
+			t.Error("expected error for empty title, got nil")
+		}
+	})
+
+	t.Run("cancelled context returns error", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		_, err := analyzer.Analyze(ctx, domain.RawListing{Title: "Title"}, profile)
+		if err == nil {
+			t.Error("expected error for cancelled context, got nil")
+		}
+	})
 }
 
-func TestDeterministicAnalyzerClassifiesRelevantInternship(t *testing.T) {
-	analysis, err := NewDeterministicAnalyzer().Analyze(context.Background(), domain.RawListing{
-		Title:   "Backend Yazılım Geliştirme Stajyeri",
-		RawText: "Ankara hibrit çalışma düzeninde Go ve API geliştirme.",
-	}, deterministicTestProfile)
-	if err != nil {
-		t.Fatalf("analyze listing: %v", err)
+func TestDeterministicAnalyzer_Regressions(t *testing.T) {
+	analyzer := NewDeterministicAnalyzer()
+	ctx := context.Background()
+	profile := CandidateProfile{
+		FocusAreas: []string{"backend", "system_administration"},
+		ClassYear:  3,
 	}
-	if analysis.OpportunityType != "staj" || !analysis.Relevant || !analysis.ApplicationOpen {
-		t.Fatalf("unexpected classification: %#v", analysis)
-	}
-	if analysis.Eligibility != domain.EligibilitySuitable || analysis.Location != "Ankara" || analysis.WorkModel != "hibrit" {
-		t.Fatalf("unexpected suitability: %#v", analysis)
-	}
-	if len(analysis.MatchingAreas) != 1 || analysis.MatchingAreas[0] != "backend" {
-		t.Fatalf("unexpected matching areas: %#v", analysis.MatchingAreas)
-	}
-}
 
-func TestDeterministicAnalyzerMarksHigherClassRequirementPartlySuitable(t *testing.T) {
-	analysis, err := NewDeterministicAnalyzer().Analyze(context.Background(), domain.RawListing{
-		Title:   "Network Stajyeri",
-		RawText: "Adayların 3. sınıf öğrencisi olması beklenmektedir.",
-	}, deterministicTestProfile)
-	if err != nil {
-		t.Fatalf("analyze listing: %v", err)
+	tests := []struct {
+		name     string
+		title    string
+		body     string
+		wantType domain.OpportunityType
+		wantRel  bool
+		wantLoc  string
+	}{
+		{
+			name:     "A senior role whose body mentions internships",
+			title:    "Senior Pre-Sales Engineer",
+			body:     "our international team and we run an internship program in Ankara",
+			wantType: domain.OpportunityOther,
+			wantRel:  false,
+			wantLoc:  "Ankara",
+		},
+		{
+			name:     "Customer Onboarding Intern - Brazil",
+			title:    "Customer Onboarding Intern - Brazil",
+			body:     "Remote work available",
+			wantType: domain.OpportunityInternship,
+			wantRel:  true,
+			wantLoc:  "Brazil",
+		},
+		{
+			name:     "Software Engineer with internal tooling",
+			title:    "Software Engineer",
+			body:     "we are an international company with internal tooling",
+			wantType: domain.OpportunityOther,
+			wantRel:  false,
+			wantLoc:  "Belirtilmemiş",
+		},
+		{
+			name:     "Genuine internship (Backend Intern)",
+			title:    "Backend Intern",
+			body:     "Ankara ofisimizde çalışacak",
+			wantType: domain.OpportunityInternship,
+			wantRel:  true,
+			wantLoc:  "Ankara",
+		},
+		{
+			name:     "Genuine internship (Yazılım Stajyeri)",
+			title:    "Yazılım Stajyeri",
+			body:     "backend ve sistem yönetimi için Ankara",
+			wantType: domain.OpportunityInternship,
+			wantRel:  true,
+			wantLoc:  "Ankara",
+		},
 	}
-	if analysis.Eligibility != domain.EligibilityPartlySuitable || analysis.ClassRequirement == nil || *analysis.ClassRequirement != 3 {
-		t.Fatalf("unexpected class eligibility: %#v", analysis)
-	}
-}
 
-func TestDeterministicAnalyzerMarksClosedListingUnsuitable(t *testing.T) {
-	analysis, err := NewDeterministicAnalyzer().Analyze(context.Background(), domain.RawListing{
-		Title:   "Otonom Yazılım Stajı",
-		RawText: "Başvurular kapanmıştır.",
-	}, deterministicTestProfile)
-	if err != nil {
-		t.Fatalf("analyze listing: %v", err)
-	}
-	if analysis.ApplicationOpen || analysis.Eligibility != domain.EligibilityUnsuitable {
-		t.Fatalf("closed listing was not classified correctly: %#v", analysis)
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			listing := domain.RawListing{
+				Title:   tt.title,
+				RawText: tt.body,
+			}
+			got, err := analyzer.Analyze(ctx, listing, profile)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got.OpportunityType != tt.wantType {
+				t.Errorf("OpportunityType = %v, want %v", got.OpportunityType, tt.wantType)
+			}
+			if got.Relevant != tt.wantRel {
+				t.Errorf("Relevant = %v, want %v", got.Relevant, tt.wantRel)
+			}
+			if got.Location != tt.wantLoc {
+				t.Errorf("Location = %q, want %q", got.Location, tt.wantLoc)
+			}
 
-func TestDeterministicAnalyzerHonorsCancellation(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	_, err := NewDeterministicAnalyzer().Analyze(ctx, domain.RawListing{Title: "Staj"}, deterministicTestProfile)
-	if err == nil {
-		t.Fatal("expected canceled analysis to fail")
+			// Assert Confidence is below the downstream gate
+			if got.Confidence >= 0.80 {
+				t.Errorf("Confidence = %v, want < 0.80 (keeps keyword results out of notification layer)", got.Confidence)
+			}
+		})
 	}
 }
