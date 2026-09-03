@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/muzaffer/internship-tracker/internal/domain"
@@ -73,27 +74,12 @@ func (r *SQLiteRepository) StoredAnalyses(ctx context.Context) ([]StoredAnalysis
 		var oppType string
 
 		err := rows.Scan(
-			&sa.ListingID,
-			&oppType,
-			&isAppOpen,
-			&isRelevant,
-			&matchingAreasJSON,
-			&classYear,
-			&gpa,
-			&sa.Analysis.Location,
-			&sa.Analysis.WorkModel,
-			&sa.Analysis.Eligibility,
-			&applicationDeadline,
-			&sa.Analysis.Summary,
-			&sa.Analysis.Confidence,
-			&needsUserDecision,
-			&sa.Analysis.DecisionQuestion,
-			&sa.Analysis.Provider,
-			&sa.Analysis.Model,
-			&sa.OpportunityID,
-			&sa.Current.Visibility,
-			&sa.Current.Score,
-			&sa.Current.Reason,
+			&sa.ListingID, &oppType, &isAppOpen, &isRelevant, &matchingAreasJSON,
+			&classYear, &gpa, &sa.Analysis.Location, &sa.Analysis.WorkModel,
+			&sa.Analysis.Eligibility, &applicationDeadline, &sa.Analysis.Summary,
+			&sa.Analysis.Confidence, &needsUserDecision, &sa.Analysis.DecisionQuestion,
+			&sa.Analysis.Provider, &sa.Analysis.Model, &sa.OpportunityID,
+			&sa.Current.Visibility, &sa.Current.Score, &sa.Current.Reason,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scanning stored analysis: %w", err)
@@ -156,4 +142,53 @@ func (r *SQLiteRepository) ReapplyAssessment(ctx context.Context, stored StoredA
 	}
 
 	return nil
+}
+
+// CountProcessedAnalyses reports how many processed analyses match the
+// optional provider filter, without modifying anything.
+func (r *SQLiteRepository) CountProcessedAnalyses(ctx context.Context, provider string) (int64, error) {
+	query := `SELECT COUNT(*) FROM listing_analyses WHERE processing_status = 'processed'`
+	var args []any
+
+	provider = strings.TrimSpace(provider)
+	if provider != "" {
+		query += ` AND provider = ?`
+		args = append(args, provider)
+	}
+
+	var count int64
+	if err := r.db.QueryRowContext(ctx, query, args...).Scan(&count); err != nil {
+		return 0, fmt.Errorf("counting processed analyses: %w", err)
+	}
+
+	return count, nil
+}
+
+// InvalidateProcessedAnalyses marks stored analyses as pending so the existing
+// retry path re-extracts them with the currently configured model provider.
+// Only the processing status is touched: the previous extraction values stay
+// in place until a successful re-analysis overwrites them, so a failed or
+// interrupted pass never leaves a listing without data. Returns how many rows
+// were marked.
+func (r *SQLiteRepository) InvalidateProcessedAnalyses(ctx context.Context, provider string) (int64, error) {
+	query := `UPDATE listing_analyses SET processing_status = 'pending', retry_count = 0 WHERE processing_status = 'processed'`
+	var args []any
+
+	provider = strings.TrimSpace(provider)
+	if provider != "" {
+		query += ` AND provider = ?`
+		args = append(args, provider)
+	}
+
+	result, err := r.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("invalidating processed analyses: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("getting rows affected: %w", err)
+	}
+
+	return rows, nil
 }

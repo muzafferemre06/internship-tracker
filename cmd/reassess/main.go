@@ -2,6 +2,9 @@
 // already stored in the database. It calls no model provider, enqueues no
 // notification and never rewrites the model-produced analysis fields; only
 // opportunity scoring and visibility are recomputed.
+//
+// The -invalidate flag marks stored analyses for re-extraction by the
+// configured provider. This flag does not itself call any model.
 package main
 
 import (
@@ -13,6 +16,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/muzaffer/internship-tracker/internal/config"
 	"github.com/muzaffer/internship-tracker/internal/database"
@@ -23,6 +27,7 @@ import (
 type summary struct {
 	DatabasePath string `json:"database_path"`
 	Applied      bool   `json:"applied"`
+	Invalidated  int64  `json:"invalidated"`
 	Total        int    `json:"total"`
 	Changed      int    `json:"changed"`
 	Updated      int    `json:"updated"`
@@ -44,6 +49,7 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 	profilePath := flags.String("profile", "", "candidate profile JSON path")
 	migrationsPath := flags.String("migrations", "migrations", "migrations directory")
 	apply := flags.Bool("apply", false, "apply changes to database (dry run by default)")
+	invalidate := flags.String("invalidate", "", "mark stored analyses pending for re-extraction; value is the provider to invalidate, or \"all\"")
 
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -90,15 +96,40 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 		return fmt.Errorf("creating repository: %w", err)
 	}
 
+	// Load stored analyses before potentially invalidating them, ensuring that
+	// the re-scoring loop still processes the rows we are about to mark pending.
 	analyses, err := repo.StoredAnalyses(ctx)
 	if err != nil {
 		return fmt.Errorf("loading stored analyses: %w", err)
 	}
 
-	sum := summary{
-		DatabasePath: absDBPath,
-		Applied:      *apply,
-		Total:        len(analyses),
+	sum := summary{DatabasePath: absDBPath, Applied: *apply, Total: len(analyses)}
+
+	if *invalidate != "" {
+		providerFilter := strings.TrimSpace(*invalidate)
+		if strings.EqualFold(providerFilter, "all") {
+			providerFilter = ""
+		}
+
+		if *apply {
+			count, err := repo.InvalidateProcessedAnalyses(ctx, providerFilter)
+			if err != nil {
+				return fmt.Errorf("invalidating analyses: %w", err)
+			}
+			sum.Invalidated = count
+		} else {
+			count, err := repo.CountProcessedAnalyses(ctx, providerFilter)
+			if err != nil {
+				return fmt.Errorf("counting analyses to invalidate: %w", err)
+			}
+			sum.Invalidated = count
+		}
+
+		printProvider := providerFilter
+		if printProvider == "" {
+			printProvider = "all"
+		}
+		fmt.Fprintf(output, "invalidated=%d provider=%s\n", sum.Invalidated, printProvider)
 	}
 
 	var rowErrors []error
