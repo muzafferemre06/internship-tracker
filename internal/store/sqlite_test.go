@@ -1160,7 +1160,7 @@ func TestSecondaryNotificationRequiresStrongFocusMatchAndHighTrustSource(t *test
 }
 
 func suitablePrimaryAnalysis() domain.ListingAnalysis {
-	return domain.ListingAnalysis{ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.95,
+	return domain.ListingAnalysis{OpportunityType: domain.OpportunityInternship, ApplicationOpen: true, Relevant: true, Eligibility: domain.EligibilitySuitable, Confidence: 0.95,
 		Assessment: domain.MatchAssessment{Score: 80, FocusScore: 40, TypeScore: 25, LocationScore: 10, EligibilityScore: 0, RequirementScore: 5, Visibility: domain.VisibilityOpportunities}}
 }
 
