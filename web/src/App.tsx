@@ -397,14 +397,71 @@ export default function App() {
       </section>
 
       <div className="dashboard-grid">
-        <section className="panel coverage-panel">
-          <div className="panel-heading">
+        <ListingSection title="Yeni ve uygun fırsatlar" listings={dashboard.new_listings} empty="Yeni uygun ilan yok." onOpen={openListing} loading={detailLoading} />
+        <ListingSection title="Karar bekleyenler" listings={dashboard.needs_decision} empty="Yanıt bekleyen karar yok." onOpen={openListing} loading={detailLoading} />
+        <section className="panel">
+          <div className="panel-heading"><h2>Yaklaşan tarihler</h2><span>{upcoming.length}</span></div>
+          {upcoming.length === 0 ? <p className="empty">Başvurulara manuel tarih ekleyebilirsin.</p> : (
+            <ul className="timeline">
+              {upcoming.map(({ listing, date }) => (
+                <li key={`${listing.id}-${date}`}>
+                  <time dateTime={date}>{formatDate(date)}</time>
+                  <button className="text-button" type="button" onClick={() => openListing(listing)}>{listing.company} — {listing.title}</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <ListingSection title="Aktif başvurular" listings={dashboard.active_applications} empty="Henüz takip edilen başvuru yok." onOpen={openListing} loading={detailLoading} />
+
+        <details className="panel history-panel collapsible">
+          <summary className="panel-heading"><h2>Tüm fırsatlar / Geçmiş</h2><span>{history.total}</span></summary>
+          <form className="history-filters" onSubmit={(event) => { event.preventDefault(); void loadHistory(1); }}>
+            <label>Durum
+              <select value={historyLifecycle} onChange={(event) => setHistoryLifecycle(event.target.value as "" | OpportunityLifecycle)}>
+                <option value="">Tümü</option>
+                {Object.entries(opportunityLifecycleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+			<label>Görünürlük
+			  <select value={historyVisibility} onChange={(event) => setHistoryVisibility(event.target.value as "" | VisibilityLayer)}>
+			    <option value="">Tüm katmanlar</option>
+			    {Object.entries(visibilityLayerLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+			  </select>
+			</label>
+            <label>Başlık veya özet
+              <input value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="Örn. backend" />
+            </label>
+            <button type="submit">Filtrele</button>
+          </form>
+          {history.items.length === 0 ? <p className="empty">Bu filtrede fırsat bulunamadı.</p> : (
+            <ul className="listing-list">
+              {history.items.map((listing) => (
+                <li key={listing.opportunity_id ?? listing.id}>
+                  <button className="listing-card" type="button" disabled={detailLoading} onClick={() => openListing(listing)}>
+					<span className="listing-meta"><strong>{listing.company}</strong><small>{visibilityLayerLabels[listing.visibility_layer ?? "incelenecek"]} · {listing.match_score ?? 0}/100 · {opportunityLifecycleLabels[listing.lifecycle_status ?? "yeni"]}</small></span>
+                    <span className="listing-title">{listing.title}</span>
+                    {listing.summary ? <span className="listing-summary">{listing.summary}</span> : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="pagination">
+            <button type="button" disabled={history.page <= 1} onClick={() => void loadHistory(history.page - 1)}>Önceki</button>
+            <span>{history.page}. sayfa</span>
+            <button type="button" disabled={history.page * history.page_size >= history.total} onClick={() => void loadHistory(history.page + 1)}>Sonraki</button>
+          </div>
+        </details>
+
+        <details className="panel coverage-panel collapsible">
+          <summary className="panel-heading">
             <div>
               <h2>Şirket kaynak kapsamı</h2>
               <p className="coverage-caption">Manuel kaynaklar otomatik kapsama oranının paydasına girmez.</p>
             </div>
             <span>{coverage ? coverage.summary.total_companies : "—"}</span>
-          </div>
+          </summary>
           {coverage ? (
             <>
               {([
@@ -460,42 +517,10 @@ export default function App() {
               ) : null}
             </>
           ) : <p className="empty">Kapsama raporu yüklenemedi.</p>}
-        </section>
+        </details>
 
-        <ListingSection title="Yeni ve uygun fırsatlar" listings={dashboard.new_listings} empty="Yeni uygun ilan yok." onOpen={openListing} loading={detailLoading} />
-        <ListingSection title="Karar bekleyenler" listings={dashboard.needs_decision} empty="Yanıt bekleyen karar yok." onOpen={openListing} loading={detailLoading} />
-        <ListingSection title="Aktif başvurular" listings={dashboard.active_applications} empty="Henüz takip edilen başvuru yok." onOpen={openListing} loading={detailLoading} />
-
-        <section className="panel">
-          <div className="panel-heading"><h2>Yaklaşan tarihler</h2><span>{upcoming.length}</span></div>
-          {upcoming.length === 0 ? <p className="empty">Başvurulara manuel tarih ekleyebilirsin.</p> : (
-            <ul className="timeline">
-              {upcoming.map(({ listing, date }) => (
-                <li key={`${listing.id}-${date}`}>
-                  <time dateTime={date}>{formatDate(date)}</time>
-                  <button className="text-button" type="button" onClick={() => openListing(listing)}>{listing.company} — {listing.title}</button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="panel manual-panel">
-          <div className="panel-heading"><h2>Taranamayan kaynaklar</h2><span>{dashboard.manual_checks.length}</span></div>
-          {dashboard.manual_checks.length === 0 ? <p className="empty">Taranamayan kaynak yok.</p> : (
-            <ul className="manual-list">
-              {dashboard.manual_checks.map((check) => (
-                <li key={check.source_id}>
-                  <div><strong>{check.company}</strong><p>{check.reason}</p></div>
-                  <a href={check.url} target="_blank" rel="noreferrer">Kaynağı aç <span aria-hidden="true">↗</span></a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="panel watchlist-panel">
-          <div className="panel-heading"><h2>İzleme listesi</h2><span>{dashboard.watchlist.length}</span></div>
+        <details className="panel watchlist-panel collapsible">
+          <summary className="panel-heading"><h2>İzleme listesi</h2><span>{dashboard.watchlist.length}</span></summary>
           {dashboard.watchlist.length === 0 ? <p className="empty">İzleme listesinde kaynak yok.</p> : (
             <ul className="manual-list">
               {dashboard.watchlist.map((entry) => (
@@ -520,47 +545,21 @@ export default function App() {
               ))}
             </ul>
           )}
-        </section>
+        </details>
 
-        <section className="panel history-panel">
-          <div className="panel-heading"><h2>Tüm fırsatlar / Geçmiş</h2><span>{history.total}</span></div>
-          <form className="history-filters" onSubmit={(event) => { event.preventDefault(); void loadHistory(1); }}>
-            <label>Durum
-              <select value={historyLifecycle} onChange={(event) => setHistoryLifecycle(event.target.value as "" | OpportunityLifecycle)}>
-                <option value="">Tümü</option>
-                {Object.entries(opportunityLifecycleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </label>
-			<label>Görünürlük
-			  <select value={historyVisibility} onChange={(event) => setHistoryVisibility(event.target.value as "" | VisibilityLayer)}>
-			    <option value="">Tüm katmanlar</option>
-			    {Object.entries(visibilityLayerLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-			  </select>
-			</label>
-            <label>Başlık veya özet
-              <input value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="Örn. backend" />
-            </label>
-            <button type="submit">Filtrele</button>
-          </form>
-          {history.items.length === 0 ? <p className="empty">Bu filtrede fırsat bulunamadı.</p> : (
-            <ul className="listing-list">
-              {history.items.map((listing) => (
-                <li key={listing.opportunity_id ?? listing.id}>
-                  <button className="listing-card" type="button" disabled={detailLoading} onClick={() => openListing(listing)}>
-					<span className="listing-meta"><strong>{listing.company}</strong><small>{visibilityLayerLabels[listing.visibility_layer ?? "incelenecek"]} · {listing.match_score ?? 0}/100 · {opportunityLifecycleLabels[listing.lifecycle_status ?? "yeni"]}</small></span>
-                    <span className="listing-title">{listing.title}</span>
-                    {listing.summary ? <span className="listing-summary">{listing.summary}</span> : null}
-                  </button>
+        <details className="panel manual-panel collapsible">
+          <summary className="panel-heading"><h2>Taranamayan kaynaklar</h2><span>{dashboard.manual_checks.length}</span></summary>
+          {dashboard.manual_checks.length === 0 ? <p className="empty">Taranamayan kaynak yok.</p> : (
+            <ul className="manual-list">
+              {dashboard.manual_checks.map((check) => (
+                <li key={check.source_id}>
+                  <div><strong>{check.company}</strong><p>{check.reason}</p></div>
+                  <a href={check.url} target="_blank" rel="noreferrer">Kaynağı aç <span aria-hidden="true">↗</span></a>
                 </li>
               ))}
             </ul>
           )}
-          <div className="pagination">
-            <button type="button" disabled={history.page <= 1} onClick={() => void loadHistory(history.page - 1)}>Önceki</button>
-            <span>{history.page}. sayfa</span>
-            <button type="button" disabled={history.page * history.page_size >= history.total} onClick={() => void loadHistory(history.page + 1)}>Sonraki</button>
-          </div>
-        </section>
+        </details>
       </div>
 
       {selected ? (
