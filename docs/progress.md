@@ -278,19 +278,21 @@ penceresi, iki listing/tek push ve ikinci tarama dedup'ını doğrular.
 
 ## Sıradaki iş
 
-Faz 18'in dört batch'i, tam kalite paketi ve upstream push'ları tamamlandı.
-Verified exact `ec9f4ac38a8a2b575ea78f33a072a5180f8ca8a2` revision'ı ayrı kullanıcı
-onayı, pre-deploy snapshot ve iki-release restore kontrolünden sonra production'a
-deploy edildi. API/web healthy, Cloudflare HTTP/2 tunnel running; production DB
-41 şirket/43 kaynak/31 korunmuş ilan-fırsat/14 migration gösterir. On altı
-otomatik kaynakla 15 benzersiz şirket izlenir. Kalıcı volume kimliği değişmedi;
-rollback manifesti previous `eec2f63` revision'ını korur. Ayrıntı
-`docs/acceptance/phase-18-final-2026-08-11.md` dosyasındadır.
+Faz 19 ve Faz 20 tamamlandı; ayrıntılar `docs/roadmap.md` içindedir.
 
-Sıradaki ürün fazı Faz 19 genel fırsat modeli ve bildirim katmanlarıdır.
-Taksonomi, program penceresi şeması ve fixture eval altın kümesi koddan önce ayrı
-plan/onay kapısından geçer. RSS/e-posta Faz 20–21'de, analitik/öğrenme Faz 23'te
-kalır; ayrıntılar `docs/roadmap.md` içindedir.
+3 Eylül 2026'da kapsam dışı bir kullanıcı gözlemi (panelde Brezilya ilanı) iki
+kök nedeni ortaya çıkardı: production `LLM_PROVIDER=deterministic` ile
+çalışıyordu ve keyword analizörü kıdemli rolleri staj sayıp lokasyon uyduruyordu;
+ayrıca `applyTrustedNotificationLayer` eşleştirme katmanının fırsat türü kapısını
+atlıyordu. Her ikisi de düzeltildi ve production'a alındı
+(`aab9dfdeafef129f74e25129c7be12d28ae47e54`). Production artık
+`gemini-3.1-flash-lite` kullanır; 193 kayıt yeniden analiz edildi. Kanıt
+`docs/acceptance/phase-20.1-2026-09-03.md` içindedir.
+
+Sıradaki ürün fazı Faz 21 ayrı posta kutusuyla güvenli e-posta fırsat akışıdır.
+Sağlayıcı seçimi (Gmail API / Outlook Graph / IMAP OAuth), ham gövde retention
+politikası ve kapsam sınırı koddan önce ayrı plan/onay kapısından geçer.
+Analitik/öğrenme Faz 23'te kalır.
 
 Faz 5'in production runbook'u geçerliliğini korur. Kullanıcı yerel Docker +
 Cloudflare Tunnel üzerinden telefon erişimini doğrulamıştır; off-host yedek ve
