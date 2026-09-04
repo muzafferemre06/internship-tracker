@@ -84,7 +84,10 @@ func (a *ModelAnalyzer) Analyze(ctx context.Context, listing domain.RawListing, 
 	const systemPrompt = `İlanı yalnızca verilen aday özelliklerine göre değerlendir. JSON şemasına tam uy ve bilinmeyen bilgi uydurma.
 eligibility tam olarak "karar_bekliyor" ise needs_user_decision true ve decision_question cevaplanabilir tek bir soru olmalıdır.
 Diğer tüm eligibility değerlerinde needs_user_decision false ve decision_question boş metin olmalıdır.
-fetched_at anında aday ilan şartının tam bir sınıf altındaysa ve fırsat sonraki akademik dönemde başlıyorsa sınıf geçişini varsayma; uygun_degil yerine karar_bekliyor seçip başlangıçta gereken sınıfa geçmiş olup olmayacağını sor.`
+fetched_at anında aday ilan şartının tam bir sınıf altındaysa ve fırsat sonraki akademik dönemde başlıyorsa sınıf geçişini varsayma; uygun_degil yerine karar_bekliyor seçip başlangıçta gereken sınıfa geçmiş olup olmayacağını sor.
+Aday staj, part-time veya yeni mezun düzeyinde bir fırsat arayan üniversite öğrencisidir. İlan deneyimli profesyoneller içinse; önceden tam zamanlı profesyonel iş deneyimi gerektiriyorsa (örneğin "3+ yıl", "5+ yıl deneyim" gibi bir deneyim süresi şart koşuyorsa) veya "kıdemli", "senior", "lead", "staff", "principal", "müdür", "yönetici", "director", "VP", "head of", "chief", "mimar" gibi bir kıdem seviyesini hedefliyorsa, ya da öğrenci/yeni mezun programı değil de açıkça tam zamanlı profesyonel bir uzman/yönetici rolüyse, alan eşleşmesi ne olursa olsun relevant kesinlikle false ve eligibility kesinlikle uygun_degil olmalıdır.
+opportunity_type yalnızca ilan gerçekten öğrenciler/yeni mezunlar için yapılandırılmış bir staj, uzun dönem staj, part-time veya yeni mezun programıysa staj/uzun_donem_staj/part_time/yeni_mezun olabilir; aksi halde diger kullanılır ve yukarıdaki kıdem/deneyim kriteri karşılanıyorsa relevant false, eligibility uygun_degil olur.
+Adayın teknik ilgi alanıyla konu eşleşmesi tek başına ilanı relevant yapmaz; kıdem veya deneyim şartı bu eşleşmeye rağmen ilanı geçersiz kılar.`
 	request := ProviderRequest{
 		Model:        a.model,
 		SystemPrompt: systemPrompt,
